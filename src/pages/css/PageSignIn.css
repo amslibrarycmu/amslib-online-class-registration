@@ -1,0 +1,99 @@
+.PAGE-sign-in {
+  align-items: flex-start;
+  background-color: #ffffff;
+  display: flex;
+  gap: 10px;
+  min-height: 1024px;
+  min-width: 1920px;
+  position: relative;
+  width: 100%;
+}
+
+.PAGE-sign-in .navigation-bar {
+  height: 1024px;
+  position: relative;
+  width: 390px;
+}
+
+.PAGE-sign-in .side-navigation-bar {
+  align-items: center;
+  background-color: #fafafa;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 1024px;
+  padding: 20px;
+  position: relative;
+}
+
+.PAGE-sign-in .web-profile {
+  height: 169px;
+  margin-right: -2.00px;
+  position: relative;
+  width: 352px;
+}
+
+.PAGE-sign-in .library-logo {
+  height: 117px;
+  left: 56px;
+  position: absolute;
+  top: 0;
+  width: 239px;
+}
+
+.PAGE-sign-in .associated-of {
+  color: #000000;
+  font-family: "Sarabun-Bold", Helvetica;
+  font-size: 16px;
+  font-weight: 700;
+  left: 0;
+  letter-spacing: 0;
+  line-height: normal;
+  position: absolute;
+  text-align: center;
+  top: 127px;
+  width: 350px;
+}
+
+.PAGE-sign-in .content {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 10px;
+  height: 1024px;
+  justify-content: center;
+  padding: 10px;
+  position: relative;
+}
+
+.PAGE-sign-in .sign-in-button {
+  align-items: center;
+  border: 1px solid;
+  border-color: #a49797;
+  border-radius: 60px;
+  box-shadow: 0px 4px 4px #00000040;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 15px;
+  position: relative;
+  width: 500px;
+}
+
+.PAGE-sign-in .text-wrapper {
+  color: #000000;
+  font-family: "Sarabun-Bold", Helvetica;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: normal;
+  margin-top: -1.00px;
+  position: relative;
+  text-align: center;
+  width: fit-content;
+}
