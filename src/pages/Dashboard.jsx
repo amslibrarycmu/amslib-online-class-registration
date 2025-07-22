@@ -6,12 +6,9 @@ const Dashboard = () => {
   const { user } = useAuth();
 
   return (
-    <div className="flex w-screen">
-     <Sidebar />
-     
-     <div className="w-screen text-wrap">
-      
-     </div>
+    <div className="flex flex-col">
+      <Sidebar />
+
     </div>
   );
 };

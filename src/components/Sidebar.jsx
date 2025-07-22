@@ -5,7 +5,7 @@ import profile from "../assets/abstract-user.png";
 export default function Sidebar() {
   return (
     <>
-      <div className="max-w-[400px] min-w-[200px||50%] text-center item-center justify bg-[#f0f0f0] flex flex-col gap-[10px] relative text-white p-[1rem] h-screen">
+      <div className="w-[325px] text-center item-center justify bg-[#f0f0f0] flex flex-col gap-[10px] relative text-white p-[1rem]">
         <img src={amsliblogo} width={200} className="box mx-auto" />
 
         <p className="text-[16px] font-semibold text-black -p-[1rem]">
