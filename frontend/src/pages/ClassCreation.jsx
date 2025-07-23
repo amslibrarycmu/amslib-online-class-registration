@@ -58,27 +58,40 @@ export default function ClassCreation() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newClass = {
-      class_id: classId,
-      ...formData,
-    };
+    const newForm = new FormData();
+
+    newForm.append("class_id", classId);
+    newForm.append("title", formData.title);
+    newForm.append("speaker", formData.speaker);
+    newForm.append("start_date", formData.start_date);
+    newForm.append("end_date", formData.end_date);
+    newForm.append("start_time", formData.start_time);
+    newForm.append("end_time", formData.end_time);
+    newForm.append("description", formData.description);
+    newForm.append("format", formData.format);
+    newForm.append("join_link", formData.join_link);
+    newForm.append("max_participants", formData.max_participants);
+    newForm.append("evaluation_link", formData.evaluation_link);
+    newForm.append("target_groups", JSON.stringify(formData.target_groups));
+
+    formData.files.forEach((file) => {
+      newForm.append("files", file); // name "files" ต้องตรงกับใน multer
+    });
 
     try {
-      fetch("http://localhost:5000/api/classes", {
+      const res = await fetch("http://localhost:5000/api/classes", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newClass),
+        body: newForm,
       });
 
       if (res.ok) {
-        alert("สร้างคลาสใหม่สำเร็จ ✅");
-        console.log("🎯 ข้อมูลคลาสที่ส่ง:", newClass);
+        alert("✅ ส่งข้อมูลสำเร็จพร้อมไฟล์");
       } else {
-        alert("❌ ไม่สามารถบันทึกข้อมูลได้");
+        alert("❌ ส่งข้อมูลไม่สำเร็จ");
       }
     } catch (error) {
-      console.error("💥 Error:", error);
-      alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      console.error("💥 error", error);
+      alert("⚠️ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์");
     }
   };
 
