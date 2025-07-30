@@ -1,11 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import amsliblogo from "../assets/amslib-logo.svg";
 import profile from "../assets/abstract-user.png";
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+  const user = { firstname: "users", lastname: "lastname", role: "your role" };
+
   return (
     <>
-      <div className="w-[325px] text-center item-center justify bg-[#f0f0f0] flex flex-col gap-[10px] relative text-white p-[1rem]">
+      <div className="w-[325px] min-h-screen text-center item-center justify bg-[#f0f0f0] flex flex-col gap-[10px] relative text-white p-[1rem]">
         <img src={amsliblogo} width={200} className="box mx-auto" />
 
         <p className="text-[16px] font-semibold text-black -p-[1rem]">
@@ -21,14 +25,14 @@ export default function Sidebar() {
           />
           <div className="flex flex-col text-start px-0 relative self-stretch grow text-black">
             <span className="relative self-stretch">
-              {" "}
-              **users** **lastname**{" "}
+              {user.firstname} {user.lastname}
             </span>
-            <span> (**your role**) </span>
+            <span> ({user.role}) </span>
             <a
-              href=""
-              onClick={() => alert("ออกจากระบบแล้ว")}
-              className="my-[5px]"
+              type="button"
+              className="my-[5px] bg-transparent border-none p-0"
+              style={{ background: "transparent" }}
+              onClick={() => alert("ฟังก์ชันออกจากระบบ (dev mode)")}
             >
               <p className="font-bold cursor-pointer hover:underline">
                 ลงชื่อออก
@@ -38,9 +42,34 @@ export default function Sidebar() {
         </div>
 
         <div className="flex flex-col items-center gap-5 relative">
-          <a href="" onClick={() => alert("ภาพรวม")}> <p className="text-black hover:underline text-[1.25rem] "> ภาพรวม </p> </a>
-          <a href="" onClick={() => alert("สร้างห้องเรียน")}> <p className="text-black hover:underline text-[1.25rem]"> สร้างห้องเรียน </p></a>
-          <a href="" onClick={() => alert("ติดตามผล")}> <p className="text-black hover:underline text-[1.25rem]"> ติดตามผล </p> </a>
+          <a
+            type="button"
+            className="bg-transparent border-none p-0"
+            style={{ background: "transparent" }}
+            onClick={() => navigate("/dashboard")}
+          >
+            <p className="text-black cursor-pointer hover:underline text-[1.25rem] ">ภาพรวม</p>
+          </a>
+          <a
+            type="button"
+            className="bg-transparent border-none p-0"
+            style={{ background: "transparent" }}
+            onClick={() => navigate("/creations")}
+          >
+            <p className="text-black cursor-pointer hover:underline text-[1.25rem]">
+              สร้างห้องเรียน
+            </p>
+          </a>
+          <a
+            type="button"
+            className="bg-transparent border-none p-0"
+            style={{ background: "transparent" }}
+            onClick={() => navigate("/dashboard")}
+          >
+            <p className="text-black cursor-pointer hover:underline text-[1.25rem]">
+              ติดตามผล
+            </p>
+          </a>
         </div>
       </div>
     </>

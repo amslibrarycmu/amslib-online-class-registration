@@ -14,11 +14,31 @@ CREATE TABLE classes (
   format VARCHAR(100),
   join_link TEXT,
   max_participants INT,
-  evaluation_link TEXT,
   target_groups JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 SHOW TABLES IN amslib;
 
+DELETE FROM classes;
+TRUNCATE TABLE classes;
+SELECT * FROM classes;
 
+SHOW CREATE TABLE classes;
+
+DESCRIBE classes;
+
+ALTER TABLE classes ADD COLUMN location VARCHAR(255) AFTER join_link;
+ALTER TABLE classes ADD COLUMN created_by_email VARCHAR(255);
+
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  status VARCHAR(100) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  phone VARCHAR(20),
+  pdpa BOOLEAN DEFAULT 0
+);
+
+INSERT INTO users (name, status, email, phone, pdpa)
+VALUES ('user admin', 'ผู้ดูแลระบบ', 'useradmin@email.com', '0900000000', 1);

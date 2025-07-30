@@ -2,34 +2,35 @@ import React, { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+export const AuthProvider = ({ children }) => {
+  // mock user admin
+  const [user, setUser] = useState({
+    name: "user admin",
+    status: "ผู้ดูแลระบบ",
+    email: "useradmin@email.com",
+    phone: "0900000000",
+    pdpa: true,
+    is_active: true,
+  });
 
+  // mock login function
   const loginWithCMU = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          name: "example cmu",
-          email: "example@cmu.ac.th",
-          role: "user",
-        };
-        setUser(mockUser);
-        resolve(true);
-      }, 1000);
+    setUser({
+      name: "user admin",
+      status: "ผู้ดูแลระบบ",
+      email: "useradmin@email.com",
+      phone: "0900000000",
+      pdpa: true,
+      is_active: true,
     });
-  };
-
-  const logout = () => {
-    setUser(null);
+    return true;
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginWithCMU, logout }}>
+    <AuthContext.Provider value={{ user, loginWithCMU }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);

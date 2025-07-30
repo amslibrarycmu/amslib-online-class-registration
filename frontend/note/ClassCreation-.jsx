@@ -16,7 +16,6 @@ export default function ClassCreation() {
     target_groups: [],
     max_participants: 0,
     files: [],
-    evaluation_link: "",
   });
 
   const handleChange = (e) => {
@@ -165,12 +164,6 @@ export default function ClassCreation() {
             ))}
           </div>
 
-          <input
-            name="evaluation_link"
-            placeholder="ลิงก์การประเมิน"
-            className="p-2 border rounded"
-            onChange={handleChange}
-          />
           <input
             name="join_link"
             placeholder="ลิงก์เข้าเรียนออนไลน์"

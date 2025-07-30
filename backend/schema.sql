@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS classes (
   class_id VARCHAR(6) NOT NULL UNIQUE,
   activity_name VARCHAR(255) NOT NULL,
   description TEXT,
-  speaker VARCHAR(255),
+  speaker TEXT,
   platform VARCHAR(100),
   link TEXT,
   start_date DATE,
@@ -18,6 +18,5 @@ CREATE TABLE IF NOT EXISTS classes (
   end_time TIME,
   max_participants INT,
   audience JSON,
-  evaluation_link TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

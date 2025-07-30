@@ -31,7 +31,7 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
   if (err) throw err;
-  console.log("✅ Connected to MySQL");
+  console.log("✅ เชื่อมต่อกับ MySQL");
 });
 
 // 🔽 POST พร้อมรับไฟล์
@@ -48,26 +48,47 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
     format,
     join_link,
     max_participants,
-    evaluation_link,
     target_groups,
   } = req.body;
 
-  const fileNames = req.files.map((file) => file.filename); // ชื่อไฟล์ทั้งหมด
+  let speakerValue = speaker;
+  try {
+    if (typeof speaker === 'string' && speaker.trim().startsWith('[')) {
+      speakerValue = JSON.parse(speaker);
+    }
+  } catch (e) {
+    speakerValue = speaker;
+  }
+
+  const allGroups = ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"];
+  let groupsValue = target_groups;
+  try {
+    if (typeof target_groups === 'string') {
+      groupsValue = JSON.parse(target_groups);
+    }
+  } catch (e) {
+    groupsValue = (target_groups || "").split(",").map(s => s.trim()).filter(Boolean);
+  }
+  if (!Array.isArray(groupsValue) || groupsValue.length === 0) {
+    groupsValue = allGroups;
+  }
+
+  const fileNames = req.files.map((file) => file.filename);
 
   const sql = `
-    INSERT INTO classes (
-      class_id, title, speaker, start_date, end_date,
-      start_time, end_time, description, format,
-      join_link, max_participants, evaluation_link, target_groups, files
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+  INSERT INTO classes (
+    class_id, title, speaker, start_date, end_date,
+    start_time, end_time, description, format,
+    join_link, location, max_participants, target_groups, files, created_by_email
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`;
 
   db.query(
     sql,
     [
       class_id,
       title,
-      speaker,
+      JSON.stringify(speakerValue),
       start_date,
       end_date,
       start_time,
@@ -75,18 +96,31 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
       description,
       format,
       join_link,
+      req.body.location || "",
       max_participants,
-      evaluation_link,
-      JSON.stringify(target_groups),
+      JSON.stringify(groupsValue),
       JSON.stringify(fileNames),
+      req.body.created_by_email || "", // เพิ่ม created_by_email
     ],
     (err, result) => {
       if (err) {
         console.error("❌ บันทึกไม่สำเร็จ:", err);
-        return res.status(500).send("Server Error");
+        return res.status(500).send("เซิร์ฟเวอร์ผิดพลาด");
       }
       console.log("✅ บันทึกข้อมูลสำเร็จ:", result);
       res.status(201).json({ message: "Class created successfully" });
+    }
+  );
+});
+
+app.get("/api/classes", (req, res) => {
+  const { email } = req.query; // รับอีเมลจาก query string
+  db.query(
+    "SELECT * FROM classes WHERE created_by_email = ?",
+    [email],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: err });
+      res.json(results);
     }
   );
 });
