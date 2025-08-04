@@ -34,7 +34,42 @@ db.connect((err) => {
   console.log("✅ เชื่อมต่อกับ MySQL");
 });
 
-// 🔽 POST พร้อมรับไฟล์
+// POST /api/login
+app.post('/api/login', (req, res) => {
+  const { email } = req.body;
+  const sql = 'SELECT * FROM users WHERE email = ? AND is_active = 1';
+
+  db.query(sql, [email], (err, results) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    if (results.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or user not found' });
+    }
+
+    const user = results[0];
+    res.json({
+      id: user.id,
+      name: user.name,
+      status: user.status,
+      email: user.email,
+      phone: user.phone,
+      pdpa: user.pdpa,
+      is_active: user.is_active,
+    });
+  });
+});
+
+// GET /api/classes
+app.get('/api/classes', (req, res) => {
+  const { email } = req.query;
+  const sql = 'SELECT * FROM classes WHERE created_by_email = ?';
+
+  db.query(sql, [email], (err, results) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    res.json(results);
+  });
+});
+
+// POST พร้อมรับไฟล์
 app.post("/api/classes", upload.array("files"), (req, res) => {
   const {
     class_id,
@@ -113,16 +148,21 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
   );
 });
 
-app.get("/api/classes", (req, res) => {
-  const { email } = req.query; // รับอีเมลจาก query string
-  db.query(
-    "SELECT * FROM classes WHERE created_by_email = ?",
-    [email],
-    (err, results) => {
-      if (err) return res.status(500).json({ error: err });
-      res.json(results);
+// DELETE /api/classes/:classId
+app.delete('/api/classes/:classId', (req, res) => {
+  const { classId } = req.params;
+  const sql = 'DELETE FROM classes WHERE class_id = ?';
+
+  db.query(sql, [classId], (err, result) => {
+    if (err) {
+      console.error('Error deleting class:', err);
+      return res.status(500).json({ error: 'Database error' });
     }
-  );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Class not found' });
+    }
+    res.status(200).json({ message: 'Class deleted successfully' });
+  });
 });
 
 // เปิดใช้โฟลเดอร์สำหรับแสดงไฟล์ (ถ้าต้องการ)

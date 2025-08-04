@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -7,18 +7,11 @@ import {
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
-import RegisterForm from "./pages/RegisterForm";
-import AdminPanel from "./pages/AdminPanel";
 import ClassCreation from "./pages/ClassCreation";
-import ClassList from "./components/ClassList";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-
-import "./App.css";
-
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
-
   return user ? children : <Navigate to="/login" />;
 }
 
@@ -29,28 +22,11 @@ function App() {
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route
-            path="/register"
+            path="/dashboard"
             element={
               <ProtectedRoute>
-                <RegisterForm />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminPanel />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/classes"
-            element={
-              <ProtectedRoute>
-                <ClassList />
+                <Dashboard />
               </ProtectedRoute>
             }
           />
@@ -62,9 +38,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* *** ลบหรือคอมเมนต์ Route นี้ออก หรือเปลี่ยนให้ชี้ไปที่ /dashboard ถ้าคุณต้องการ fallback *** */}
-          {/* ถ้าคุณตั้ง path="/" ชี้ไป Dashboard แล้ว Route นี้อาจไม่จำเป็น หรือปรับให้เข้ากับ path="/" */}
-          {/* <Route path="*" element={<Navigate to="/dashboard" />} /> */}
         </Routes>
       </Router>
     </AuthProvider>

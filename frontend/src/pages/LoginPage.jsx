@@ -1,17 +1,31 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-
 import amsliblogo from "../assets/amslib-logo.svg";
 
-export default function LoginPage() {
+const LoginPage = () => {
+  const { setUser } = useAuth();
   const navigate = useNavigate();
-  const { loginWithCMU } = useAuth();
 
   const handleLogin = async () => {
-    const success = await loginWithCMU();
-    if (success) {
-      navigate("/dashboard");
+    try {
+      const response = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "useradmin@email.com" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
+
+      const userData = await response.json();
+      setUser(userData); // อัปเดตข้อมูลผู้ใช้ใน AuthContext
+      console.log("Login successful:", userData); // แสดงข้อมูลผู้ใช้ใน console
+      navigate("/dashboard"); // นำทางไปยังหน้า Dashboard
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("ไม่สามารถเข้าสู่ระบบได้");
     }
   };
 
@@ -31,11 +45,13 @@ export default function LoginPage() {
         </p>
         <button
           onClick={handleLogin}
-          className="bg-white border border-gray-400 text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
+          className="bg-purple-700 border border-gray-400 text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
         >
           เข้าสู่ระบบผ่านบัญชี CMU
         </button>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;
