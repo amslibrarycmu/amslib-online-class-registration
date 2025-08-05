@@ -152,7 +152,7 @@ const ClassCreationModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-white/75 flex justify-center items-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6">
           {isEditing ? "แก้ไขห้องเรียน" : "สร้างห้องเรียนใหม่"}
@@ -397,7 +397,7 @@ const ClassCreationModal = ({
               type="submit"
               className="bg-purple-700 text-white px-6 py-2 rounded hover:bg-purple-800 w-[150px]"
             >
-              {isEditing ? "บันทึกการเปลี่ยนแปลง" : "สร้าง"}
+              {isEditing ? "เปลี่ยนแปลง" : "สร้าง"}
             </button>
           </div>
         </form>

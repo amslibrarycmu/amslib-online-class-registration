@@ -6,7 +6,7 @@ import profile from "../assets/abstract-user.png";
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   let firstname = "";
   let lastname = "";
@@ -39,6 +39,11 @@ export default function Sidebar() {
           <span
             className="font-semibold cursor-pointer hover:underline"
             style={{ color: "black" }}
+            onClick={() => {
+              logout();
+              alert("ออกจากระบบแล้ว");
+              navigate("/login");
+            }}
           >
             <span className="font-semibold"> ออกจากระบบ </span>
           </span>
