@@ -22,7 +22,7 @@ const LoginPage = () => {
       const userData = await response.json();
       setUser(userData); // อัปเดตข้อมูลผู้ใช้ใน AuthContext
       console.log("Login successful:", userData); // แสดงข้อมูลผู้ใช้ใน console
-      navigate("/dashboard"); // นำทางไปยังหน้า Dashboard
+      navigate("/index"); // นำทางไปยังหน้า 
     } catch (error) {
       console.error("Login error:", error);
       alert("ไม่สามารถเข้าสู่ระบบได้");

@@ -11,7 +11,7 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     await loginWithCMU();
-    navigate("/dashboard");
+    navigate("/index");
   };
 
   return (

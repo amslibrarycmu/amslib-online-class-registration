@@ -23,7 +23,7 @@ function App() {
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
-            path="/dashboard"
+            path="/index"
             element={
               <ProtectedRoute>
                 <Dashboard />

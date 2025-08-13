@@ -1,5 +1,3 @@
-// ClassCreation.jsx
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -91,7 +89,7 @@ export default function ClassCreation() {
 
       if (res.ok) {
         alert("✅ สร้างห้องเรียนสำเร็จ");
-        navigate("/dashboard");
+        navigate("/admin/index");
       } else {
         alert("❌ สร้างห้องเรียนไม่สำเร็จ");
       }

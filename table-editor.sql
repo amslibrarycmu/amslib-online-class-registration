@@ -21,3 +21,7 @@ SELECT * FROM users;
 /* Insert datas to users */
 INSERT INTO users (name, status, email, phone, pdpa)
 VALUES ('user admin', 'ผู้ดูแลระบบ', 'useradmin@email.com', '0900000000', 1);
+
+/* Add another Column */
+ALTER TABLE classes
+ADD COLUMN promoted TINYINT(1) NOT NULL DEFAULT 0;

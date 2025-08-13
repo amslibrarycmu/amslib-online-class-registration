@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/index";
 import RegisterForm from "./pages/RegisterForm";
 import AdminPanel from "./pages/AdminPanel";
 import ClassCreation from "./pages/ClassCreation";
@@ -30,25 +30,25 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           {/* *** เปลี่ยน Default Route ให้ไปที่ Dashboard แทน *** */}
-          {/* จากเดิม <Route path="*" element={<Navigate to="/dashboard" />} /> */}
+          {/* จากเดิม <Route path="*" element={<Navigate to="/index" />} /> */}
           {/* ให้เปลี่ยน path="/" (Root path) ไปที่ Dashboard */}
           <Route path="/" element={<Dashboard />} /> {/* <-- เพิ่มบรรทัดนี้ */}
           {/* *** คอมเมนต์บรรทัด ProtectedRoute สำหรับ Dashboard ชั่วคราว *** */}
           {/* <Route
-            path="/dashboard"
+            path="/index"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             }
           /> */}
-          {/* หากคุณต้องการให้ /dashboard ยังทำงานปกติ (แต่ไม่ต้องผ่าน ProtectedRoute)
+          {/* หากคุณต้องการให้ /index ยังทำงานปกติ (แต่ไม่ต้องผ่าน ProtectedRoute)
               ให้เปลี่ยนเป็น element={<Dashboard />} ตรงๆ ได้เลย (ไม่ต้องครอบ ProtectedRoute)
-              แต่ถ้าคุณตั้ง path="/" ชี้ไปที่ Dashboard แล้ว อาจจะไม่จำเป็นต้องมี path="/dashboard" แยกอีก
-              เว้นแต่คุณต้องการให้ /dashboard เป็นหน้าหลักจริง ๆ และ / เป็นแค่ redirect
+              แต่ถ้าคุณตั้ง path="/" ชี้ไปที่ Dashboard แล้ว อาจจะไม่จำเป็นต้องมี path="/index" แยกอีก
+              เว้นแต่คุณต้องการให้ /index เป็นหน้าหลักจริง ๆ และ / เป็นแค่ redirect
           */}
-          {/* ถ้าคุณต้องการเข้าถึง Dashboard จาก /dashboard โดยตรงโดยไม่ผ่าน ProtectedRoute */}
-          <Route path="/dashboard" element={<Dashboard />} />{" "}
+          {/* ถ้าคุณต้องการเข้าถึง Dashboard จาก /index โดยตรงโดยไม่ผ่าน ProtectedRoute */}
+          <Route path="/index" element={<Dashboard />} />{" "}
           {/* <-- เพิ่ม/แก้ไขบรรทัดนี้ */}
           {/* ส่วน Route อื่นๆ ที่ต้องการการป้องกัน ก็ปล่อยไว้เหมือนเดิม */}
           <Route
@@ -83,9 +83,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* *** ลบหรือคอมเมนต์ Route นี้ออก หรือเปลี่ยนให้ชี้ไปที่ /dashboard ถ้าคุณต้องการ fallback *** */}
+          {/* *** ลบหรือคอมเมนต์ Route นี้ออก หรือเปลี่ยนให้ชี้ไปที่ /index ถ้าคุณต้องการ fallback *** */}
           {/* ถ้าคุณตั้ง path="/" ชี้ไป Dashboard แล้ว Route นี้อาจไม่จำเป็น หรือปรับให้เข้ากับ path="/" */}
-          {/* <Route path="*" element={<Navigate to="/dashboard" />} /> */}
+          {/* <Route path="*" element={<Navigate to="/index" />} /> */}
         </Routes>
       </Router>
     </AuthProvider>

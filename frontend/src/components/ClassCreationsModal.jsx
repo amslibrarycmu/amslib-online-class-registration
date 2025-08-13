@@ -1,16 +1,16 @@
-// ClassCreationsModal.jsx (ไฟล์ใหม่ที่คุณต้องสร้างในโฟลเดอร์ components)
-
 import React, { useState, useEffect, useRef } from "react";
 
-const ClassCreationModal = ({
-  onClose,
-  initialData,
-  onSubmit,
-  isEditing,
-}) => {
+const speakerOptions = [
+  "กันตภณ พรมคำ",
+  "จิตราภรณ์ ชัยมณี",
+  "ทิพวรรณ สุขรวย",
+  "วรรธนันทพร วิลัยรักษ์",
+];
+
+const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
   const [formData, setFormData] = useState({
     title: "",
-    speaker: [],
+    speaker: [], // Changed to array
     start_date: "",
     end_date: "",
     start_time: "",
@@ -24,7 +24,7 @@ const ClassCreationModal = ({
     files: [], // Ensure files array is initialized
   });
 
-  const [speakerInput, setSpeakerInput] = useState("");
+  const [speakerInput, setSpeakerInput] = useState(""); // Reintroduced
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
 
@@ -64,28 +64,33 @@ const ClassCreationModal = ({
           const parsed = JSON.parse(initialData.speaker);
           if (Array.isArray(parsed)) {
             speakers = parsed;
+          } else {
+            // If it's a string but not a JSON array, treat as single speaker
+            speakers = [initialData.speaker];
           }
         } catch {
-          speakers = initialData.speaker
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s !== "");
+          // If parsing fails, treat as single speaker
+          speakers = [initialData.speaker];
         }
       }
 
       setFormData({
         ...initialData,
         class_id: initialData.class_id,
-        speaker: speakers,
+        speaker: speakers, // Now an array
         start_date: formatDate(initialData.start_date),
         end_date: formatDate(initialData.end_date),
         location: initialData.location || "",
-        target_groups: groups.length > 0 ? groups : ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"],
+        target_groups:
+          groups.length > 0
+            ? groups
+            : ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"],
         max_participants: initialData.max_participants || "1",
-        // Ensure files are handled correctly when loading initial data
         files: Array.isArray(initialData.files)
           ? initialData.files
-          : initialData.files && typeof initialData.files === "string" && initialData.files !== "[]"
+          : initialData.files &&
+            typeof initialData.files === "string" &&
+            initialData.files !== "[]"
           ? JSON.parse(initialData.files)
           : [],
       });
@@ -99,30 +104,27 @@ const ClassCreationModal = ({
         ...prev,
         files: [...prev.files, ...Array.from(files)],
       }));
-    } else if (name === "speaker") {
+    } else if (name === "speaker") { // Handle speaker dropdown separately
       setSpeakerInput(value);
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
 
-  const handleSpeakerKeyDown = (e) => {
-    if (["Enter", ",", "Tab"].includes(e.key) && speakerInput.trim()) {
-      e.preventDefault();
-      if (!formData.speaker.includes(speakerInput.trim())) {
-        setFormData((prev) => ({
-          ...prev,
-          speaker: [...prev.speaker, speakerInput.trim()],
-        }));
-      }
-      setSpeakerInput("");
+  const handleAddSpeaker = () => {
+    if (speakerInput && !formData.speaker.includes(speakerInput)) {
+      setFormData((prev) => ({
+        ...prev,
+        speaker: [...prev.speaker, speakerInput],
+      }));
+      setSpeakerInput(""); // Clear the input after adding
     }
   };
 
-  const handleRemoveSpeaker = (idx) => {
+  const handleRemoveSpeaker = (speakerToRemove) => {
     setFormData((prev) => ({
       ...prev,
-      speaker: prev.speaker.filter((_, i) => i !== idx),
+      speaker: prev.speaker.filter((spk) => spk !== speakerToRemove),
     }));
   };
 
@@ -148,7 +150,10 @@ const ClassCreationModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    const dataToSend = { ...formData };
+    // Ensure speaker is always an array for backend and stringify it
+    dataToSend.speaker = JSON.stringify(dataToSend.speaker);
+    onSubmit(dataToSend);
   };
 
   return (
@@ -171,32 +176,49 @@ const ClassCreationModal = ({
 
           <div>
             <label className="block font-medium mb-1">วิทยากร</label>
-            <div className="w-full border px-4 py-2 rounded flex flex-wrap gap-2 min-h-[44px] bg-white">
-              {formData.speaker.map((spk, idx) => (
-                <span
-                  key={idx}
-                  className="text-black pl-[10px] border-[0.5px] border-black rounded flex items-center gap-1"
-                >
-                  {spk}
-                  <button
-                    type="button"
-                    className="text-xs text-white hover:bg-red-800"
-                    style={{ borderRadius: "0", background: "black" }}
-                    onClick={() => handleRemoveSpeaker(idx)}
-                  >
-                    X
-                  </button>
-                </span>
-              ))}
-              <input
+            <div className="flex gap-2">
+              <select
                 name="speaker"
-                value={speakerInput}
+                value={speakerInput} // Bind to speakerInput
                 onChange={handleChange}
-                onKeyDown={handleSpeakerKeyDown}
-                placeholder="พิมพ์ชื่อ-สกุล แล้ว Enter"
-                className="flex-1 min-w-[120px] border-none outline-none"
-              />
+                className="w-full border px-4 py-2 rounded"
+              >
+                <option value="">-- เลือกวิทยากร --</option>
+                {speakerOptions
+                  .filter((spk) => !formData.speaker.includes(spk)) // Filter out already selected speakers
+                  .map((speaker) => (
+                    <option key={speaker} value={speaker}>
+                      {speaker}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleAddSpeaker}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                เพิ่ม
+              </button>
             </div>
+            {formData.speaker.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {formData.speaker.map((spk, idx) => (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center bg-gray-100 px-3 py-1 rounded"
+                  >
+                    <span>{spk}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSpeaker(spk)}
+                      className="text-red-600 hover:text-red-800 ml-2"
+                    >
+                      ลบ
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             {formData.speaker.length === 0 && (
               <div className="text-red-500 text-xs mt-1">
                 กรุณาระบุวิทยากรอย่างน้อย 1 คน
@@ -214,7 +236,7 @@ const ClassCreationModal = ({
                 name="start_date"
                 value={formData.start_date || ""}
                 onChange={handleChange}
-                className="border px-4 py-2 rounded w-full"
+                className="w-full border px-4 py-2 rounded"
                 required
               />
             </div>
@@ -227,7 +249,7 @@ const ClassCreationModal = ({
                 name="end_date"
                 value={formData.end_date || ""}
                 onChange={handleChange}
-                className="border px-4 py-2 rounded w-full"
+                className="w-full border px-4 py-2 rounded"
                 required
               />
             </div>
@@ -238,7 +260,7 @@ const ClassCreationModal = ({
                 name="start_time"
                 value={formData.start_time || ""}
                 onChange={handleChange}
-                className="border px-4 py-2 rounded w-full"
+                className="w-full border px-4 py-2 rounded"
                 required
               />
             </div>
@@ -249,7 +271,7 @@ const ClassCreationModal = ({
                 name="end_time"
                 value={formData.end_time || ""}
                 onChange={handleChange}
-                className="border px-4 py-2 rounded w-full"
+                className="w-full border px-4 py-2 rounded"
                 required
               />
             </div>

@@ -111,6 +111,46 @@ const Dashboard = () => {
     }
   };
 
+  // NEW FUNCTION: handlePromoteToggle
+  const handlePromoteToggle = async (classId, isPromoted) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/classes/${classId}/promote`, {
+        method: "PUT", // Or PATCH, depending on backend
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ promoted: isPromoted }),
+      });
+
+      if (response.ok) {
+        setClasses((prevClasses) =>
+          prevClasses.map((cls) =>
+            cls.class_id === classId ? { ...cls, promoted: isPromoted ? 1 : 0 } : cls
+          )
+        );
+        alert(`✅ ห้องเรียนถูก${isPromoted ? 'โปรโมท' : 'ยกเลิกการโปรโมท'}แล้ว`);
+      } else {
+        const errorData = await response.json();
+        alert(`❌ ไม่สามารถ${isPromoted ? 'โปรโมท' : 'ยกเลิกการโปรโมท'}ห้องเรียนได้: ${errorData.message || response.statusText}`);
+        // Revert the toggle visually if the API call fails
+        setClasses((prevClasses) =>
+          prevClasses.map((cls) =>
+            cls.class_id === classId ? { ...cls, promoted: !isPromoted } : cls
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error toggling promotion status:", error);
+      alert("⚠️ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์เพื่ออัปเดตสถานะโปรโมท");
+      // Revert the toggle visually if there's a network error
+      setClasses((prevClasses) =>
+        prevClasses.map((cls) =>
+          cls.class_id === classId ? { ...cls, promoted: !isPromoted } : cls
+        )
+      );
+    }
+  };
+
   return (
     <div className="flex w-screen">
       <Sidebar />
@@ -242,6 +282,8 @@ const Dashboard = () => {
                             type="checkbox"
                             id={`promote-${cls.class_id}`}
                             className="sr-only peer"
+                            checked={cls.promoted === 1}
+                            onChange={(e) => handlePromoteToggle(cls.class_id, e.target.checked)}
                           />
                           <div className="w-10 h-4 bg-gray-400 rounded-full shadow-inner"></div>
                           <div className="dot absolute w-6 h-6 bg-white rounded-full shadow -left-1 -top-1 transition-transform duration-300 ease-in-out peer-checked:translate-x-full peer-checked:bg-green-500"></div>

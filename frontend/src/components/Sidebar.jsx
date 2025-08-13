@@ -41,7 +41,7 @@ export default function Sidebar() {
             style={{ color: "black" }}
             onClick={() => {
               logout();
-              alert("ออกจากระบบแล้ว");
+              alert("ออกจากระบบสำเร็จ");
               navigate("/login");
             }}
           >
@@ -51,7 +51,7 @@ export default function Sidebar() {
       </div>
       <div className="flex flex-col items-center gap-5">
         <span
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/index")}
           className="text-black cursor-pointer hover:underline text-[1.25rem] "
           style={{ background: "transparent", borderColor: "" }}
         >

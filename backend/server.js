@@ -165,6 +165,28 @@ app.delete('/api/classes/:classId', (req, res) => {
   });
 });
 
+// PUT /api/classes/:classId/promote
+app.put('/api/classes/:classId/promote', (req, res) => {
+  const { classId } = req.params;
+  const { promoted } = req.body; // Expecting a boolean true/false
+
+  // Convert boolean to 0 or 1 for MySQL TINYINT/BOOLEAN column
+  const promotedValue = promoted ? 1 : 0;
+
+  const sql = 'UPDATE classes SET promoted = ? WHERE class_id = ?';
+
+  db.query(sql, [promotedValue, classId], (err, result) => {
+    if (err) {
+      console.error('Error updating promotion status:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Class not found or no changes made' });
+    }
+    res.status(200).json({ message: 'Promotion status updated successfully' });
+  });
+});
+
 // เปิดใช้โฟลเดอร์สำหรับแสดงไฟล์ (ถ้าต้องการ)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

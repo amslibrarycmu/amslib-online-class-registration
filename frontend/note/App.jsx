@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/index";
 import RegisterForm from "./pages/RegisterForm";
 import AdminPanel from "./pages/AdminPanel";
 import ClassCreation from "./pages/ClassCreation";
@@ -29,7 +29,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/index" element={<Dashboard />} />
           <Route
             path="/register"
             element={
@@ -62,9 +62,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* *** ลบหรือคอมเมนต์ Route นี้ออก หรือเปลี่ยนให้ชี้ไปที่ /dashboard ถ้าคุณต้องการ fallback *** */}
+          {/* *** ลบหรือคอมเมนต์ Route นี้ออก หรือเปลี่ยนให้ชี้ไปที่ /index ถ้าคุณต้องการ fallback *** */}
           {/* ถ้าคุณตั้ง path="/" ชี้ไป Dashboard แล้ว Route นี้อาจไม่จำเป็น หรือปรับให้เข้ากับ path="/" */}
-          {/* <Route path="*" element={<Navigate to="/dashboard" />} /> */}
+          {/* <Route path="*" element={<Navigate to="/index" />} /> */}
         </Routes>
       </Router>
     </AuthProvider>
