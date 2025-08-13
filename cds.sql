@@ -40,5 +40,10 @@ CREATE TABLE users (
   pdpa BOOLEAN DEFAULT 0
 );
 
-INSERT INTO users (name, status, email, phone, pdpa)
-VALUES ('user admin', 'ผู้ดูแลระบบ', 'useradmin@email.com', '0900000000', 1);
+SELECT 
+    class_id, 
+    speaker 
+FROM 
+    classes
+WHERE 
+    speaker LIKE '"[%\"%]"';

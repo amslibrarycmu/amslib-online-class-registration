@@ -74,7 +74,7 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
   const {
     class_id,
     title,
-    speaker,
+    speaker, // Expecting a JSON string from the client
     start_date,
     end_date,
     start_time,
@@ -83,30 +83,8 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
     format,
     join_link,
     max_participants,
-    target_groups,
+    target_groups, // Expecting a JSON string from the client
   } = req.body;
-
-  let speakerValue = speaker;
-  try {
-    if (typeof speaker === 'string' && speaker.trim().startsWith('[')) {
-      speakerValue = JSON.parse(speaker);
-    }
-  } catch (e) {
-    speakerValue = speaker;
-  }
-
-  const allGroups = ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"];
-  let groupsValue = target_groups;
-  try {
-    if (typeof target_groups === 'string') {
-      groupsValue = JSON.parse(target_groups);
-    }
-  } catch (e) {
-    groupsValue = (target_groups || "").split(",").map(s => s.trim()).filter(Boolean);
-  }
-  if (!Array.isArray(groupsValue) || groupsValue.length === 0) {
-    groupsValue = allGroups;
-  }
 
   const fileNames = req.files.map((file) => file.filename);
 
@@ -123,7 +101,7 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
     [
       class_id,
       title,
-      JSON.stringify(speakerValue),
+      speaker, // Pass the already stringified JSON from the client
       start_date,
       end_date,
       start_time,
@@ -133,9 +111,9 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
       join_link,
       req.body.location || "",
       max_participants,
-      JSON.stringify(groupsValue),
+      target_groups, // Pass the already stringified JSON from the client
       JSON.stringify(fileNames),
-      req.body.created_by_email || "", // เพิ่ม created_by_email
+      req.body.created_by_email || "",
     ],
     (err, result) => {
       if (err) {
@@ -162,6 +140,68 @@ app.delete('/api/classes/:classId', (req, res) => {
       return res.status(404).json({ error: 'Class not found' });
     }
     res.status(200).json({ message: 'Class deleted successfully' });
+  });
+});
+
+// PUT /api/classes/:classId - To update a class
+app.put("/api/classes/:classId", upload.array("files"), (req, res) => {
+  const { classId } = req.params;
+  const {
+    title,
+    speaker,
+    start_date,
+    end_date,
+    start_time,
+    end_time,
+    description,
+    format,
+    join_link,
+    max_participants,
+    target_groups,
+    location,
+  } = req.body;
+
+  const fileNames = req.files.map((file) => file.filename);
+
+  const sql = `
+    UPDATE classes SET
+      title = ?, speaker = ?, start_date = ?, end_date = ?,
+      start_time = ?, end_time = ?, description = ?, format = ?,
+      join_link = ?, location = ?, max_participants = ?, target_groups = ?
+      ${fileNames.length > 0 ? ", files = ?" : ""}
+    WHERE class_id = ?
+  `;
+
+  const params = [
+    title,
+    speaker, // From frontend, this is already a JSON string
+    start_date,
+    end_date,
+    start_time,
+    end_time,
+    description,
+    format,
+    join_link,
+    location || "",
+    max_participants,
+    target_groups, // From frontend, this is already a JSON string
+  ];
+
+  if (fileNames.length > 0) {
+    params.push(JSON.stringify(fileNames));
+  }
+  params.push(classId);
+
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      console.error("❌ Error updating class:", err);
+      return res.status(500).json({ message: "Database server error" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+    console.log("✅ Class updated successfully:", result);
+    res.status(200).json({ message: "Class updated successfully" });
   });
 });
 

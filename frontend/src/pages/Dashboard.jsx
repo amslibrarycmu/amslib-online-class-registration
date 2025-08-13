@@ -165,22 +165,24 @@ const Dashboard = () => {
           ) : !user ? (
             <p>กรุณาล็อกอินเพื่อดูรายการห้องเรียนของคุณ</p>
           ) : classes.length > 0 ? (
-            <ul className="space-y-4">
+            <ul class="space-y-4">
               {classes.map((cls) => {
-                let speakerDisplay = "ยังไม่ระบุ";
-                if (cls.speaker) {
-                  try {
-                    const parsedSpeakers = JSON.parse(cls.speaker);
-                    if (
-                      Array.isArray(parsedSpeakers) &&
-                      parsedSpeakers.length > 0
-                    ) {
-                      speakerDisplay = parsedSpeakers.join(", ");
-                    }
-                  } catch (e) {
-                    speakerDisplay = cls.speaker;
-                  }
-                }
+                let speakerDisplay = "ยังไม่ระบุ";
+                if (cls.speaker) {
+                  try {
+                    // แปลง JSON string กลับเป็น Array
+                    const speakerArray = JSON.parse(cls.speaker);
+                    // ตรวจสอบว่าเป็น Array และมีข้อมูล แล้ว join ด้วย ", "
+                    if (Array.isArray(speakerArray) && speakerArray.length > 0) {
+                      speakerDisplay = speakerArray.join(", ");
+                    }
+                  } catch (e) {
+                    // กรณีข้อมูลเก่ามีรูปแบบไม่ถูกต้อง ให้แสดงผลตามเดิมไปก่อน
+                    speakerDisplay = cls.speaker;
+                  }
+                }
+                  // ... a rest of component
+
                 return (
                   <li
                     key={cls.class_id || cls.id}
@@ -195,6 +197,9 @@ const Dashboard = () => {
                     <div className="text-md text-gray-700 mt-2 flex flex-wrap gap-x-10 gap-y-2">
                       <p>
                         <strong>ID:</strong> {cls.class_id}
+                      </p>
+                      <p>
+                        <strong>วิทยากร:</strong> {speakerDisplay}
                       </p>
                       <p>
                         <strong>วันที่:</strong>{" "}
@@ -231,7 +236,8 @@ const Dashboard = () => {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
-                          : "N/A"} {""} น.
+                          : "N/A"}{" "}
+                        น.
                       </p>
                     </div>
 

@@ -33,51 +33,33 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
       const formatDate = (d) => {
         if (!d) return "";
         const date = new Date(d);
-        if (!isNaN(date.getTime())) {
-          return date.toISOString().slice(0, 10);
-        }
-        return d;
+        return !isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : d;
       };
 
-      let groups = [];
-      if (Array.isArray(initialData.target_groups)) {
-        groups = initialData.target_groups;
-      } else if (typeof initialData.target_groups === "string") {
-        try {
-          const parsed = JSON.parse(initialData.target_groups);
-          if (Array.isArray(parsed)) {
-            groups = parsed;
+      // Helper to safely parse JSON strings that might be arrays or single values
+      const parseJsonField = (field) => {
+        if (Array.isArray(field)) return field; // Already an array
+        if (typeof field === "string") {
+          try {
+            const parsed = JSON.parse(field);
+            // Return if it's an array, otherwise wrap the parsed (or original) string in an array
+            return Array.isArray(parsed) ? parsed : [field];
+          } catch (e) {
+            // If parsing fails, it's likely a plain string; wrap it in an array
+            return field ? [field] : [];
           }
-        } catch {
-          groups = initialData.target_groups
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s !== "");
         }
-      }
+        return []; // Default to empty array if not a string or array
+      };
 
-      let speakers = [];
-      if (Array.isArray(initialData.speaker)) {
-        speakers = initialData.speaker;
-      } else if (typeof initialData.speaker === "string") {
-        try {
-          const parsed = JSON.parse(initialData.speaker);
-          if (Array.isArray(parsed)) {
-            speakers = parsed;
-          } else {
-            // If it's a string but not a JSON array, treat as single speaker
-            speakers = [initialData.speaker];
-          }
-        } catch {
-          // If parsing fails, treat as single speaker
-          speakers = [initialData.speaker];
-        }
-      }
+      const speakers = parseJsonField(initialData.speaker);
+      const groups = parseJsonField(initialData.target_groups);
+      const files = parseJsonField(initialData.files);
 
       setFormData({
         ...initialData,
         class_id: initialData.class_id,
-        speaker: speakers, // Now an array
+        speaker: speakers,
         start_date: formatDate(initialData.start_date),
         end_date: formatDate(initialData.end_date),
         location: initialData.location || "",
@@ -86,13 +68,8 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
             ? groups
             : ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"],
         max_participants: initialData.max_participants || "1",
-        files: Array.isArray(initialData.files)
-          ? initialData.files
-          : initialData.files &&
-            typeof initialData.files === "string" &&
-            initialData.files !== "[]"
-          ? JSON.parse(initialData.files)
-          : [],
+        // Ensure files are in a consistent format {name: string}
+        files: files.map(f => (typeof f === 'string' ? { name: f } : f)),
       });
     }
   }, [initialData]);
@@ -149,12 +126,11 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    const dataToSend = { ...formData };
-    // Ensure speaker is always an array for backend and stringify it
-    dataToSend.speaker = JSON.stringify(dataToSend.speaker);
-    onSubmit(dataToSend);
-  };
+    e.preventDefault();
+    const dataToSend = { ...formData };
+    // ส่งข้อมูล formData ไปโดยตรงโดยที่ speaker ยังเป็น Array
+    onSubmit(dataToSend);
+  };
 
   return (
     <div className="fixed inset-0 bg-white/75 flex justify-center items-center z-50">
