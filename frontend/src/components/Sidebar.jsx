@@ -8,6 +8,8 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  const isAdmin = user?.status === 'ผู้ดูแลระบบ';
+
   let firstname = "";
   let lastname = "";
   if (user?.name) {
@@ -15,6 +17,14 @@ export default function Sidebar() {
     firstname = parts[0] || "";
     lastname = parts.slice(1).join(" ") || "";
   }
+
+  const handleOverviewClick = () => {
+    if (isAdmin) {
+      navigate("/index");
+    } else {
+      navigate("/classes");
+    }
+  };
 
   return (
     <div className="w-[325px] flex-shrink-0 min-h-screen text-center bg-[#f0f0f0] flex flex-col gap-[10px] p-[1rem]">
@@ -51,21 +61,22 @@ export default function Sidebar() {
       </div>
       <div className="flex flex-col items-center gap-5">
         <span
-          onClick={() => navigate("/index")}
+          onClick={handleOverviewClick}
           className="text-black cursor-pointer hover:underline text-[1.25rem] "
           style={{ background: "transparent", borderColor: "" }}
         >
           ภาพรวม
         </span>
-        <span
-          onClick={() => {
-            navigate("/creations");
-            console.log("Navigating to class creation page");
-          }}
-          className="text-black cursor-pointer hover:underline text-[1.25rem]"
-        >
-          สร้างห้องเรียน
-        </span>
+
+        {/* Admins see the "Create Class" link */}
+        {isAdmin && (
+            <span
+              onClick={() => navigate("/creations")}
+              className="text-black cursor-pointer hover:underline text-[1.25rem]"
+            >
+              สร้างห้องเรียน
+            </span>
+        )}
       </div>
     </div>
   );

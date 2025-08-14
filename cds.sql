@@ -22,6 +22,7 @@ SHOW TABLES IN amslib;
 
 DELETE FROM classes;
 TRUNCATE TABLE classes;
+SELECT * FROM users;
 SELECT * FROM classes;
 
 SHOW CREATE TABLE classes;
@@ -47,3 +48,19 @@ FROM
     classes
 WHERE 
     speaker LIKE '"[%\"%]"';
+    
+    
+SET SQL_SAFE_UPDATES = 0;
+
+UPDATE 
+    classes
+SET 
+    speaker = REPLACE(JSON_UNQUOTE(speaker), '\\"', '"')
+WHERE 
+    speaker LIKE '"[%\"%]"';
+    
+ALTER TABLE classes
+ADD COLUMN registered_users JSON NOT NULL DEFAULT '[]';
+
+INSERT INTO users (name, email, status, phone, pdpa, password, created_at, is_active)
+VALUES ('user normal', 'usernormal@email.com', 'ผู้ใช้ทั่วไป', '0900000001', 1, NULL, '2025-08-13 16:30:00', 1);

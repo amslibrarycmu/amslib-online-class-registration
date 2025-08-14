@@ -107,8 +107,8 @@ export default function ClassCreation() {
   return (
     <div className="flex">
       <Sidebar />
-
       <div className="flex flex-col w-full gap-5 min-h-screen p-5">
+        <h1 className="text-2xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
         <div className="flex flex-row gap-x-10 items-center w-[400px] justify-between">
           <div className="flex flex-col gap-3 w-full max-w-2xl">
             <button

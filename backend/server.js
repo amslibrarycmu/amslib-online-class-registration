@@ -69,6 +69,19 @@ app.get('/api/classes', (req, res) => {
   });
 });
 
+// GET /api/classes/promoted - for public users
+app.get('/api/classes/promoted', (req, res) => {
+  const sql = 'SELECT * FROM classes WHERE promoted = 1';
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching promoted classes:", err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
 // POST พร้อมรับไฟล์
 app.post("/api/classes", upload.array("files"), (req, res) => {
   const {
@@ -224,6 +237,121 @@ app.put('/api/classes/:classId/promote', (req, res) => {
       return res.status(404).json({ error: 'Class not found or no changes made' });
     }
     res.status(200).json({ message: 'Promotion status updated successfully' });
+  });
+});
+
+// POST /api/classes/:classId/register - To register a user for a class
+app.post("/api/classes/:classId/register", (req, res) => {
+  const { classId } = req.params;
+  const { name, email } = req.body; // User's name and email
+
+  if (!name || !email) {
+    return res.status(400).json({ message: "Name and email are required." });
+  }
+
+  const findClassSql = "SELECT * FROM classes WHERE class_id = ?";
+
+  db.query(findClassSql, [classId], (err, results) => {
+    if (err) {
+      console.error("❌ Database error while fetching class:", err);
+      return res.status(500).json({ message: "Database server error." });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Class not found." });
+    }
+
+    const course = results[0];
+    const maxParticipants = course.max_participants;
+    
+    let registeredUsers = [];
+    try {
+        registeredUsers = JSON.parse(course.registered_users);
+    } catch(e) {
+        console.error("❌ Error parsing registered_users JSON:", e);
+        registeredUsers = [];
+    }
+
+    // Check if the class is full
+    if (registeredUsers.length >= maxParticipants) {
+      return res.status(409).json({ message: "This class is already full." });
+    }
+
+    // Check if the user is already registered
+    const isAlreadyRegistered = registeredUsers.some(user => user.email === email);
+    if (isAlreadyRegistered) {
+      return res.status(409).json({ message: "You are already registered for this class." });
+    }
+
+    // Add the new user
+    const newUser = { name, email };
+    registeredUsers.push(newUser);
+
+    // Update the database
+    const updateSql = "UPDATE classes SET registered_users = ? WHERE class_id = ?";
+    db.query(updateSql, [JSON.stringify(registeredUsers), classId], (updateErr, updateResult) => {
+      if (updateErr) {
+        console.error("❌ Database error while updating class:", updateErr);
+        return res.status(500).json({ message: "Failed to update registration." });
+      }
+      
+      console.log(`✅ User ${name} registered for class ${classId}`);
+      res.status(200).json({ message: "Successfully registered for the class!" });
+    });
+  });
+});
+
+// POST /api/classes/:classId/cancel - To cancel a user's registration for a class
+app.post("/api/classes/:classId/cancel", (req, res) => {
+  const { classId } = req.params;
+  const { email } = req.body; // User's email
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
+
+  const findClassSql = "SELECT * FROM classes WHERE class_id = ?";
+
+  db.query(findClassSql, [classId], (err, results) => {
+    if (err) {
+      console.error("❌ Database error while fetching class:", err);
+      return res.status(500).json({ message: "Database server error." });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Class not found." });
+    }
+
+    const course = results[0];
+    
+    let registeredUsers = [];
+    try {
+        registeredUsers = JSON.parse(course.registered_users || "[]");
+    } catch(e) {
+        console.error("❌ Error parsing registered_users JSON:", e);
+        return res.status(500).json({ message: "Error processing registration data." });
+    }
+
+    // Check if the user is actually registered
+    const isRegistered = registeredUsers.some(user => user.email === email);
+    if (!isRegistered) {
+      return res.status(409).json({ message: "You are not registered for this class." });
+    }
+
+    // Filter out the user who is canceling
+    const updatedUsers = registeredUsers.filter(user => user.email !== email);
+
+    // Update the database
+    const updateSql = "UPDATE classes SET registered_users = ? WHERE class_id = ?";
+    db.query(updateSql, [JSON.stringify(updatedUsers), classId], (updateErr, updateResult) => {
+      if (updateErr) {
+        console.error("❌ Database error while updating class:", updateErr);
+        return res.status(500).json({ message: "Failed to update registration." });
+      }
+      
+      console.log(`✅ User ${email} canceled registration for class ${classId}`);
+      res.status(200).json({ message: "Successfully canceled your registration." });
+    });
   });
 });
 

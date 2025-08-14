@@ -7,26 +7,41 @@ const LoginPage = () => {
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  // Generic login handler
+  const performLogin = async (email) => {
     try {
       const response = await fetch("http://localhost:5000/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "useradmin@email.com" }),
+        body: JSON.stringify({ email }),
       });
 
       if (!response.ok) {
-        throw new Error("Login failed");
+        throw new Error(`Login failed for ${email}`);
       }
 
       const userData = await response.json();
-      setUser(userData); // อัปเดตข้อมูลผู้ใช้ใน AuthContext
-      console.log("Login successful:", userData); // แสดงข้อมูลผู้ใช้ใน console
-      navigate("/index"); // นำทางไปยังหน้า 
+      setUser(userData);
+      console.log("Login successful:", userData);
+
+      // Redirect based on user status
+      if (userData.status === 'ผู้ดูแลระบบ') {
+        navigate("/index");
+      } else {
+        navigate("/classes");
+      }
     } catch (error) {
       console.error("Login error:", error);
       alert("ไม่สามารถเข้าสู่ระบบได้");
     }
+  };
+
+  const handleAdminLogin = () => {
+    performLogin("useradmin@email.com");
+  };
+
+  const handleNormalUserLogin = () => {
+    performLogin("usernormal@email.com");
   };
 
   return (
@@ -43,12 +58,20 @@ const LoginPage = () => {
           <br />
           (HSL KM)
         </p>
-        <button
-          onClick={handleLogin}
-          className="bg-purple-700 border border-gray-400 text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
-        >
-          เข้าสู่ระบบผ่านบัญชี CMU
-        </button>
+        <div className="flex flex-col items-center gap-4 w-80 mx-auto">
+            <button
+              onClick={handleAdminLogin}
+              className="bg-purple-700 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
+            >
+              เข้าสู่ระบบ (ผู้ดูแลระบบ)
+            </button>
+            <button
+              onClick={handleNormalUserLogin}
+              className="bg-gray-500 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
+            >
+              เข้าสู่ระบบ (ผู้ใช้ทั่วไป)
+            </button>
+        </div>
       </div>
     </div>
   );

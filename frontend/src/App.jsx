@@ -8,6 +8,7 @@ import {
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import ClassCreation from "./pages/ClassCreation";
+import ClassCatalog from "./pages/ClassCatalog"; // Import the new component
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -35,6 +36,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClassCreation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/classes"
+            element={
+              <ProtectedRoute>
+                <ClassCatalog />
               </ProtectedRoute>
             }
           />

@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
-import ClassCreationModal from "../components/ClassCreationsModal"; // แก้ไข Path ตามที่ร้องขอ
+import ClassCreationModal from "../components/ClassCreationsModal";
+import RegistrantsModal from "../components/RegistrantsModal"; // Import the new modal
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -13,6 +14,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [editingClass, setEditingClass] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // State for the registrants modal
+  const [isRegistrantsModalOpen, setIsRegistrantsModalOpen] = useState(false);
+  const [selectedClassForRegistrants, setSelectedClassForRegistrants] = useState(null);
 
   // ฟังก์ชันสำหรับเรียกข้อมูล
   const fetchClasses = async () => {
@@ -32,7 +37,8 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error fetching classes:", error);
       setClasses([]);
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -51,11 +57,27 @@ const Dashboard = () => {
     setEditingClass(null);
   };
 
+  // Handlers for the registrants modal
+  const handleOpenRegistrantsModal = (cls) => {
+    const parsedCls = {
+      ...cls,
+      registered_users: typeof cls.registered_users === 'string' 
+        ? JSON.parse(cls.registered_users || '[]') 
+        : (cls.registered_users || []),
+    };
+    setSelectedClassForRegistrants(parsedCls);
+    setIsRegistrantsModalOpen(true);
+  };
+
+  const handleCloseRegistrantsModal = () => {
+    setIsRegistrantsModalOpen(false);
+    setSelectedClassForRegistrants(null);
+  };
+
   const handleUpdateClass = async (updatedData) => {
     const classId = updatedData.class_id;
     const updateForm = new FormData();
 
-    // Loop through updatedData to append fields to FormData
     for (const key in updatedData) {
       if (key === 'speaker' || key === 'target_groups') {
         updateForm.append(key, JSON.stringify(updatedData[key]));
@@ -77,7 +99,7 @@ const Dashboard = () => {
       if (response.ok) {
         alert("✅ อัปเดตข้อมูลสำเร็จ");
         handleCloseModal();
-        fetchClasses(); // Refresh the class list
+        fetchClasses();
       } else {
         const errorData = await response.json();
         alert(`❌ อัปเดตข้อมูลไม่สำเร็จ: ${errorData.message || response.statusText}`);
@@ -88,19 +110,18 @@ const Dashboard = () => {
     }
   };
 
-  // โค้ดที่เพิ่ม: ฟังก์ชันสำหรับการลบห้องเรียน
   const handleDeleteClick = async (classId) => {
-    if (window.confirm("คุณต้องการลบห้องเรียนนี้หรือไม่?")) { // ยืนยันการลบ
+    if (window.confirm("คุณต้องการลบห้องเรียนนี้หรือไม่?")) {
       try {
         const response = await fetch(
           `http://localhost:5000/api/classes/${classId}`,
           {
-            method: "DELETE", // ใช้เมธอด DELETE
+            method: "DELETE",
           }
         );
         if (response.ok) {
           alert("✅ ลบข้อมูลสำเร็จ");
-          fetchClasses(); // อัปเดตรายการใหม่หลังจากลบ
+          fetchClasses();
         } else {
           alert("❌ ลบข้อมูลไม่สำเร็จ");
         }
@@ -111,11 +132,10 @@ const Dashboard = () => {
     }
   };
 
-  // NEW FUNCTION: handlePromoteToggle
   const handlePromoteToggle = async (classId, isPromoted) => {
     try {
       const response = await fetch(`http://localhost:5000/api/classes/${classId}/promote`, {
-        method: "PUT", // Or PATCH, depending on backend
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
@@ -132,7 +152,6 @@ const Dashboard = () => {
       } else {
         const errorData = await response.json();
         alert(`❌ ไม่สามารถ${isPromoted ? 'โปรโมท' : 'ยกเลิกการโปรโมท'}ห้องเรียนได้: ${errorData.message || response.statusText}`);
-        // Revert the toggle visually if the API call fails
         setClasses((prevClasses) =>
           prevClasses.map((cls) =>
             cls.class_id === classId ? { ...cls, promoted: !isPromoted } : cls
@@ -142,7 +161,6 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error toggling promotion status:", error);
       alert("⚠️ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์เพื่ออัปเดตสถานะโปรโมท");
-      // Revert the toggle visually if there's a network error
       setClasses((prevClasses) =>
         prevClasses.map((cls) =>
           cls.class_id === classId ? { ...cls, promoted: !isPromoted } : cls
@@ -165,23 +183,20 @@ const Dashboard = () => {
           ) : !user ? (
             <p>กรุณาล็อกอินเพื่อดูรายการห้องเรียนของคุณ</p>
           ) : classes.length > 0 ? (
-            <ul class="space-y-4">
+            <ul className="space-y-4">
               {classes.map((cls) => {
-                let speakerDisplay = "ยังไม่ระบุ";
-                if (cls.speaker) {
-                  try {
-                    // แปลง JSON string กลับเป็น Array
-                    const speakerArray = JSON.parse(cls.speaker);
-                    // ตรวจสอบว่าเป็น Array และมีข้อมูล แล้ว join ด้วย ", "
-                    if (Array.isArray(speakerArray) && speakerArray.length > 0) {
-                      speakerDisplay = speakerArray.join(", ");
-                    }
-                  } catch (e) {
-                    // กรณีข้อมูลเก่ามีรูปแบบไม่ถูกต้อง ให้แสดงผลตามเดิมไปก่อน
-                    speakerDisplay = cls.speaker;
-                  }
-                }
-                  // ... a rest of component
+                let speakerDisplay = "ยังไม่ระบุ";
+                if (cls.speaker && typeof cls.speaker === 'string' && cls.speaker.length > 4) {
+                  speakerDisplay = cls.speaker
+                    .slice(2, -2)
+                    .replace(/","/g, ", ");
+                } else if (cls.speaker) {
+                    speakerDisplay = String(cls.speaker);
+                }
+
+                const registrants = typeof cls.registered_users === 'string'
+                    ? JSON.parse(cls.registered_users || '[]')
+                    : (cls.registered_users || []);
 
                 return (
                   <li
@@ -226,6 +241,9 @@ const Dashboard = () => {
                           : "N/A"}{" "}
                         - {cls.end_time ? cls.end_time.substring(0, 5) : "N/A"}
                       </p>
+                      <p>
+                        <strong>ผู้ลงทะเบียน:</strong> {registrants.length} / {cls.max_participants}
+                      </p>
                       <p className="sm:col-span-2 md:col-span-3">
                         <strong>สร้างเมื่อ:</strong>{" "}
                         {cls.created_at
@@ -242,6 +260,15 @@ const Dashboard = () => {
                     </div>
 
                     <div className="flex items-center mt-4 pt-4 border-t border-gray-200">
+                       <button
+                        title="ดูรายชื่อผู้ลงทะเบียน"
+                        className="text-green-600 hover:text-green-800 rounded-full p-1"
+                        onClick={() => handleOpenRegistrantsModal(cls)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.653-.125-1.273-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.653.125-1.273.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </button>
                       <button
                         title="แก้ไข"
                         className="text-blue-600 hover:text-blue-800 rounded-full p-1"
@@ -264,7 +291,7 @@ const Dashboard = () => {
                       <button
                         title="ลบ"
                         className="text-red-600 hover:text-red-800 rounded-full p-1"
-                        onClick={() => handleDeleteClick(cls.class_id)} // เรียกใช้ handleDeleteClick
+                        onClick={() => handleDeleteClick(cls.class_id)}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -314,6 +341,13 @@ const Dashboard = () => {
           initialData={editingClass}
           onClose={handleCloseModal}
           onSubmit={handleUpdateClass}
+        />
+      )}
+      {isRegistrantsModalOpen && selectedClassForRegistrants && (
+        <RegistrantsModal
+          isOpen={isRegistrantsModalOpen}
+          onClose={handleCloseRegistrantsModal}
+          classData={selectedClassForRegistrants}
         />
       )}
     </div>
