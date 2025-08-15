@@ -137,7 +137,7 @@ const ClassCatalog = () => {
   );
 
   return (
-    <div className="flex w-screen">
+    <div className="w-screen flex">
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 min-h-screen">
         <h1 className="text-3xl font-bold mb-4 text-gray-800">
@@ -145,7 +145,7 @@ const ClassCatalog = () => {
         </h1>
         
         <div className="mb-6 p-2 bg-gray-200 rounded-lg inline-flex space-x-2">
-            {renderNavButton('all', 'ภาพรวม')}
+            {renderNavButton('all', 'ทั้งหมด')}
             {renderNavButton('available', 'ลงทะเบียนได้')}
             {renderNavButton('registered', 'ลงทะเบียนแล้ว')}
         </div>
@@ -156,15 +156,16 @@ const ClassCatalog = () => {
         {!loading && !error && (
           <>
             {filteredClasses.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 {filteredClasses.map((cls) => (
                   <div
                     key={cls.class_id}
                     className="bg-white rounded-lg shadow-lg p-6 flex flex-col hover:shadow-xl transition-shadow duration-300"
                   >
-                    <h2 className="text-xl font-bold text-purple-800 mb-2">
+                    <h2 className="text-xl font-bold text-purple-800 mb-1">
                       {cls.title}
                     </h2>
+                    <p className="text-xs text-gray-500 mb-2">ID: {cls.class_id}</p>
                     <p className="text-gray-600 mb-1">
                       <strong>วิทยากร: </strong> {cls.speaker}
                     </p>

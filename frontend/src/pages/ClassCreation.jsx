@@ -105,32 +105,67 @@ export default function ClassCreation() {
   };
 
   return (
-    <div className="flex">
+    <div className="w-screen grid grid-cols-[auto_1fr] h-screen">
       <Sidebar />
-      <div className="flex flex-col w-full gap-5 min-h-screen p-5">
+      <div className="p-8 overflow-y-auto">
         <h1 className="text-2xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
-        <div className="flex flex-row gap-x-10 items-center w-[400px] justify-between">
-          <div className="flex flex-col gap-3 w-full max-w-2xl">
+        <div className="flex flex-row gap-10 justify-center mb-8">
+    
+          <div className="flex flex-col items-center gap-2">
             <button
               onClick={handleCreateNewClick}
-              className="text-black font-bold cursor-pointer hover:underline bg-gray-200 px-4 py-2 rounded"
+              className="w-52 h-52 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-black font-bold rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105"
+              aria-label="สร้างใหม่ทั้งหมด"
             >
-              สร้างใหม่ทั้งหมด
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="96"
+                height="96"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6e11b0"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14" />
+                <path d="M5 12h14" />
+              </svg>
             </button>
+            <span className="font-semibold mt-1">สร้างใหม่ทั้งหมด</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
             <button
               onClick={() => {
                 setShowExistingList(true);
                 setShowForm(false);
               }}
-              className="text-black font-bold cursor-pointer hover:underline bg-gray-200 px-4 py-2 rounded"
+              className="w-52 h-52 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-black font-bold rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105"
+              aria-label="สร้างโดยแก้ไขจากข้อมูลเดิม"
             >
-              สร้างโดยแก้ไขจากข้อมูลเดิม
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="96"
+                height="96"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6e11b0"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
             </button>
+            <span className="font-semibold mt-1"><h2>สร้างโดยแก้ไขจากข้อมูลเดิม</h2>
+            </span>
           </div>
         </div>
 
         {showExistingList && (
-          <div className="w-screen max-w-2xl space-y-4 bg-white text-black p-6 rounded shadow my-5">
+          <div className="w-full max-w-4xl mx-auto space-y-4 bg-white text-black p-6 rounded shadow">
             <h2 className="font-bold text-xl">เลือกห้องเรียนที่ต้องการแก้ไข</h2>
             {loading ? (
               <p>กำลังโหลดข้อมูล...</p>

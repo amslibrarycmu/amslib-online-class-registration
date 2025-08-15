@@ -170,11 +170,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex w-screen">
+    <div className="w-screen grid grid-cols-[auto_1fr] h-screen">
       <Sidebar />
-      <div className="flex-2 flex-row p-8 w-fit">
+      <div className="p-8 overflow-y-auto">
         <h1 className="text-2xl font-bold mb-6 text-center">ภาพรวม</h1>
-        <div className="bg-white rounded shadow p-6">
+        <div className="bg-white rounded shadow p-6 mx-auto">
           <h2 className="font-bold mb-[10px] text-[1.25rem]">
             รายการห้องเรียนที่คุณสร้าง
           </h2>
@@ -205,14 +205,11 @@ const Dashboard = () => {
                   >
                     <div className="flex justify-between items-start">
                       <h3 className="font-semibold text-lg text-purple-800 justify-center">
-                        {cls.title}
+                        <strong className="text-red-500">{cls.class_id} </strong> {"  "} {cls.title}
                       </h3>
                     </div>
 
                     <div className="text-md text-gray-700 mt-2 flex flex-wrap gap-x-10 gap-y-2">
-                      <p>
-                        <strong>ID:</strong> {cls.class_id}
-                      </p>
                       <p>
                         <strong>วิทยากร:</strong> {speakerDisplay}
                       </p>
