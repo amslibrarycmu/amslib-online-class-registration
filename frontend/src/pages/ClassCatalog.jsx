@@ -7,7 +7,7 @@ const ClassCatalog = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all'); // 'all', 'available', 'registered'
+  const [filter, setFilter] = useState("all"); // 'all', 'available', 'registered'
 
   const fetchPromotedClasses = async () => {
     try {
@@ -95,7 +95,7 @@ const ClassCatalog = () => {
     if (typeof speakerData !== "string") return String(speakerData);
     try {
       let parsed = JSON.parse(speakerData);
-      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+      if (typeof parsed === "string") parsed = JSON.parse(parsed);
       if (Array.isArray(parsed)) return parsed.join(", ");
     } catch (e) {
       return speakerData.replace(/["[\\]]/g, "").replace(/,/g, ", ");
@@ -111,10 +111,14 @@ const ClassCatalog = () => {
   };
 
   const getFilteredClasses = () => {
-    if (filter === 'available') {
-      return classes.filter(cls => !isUserRegistered(cls) && cls.registered_users.length < cls.max_participants);
+    if (filter === "available") {
+      return classes.filter(
+        (cls) =>
+          !isUserRegistered(cls) &&
+          cls.registered_users.length < cls.max_participants
+      );
     }
-    if (filter === 'registered') {
+    if (filter === "registered") {
       return classes.filter(isUserRegistered);
     }
     return classes; // 'all'
@@ -128,8 +132,8 @@ const ClassCatalog = () => {
       onClick={() => setFilter(key)}
       className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
         filter === key
-          ? 'bg-purple-600 text-white'
-          : 'bg-white text-gray-700 hover:bg-gray-200'
+          ? "bg-purple-600 text-white"
+          : "bg-white text-gray-700 hover:bg-gray-200"
       }`}
     >
       {label}
@@ -140,19 +144,17 @@ const ClassCatalog = () => {
     <div className="w-screen flex">
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 min-h-screen">
-        <h1 className="text-3xl font-bold mb-4 text-gray-800">
-          ห้องเรียนทั้งหมด
-        </h1>
-        
+        <h1 className="text-3xl font-bold mb-4 text-gray-800">หัวข้อการอบรม</h1>
+
         <div className="mb-6 p-2 bg-gray-200 rounded-lg inline-flex space-x-2">
-            {renderNavButton('all', 'ทั้งหมด')}
-            {renderNavButton('available', 'ลงทะเบียนได้')}
-            {renderNavButton('registered', 'ลงทะเบียนแล้ว')}
+          {renderNavButton("all", "ทั้งหมด")}
+          {renderNavButton("available", "ลงทะเบียนได้")}
+          {renderNavButton("registered", "ลงทะเบียนแล้ว")}
         </div>
 
         {loading && <p>Loading classes...</p>}
         {error && <p className="text-red-500">{error}</p>}
-        
+
         {!loading && !error && (
           <>
             {filteredClasses.length > 0 ? (
@@ -165,21 +167,33 @@ const ClassCatalog = () => {
                     <h2 className="text-xl font-bold text-purple-800 mb-1">
                       {cls.title}
                     </h2>
-                    <p className="text-xs text-gray-500 mb-2">ID: {cls.class_id}</p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      ID: {cls.class_id}
+                    </p>
                     <p className="text-gray-600 mb-1">
                       <strong>วิทยากร: </strong> {cls.speaker}
                     </p>
                     <p className="text-gray-600 mb-1">
                       <strong>วันที่: </strong>{" "}
-                      {new Date(cls.start_date).toLocaleDateString("th-TH", { year: 'numeric', month: 'long', day: 'numeric' })} ถึง{" "}
-                      {new Date(cls.end_date).toLocaleDateString("th-TH", { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(cls.start_date).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}{" "}
+                      ถึง{" "}
+                      {new Date(cls.end_date).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
                     </p>
                     <p className="text-gray-600 mb-4">
-                      <strong>ตั้งแต่เวลา:</strong> {cls.start_time.substring(0, 5)}{" "}
-                      <strong>ถึง </strong> {cls.end_time.substring(0, 5)} น.
+                      <strong>ตั้งแต่เวลา:</strong>{" "}
+                      {cls.start_time.substring(0, 5)} <strong>ถึง </strong>{" "}
+                      {cls.end_time.substring(0, 5)} น.
                     </p>
                     <p className="text-gray-700 mb-4 flex-grow">
-                      <strong>รายละเอียด </strong> <br/>
+                      <strong>รายละเอียด </strong> <br />
                       {cls.description}
                     </p>
                     <div className="flex justify-between items-center mb-4">
@@ -209,9 +223,9 @@ const ClassCatalog = () => {
                       }`}
                     >
                       {isUserRegistered(cls)
-                        ? "ยกเลิกการจอง"
+                        ? "ยกเลิก"
                         : cls.registered_users.length >= cls.max_participants
-                        ? "ห้องเรียนเต็มแล้ว"
+                        ? "เต็มแล้ว"
                         : "ลงทะเบียน"}
                     </button>
                   </div>
@@ -219,8 +233,12 @@ const ClassCatalog = () => {
               </div>
             ) : (
               <div className="text-center py-10 px-6 bg-white rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-gray-700">ไม่พบห้องเรียน</h3>
-                <p className="text-gray-500 mt-2">ไม่มีห้องเรียนที่ตรงกับตัวกรองที่คุณเลือก</p>
+                <h3 className="text-xl font-semibold text-gray-700">
+                  ไม่พบห้องเรียน
+                </h3>
+                <p className="text-gray-500 mt-2">
+                  ไม่มีห้องเรียนที่ตรงกับตัวกรองที่คุณเลือก
+                </p>
               </div>
             )}
           </>

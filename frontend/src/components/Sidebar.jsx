@@ -8,7 +8,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const isAdmin = user?.status === 'ผู้ดูแลระบบ';
+  const isAdmin = user?.status === "ผู้ดูแลระบบ";
 
   let firstname = "";
   let lastname = "";
@@ -60,22 +60,23 @@ export default function Sidebar() {
         </div>
       </div>
       <div className="flex flex-col items-center gap-5">
-        <span
-          onClick={handleOverviewClick}
-          className="text-black cursor-pointer hover:underline text-[1.25rem] "
-          style={{ background: "transparent", borderColor: "" }}
-        >
-          ภาพรวม
-        </span>
-
-        {/* Admins see the "Create Class" link */}
         {isAdmin && (
-            <span
-              onClick={() => navigate("/creations")}
-              className="text-black cursor-pointer hover:underline text-[1.25rem]"
-            >
-              สร้างห้องเรียน
-            </span>
+          <span
+            onClick={handleOverviewClick}
+            className="text-black cursor-pointer hover:underline text-[1.25rem] "
+            style={{ background: "transparent", borderColor: "" }}
+          >
+            ภาพรวม
+          </span>
+        )}
+
+        {isAdmin && (
+          <span
+            onClick={() => navigate("/creations")}
+            className="text-black cursor-pointer hover:underline text-[1.25rem]"
+          >
+            สร้างห้องเรียน
+          </span>
         )}
       </div>
     </div>

@@ -42,6 +42,7 @@ const LoginPage = () => {
 
   const handleNormalUserLogin = () => {
     performLogin("usernormal@email.com");
+    //performLogin("usernew@email.com");
   };
 
   return (

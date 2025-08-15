@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import ClassCreationModal from "../components/ClassCreationsModal";
-import RegistrantsModal from "../components/RegistrantsModal"; // Import the new modal
+import RegistrantsModal from "../components/RegistrantsModal";
+import CloseClassModal from "../components/CloseClassModal";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -18,6 +19,10 @@ const Dashboard = () => {
   // State for the registrants modal
   const [isRegistrantsModalOpen, setIsRegistrantsModalOpen] = useState(false);
   const [selectedClassForRegistrants, setSelectedClassForRegistrants] = useState(null);
+
+  // State for the close class modal
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  const [selectedClassToClose, setSelectedClassToClose] = useState(null);
 
   // ฟังก์ชันสำหรับเรียกข้อมูล
   const fetchClasses = async () => {
@@ -72,6 +77,47 @@ const Dashboard = () => {
   const handleCloseRegistrantsModal = () => {
     setIsRegistrantsModalOpen(false);
     setSelectedClassForRegistrants(null);
+  };
+
+  // Handlers for the close class modal
+  const handleOpenCloseClassModal = (cls) => {
+    setSelectedClassToClose(cls);
+    setIsCloseModalOpen(true);
+  };
+
+  const handleCloseCloseClassModal = () => {
+    setIsCloseModalOpen(false);
+    setSelectedClassToClose(null);
+  };
+
+  const handleCloseClassSubmit = async (formData) => {
+    if (!selectedClassToClose) return;
+
+    const classId = selectedClassToClose.class_id;
+    const closeForm = new FormData();
+    closeForm.append('video_link', formData.video_link);
+    for (const file of formData.materials) {
+      closeForm.append('materials', file);
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/classes/${classId}/close`, {
+        method: 'POST',
+        body: closeForm,
+      });
+
+      if (response.ok) {
+        alert('✅ ปิดห้องเรียนและบันทึกข้อมูลสำเร็จ');
+        handleCloseCloseClassModal();
+        fetchClasses(); // Refresh the class list
+      } else {
+        const errorData = await response.json();
+        alert(`❌ ปิดห้องเรียนไม่สำเร็จ: ${errorData.message || response.statusText}`);
+      }
+    } catch (error) {
+      console.error("Error closing class:", error);
+      alert("⚠️ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์");
+    }
   };
 
   const handleUpdateClass = async (updatedData) => {
@@ -303,6 +349,7 @@ const Dashboard = () => {
                           />
                         </svg>
                       </button>
+                      
                       <label
                         htmlFor={`promote-${cls.class_id}`}
                         className="flex items-center cursor-pointer px-5"
@@ -322,6 +369,15 @@ const Dashboard = () => {
                           โปรโมทห้องเรียน
                         </div>
                       </label>
+                      {cls.status !== 'closed' && (
+                        <button
+                          title="จบการสอน"
+                          className="ml-auto bg-amber-500 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded"
+                          onClick={() => handleOpenCloseClassModal(cls)}
+                        >
+                          จบการสอน
+                        </button>
+                      )}
                     </div>
                   </li>
                 );
@@ -345,6 +401,14 @@ const Dashboard = () => {
           isOpen={isRegistrantsModalOpen}
           onClose={handleCloseRegistrantsModal}
           classData={selectedClassForRegistrants}
+        />
+      )}
+      {isCloseModalOpen && (
+        <CloseClassModal
+          isOpen={isCloseModalOpen}
+          onClose={handleCloseCloseClassModal}
+          onSubmit={handleCloseClassSubmit}
+          classData={selectedClassToClose}
         />
       )}
     </div>

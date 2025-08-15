@@ -7,24 +7,30 @@ const speakerOptions = [
   "วรรธนันทพร วิลัยรักษ์",
 ];
 
+const AUDIENCE_OPTIONS = [
+  "นักศึกษา",
+  "อาจารย์/นักวิจัย",
+  "บุคลากร",
+];
+
 const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
   const [formData, setFormData] = useState({
     title: "",
-    speaker: [], // Changed to array
+    speaker: [],
     start_date: "",
     end_date: "",
     start_time: "",
     end_time: "",
     description: "",
-    format: "ห้องเรียนและออนไลน์",
+    format: "",
     join_link: "",
     location: "",
-    target_groups: ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"],
+    target_groups: [...AUDIENCE_OPTIONS],
     max_participants: "1",
-    files: [], // Ensure files array is initialized
+    files: [],
   });
 
-  const [speakerInput, setSpeakerInput] = useState(""); // Reintroduced
+  const [speakerInput, setSpeakerInput] = useState("");
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
 
@@ -63,13 +69,9 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
         start_date: formatDate(initialData.start_date),
         end_date: formatDate(initialData.end_date),
         location: initialData.location || "",
-        target_groups:
-          groups.length > 0
-            ? groups
-            : ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"],
+        target_groups: groups.length > 0 ? groups : [...AUDIENCE_OPTIONS],
         max_participants: initialData.max_participants || "1",
-        // Ensure files are in a consistent format {name: string}
-        files: files.map(f => (typeof f === 'string' ? { name: f } : f)),
+        files: files.map((f) => (typeof f === "string" ? { name: f } : f)),
       });
     }
   }, [initialData]);
@@ -81,7 +83,7 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
         ...prev,
         files: [...prev.files, ...Array.from(files)],
       }));
-    } else if (name === "speaker") { // Handle speaker dropdown separately
+    } else if (name === "speaker") {
       setSpeakerInput(value);
     } else {
       setFormData({ ...formData, [name]: value });
@@ -94,7 +96,7 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
         ...prev,
         speaker: [...prev.speaker, speakerInput],
       }));
-      setSpeakerInput(""); // Clear the input after adding
+      setSpeakerInput("");
     }
   };
 
@@ -105,7 +107,6 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
     }));
   };
 
-  // Function to handle removing files
   const handleRemoveFile = (indexToRemove) => {
     setFormData((prev) => ({
       ...prev,
@@ -126,11 +127,10 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    const dataToSend = { ...formData };
-    // ส่งข้อมูล formData ไปโดยตรงโดยที่ speaker ยังเป็น Array
-    onSubmit(dataToSend);
-  };
+    e.preventDefault();
+    const dataToSend = { ...formData }; // ส่งข้อมูล formData ไปโดยตรงโดยที่ speaker ยังเป็น Array
+    onSubmit(dataToSend);
+  };
 
   return (
     <div className="fixed inset-0 bg-white/75 flex justify-center items-center z-50">
@@ -155,13 +155,13 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
             <div className="flex gap-2">
               <select
                 name="speaker"
-                value={speakerInput} // Bind to speakerInput
+                value={speakerInput} 
                 onChange={handleChange}
                 className="w-full border px-4 py-2 rounded"
               >
                 <option value="">-- เลือกวิทยากร --</option>
                 {speakerOptions
-                  .filter((spk) => !formData.speaker.includes(spk)) // Filter out already selected speakers
+                  .filter((spk) => !formData.speaker.includes(spk)) 
                   .map((speaker) => (
                     <option key={speaker} value={speaker}>
                       {speaker}
@@ -272,7 +272,6 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
               className="w-full border px-4 py-2 rounded"
               required
             >
-              <option value="ห้องเรียนและออนไลน์">ห้องเรียนและออนไลน์</option>
               <option value="ออนไลน์เท่านั้น">ออนไลน์เท่านั้น</option>
               <option value="ห้องเรียนเท่านั้น">ห้องเรียนเท่านั้น</option>
             </select>
@@ -332,7 +331,7 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
           <div className="flex flex-rpw gap-2 item-center">
             <label className="block font-medium mr-3">สถานภาพของผู้เรียน</label>
             <div className="flex gap-4">
-              {["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"].map((g) => (
+              {["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร",].map((g) => (
                 <label key={g}>
                   <input
                     type="checkbox"
@@ -345,7 +344,6 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
             </div>
           </div>
 
-          {/* ส่วนที่เพิ่มกลับเข้ามา: แนบไฟล์ประกอบการเรียนการสอน */}
           <div className="flex flex-col gap-2">
             <label className="block font-medium">
               แนบไฟล์ประกอบการเรียนการสอน
@@ -381,8 +379,6 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
               </ul>
             )}
           </div>
-          {/* สิ้นสุดส่วนที่เพิ่มกลับเข้ามา */}
-
           <div className="flex gap-5 justify-center mt-6">
             <button
               type="button"

@@ -3,6 +3,18 @@ const cors = require("cors");
 const mysql = require("mysql2");
 const multer = require("multer");
 const path = require("path");
+const fs = require('fs');
+
+// Create upload directories if they don't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const materialsDir = path.join(__dirname, 'uploads/materials');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+if (!fs.existsSync(materialsDir)) {
+  fs.mkdirSync(materialsDir);
+}
 
 const app = express();
 app.use(cors());
@@ -218,6 +230,49 @@ app.put("/api/classes/:classId", upload.array("files"), (req, res) => {
   });
 });
 
+// POST /api/classes/:classId/close - To close a class and upload materials
+const materialsStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/materials"); // Separate folder for class materials
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const uploadMaterials = multer({ storage: materialsStorage });
+
+app.post("/api/classes/:classId/close", uploadMaterials.array("materials"), (req, res) => {
+  const { classId } = req.params;
+  const { video_link } = req.body;
+  const materialFiles = req.files.map((file) => file.filename);
+
+  const sql = `
+    UPDATE classes SET
+      status = 'closed',
+      video_link = ?,
+      materials = ?
+    WHERE class_id = ?
+  `;
+
+  const params = [
+    video_link || null,
+    JSON.stringify(materialFiles),
+    classId
+  ];
+
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      console.error("❌ Error closing class:", err);
+      return res.status(500).json({ message: "Database server error" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+    console.log("✅ Class closed successfully:", result);
+    res.status(200).json({ message: "Class closed and materials uploaded successfully" });
+  });
+});
+
 // PUT /api/classes/:classId/promote
 app.put('/api/classes/:classId/promote', (req, res) => {
   const { classId } = req.params;
@@ -352,6 +407,30 @@ app.post("/api/classes/:classId/cancel", (req, res) => {
       console.log(`✅ User ${email} canceled registration for class ${classId}`);
       res.status(200).json({ message: "Successfully canceled your registration." });
     });
+  });
+});
+
+// GET /api/classes/registered/closed - To get closed classes a user has registered for
+app.get("/api/classes/registered/closed", (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email query parameter is required." });
+  }
+
+  const sql = `
+    SELECT * FROM classes
+    WHERE status = 'closed'
+    AND JSON_CONTAINS(registered_users, JSON_OBJECT('email', ?), '
+)
+  `;
+
+  db.query(sql, [email], (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching registered closed classes:", err);
+      return res.status(500).json({ message: "Database server error." });
+    }
+    res.status(200).json(results);
   });
 });
 
