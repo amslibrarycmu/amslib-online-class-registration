@@ -199,7 +199,7 @@ const ClassCatalog = () => {
                         {cls.start_time.substring(0, 5)} <strong>ถึง </strong>{" "}
                         {cls.end_time.substring(0, 5)} น.
                       </p>
-                      <p className="text-gray-600 mb-1">
+                      <p className="text-gray-600 mb-4">
                         <strong>รูปแบบการเรียน:</strong> {cls.format}
                       </p>
                       <p className="text-gray-700 mb-4 flex-grow">
@@ -207,13 +207,10 @@ const ClassCatalog = () => {
                         {cls.description}
                       </p>
                       <div className="flex justify-between items-center mb-4">
-                        <p className="font-semibold text-gray-700">
-                          <strong>รูปแบบการเรียน:</strong> {cls.format}
-                        </p>
                         <div className="text-right">
-                            <span className="font-semibold text-gray-600">ลงทะเบียนแล้ว: </span>
-                            <span className="font-bold text-lg text-gray-800">
-                              {cls.registered_users.length} /{" "}
+                            <span className="font-semibold text-gray-600">ผู้ลงทะเบียนแล้ว: </span>
+                            <span className="font-bold text-gray-800">
+                              {cls.registered_users.length}/
                               {cls.max_participants === 999
                                 ? "ไม่จำกัด"
                                 : cls.max_participants}
