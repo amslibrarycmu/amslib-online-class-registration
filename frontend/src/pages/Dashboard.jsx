@@ -35,7 +35,7 @@ const Dashboard = () => {
       const response = await fetch(
         `http://localhost:5000/api/classes?email=${encodeURIComponent(
           user.email
-        )}`
+        )}&status=${encodeURIComponent(user.status)}&t=${new Date().getTime()}`
       );
       const data = await response.json();
       setClasses(data);
@@ -222,7 +222,7 @@ const Dashboard = () => {
         <h1 className="text-2xl font-bold mb-6 text-center">ภาพรวม</h1>
         <div className="bg-white rounded shadow p-6 mx-auto">
           <h2 className="font-bold mb-[10px] text-[1.25rem]">
-            รายการห้องเรียนที่คุณสร้าง
+            {user && user.status === 'ผู้ดูแลระบบ' ? 'รายการห้องเรียนทั้งหมด' : 'รายการห้องเรียนที่คุณสร้าง'}
           </h2>
           {loading ? (
             <p>กำลังโหลดข้อมูล...</p>
@@ -285,7 +285,10 @@ const Dashboard = () => {
                         - {cls.end_time ? cls.end_time.substring(0, 5) : "N/A"}
                       </p>
                       <p>
-                        <strong>ผู้ลงทะเบียน:</strong> {registrants.length} / {cls.max_participants}
+                        <strong>รูปแบบ:</strong> {cls.format}
+                      </p>
+                      <p>
+                        <strong>ผู้ลงทะเบียน:</strong> {registrants.length} / {cls.max_participants === 999 ? 'ไม่จำกัด' : cls.max_participants}
                       </p>
                       <p className="sm:col-span-2 md:col-span-3">
                         <strong>สร้างเมื่อ:</strong>{" "}
@@ -391,6 +394,7 @@ const Dashboard = () => {
       {isEditModalOpen && editingClass && (
         <ClassCreationModal
           isEditing={true}
+          isDuplicating={false}
           initialData={editingClass}
           onClose={handleCloseModal}
           onSubmit={handleUpdateClass}

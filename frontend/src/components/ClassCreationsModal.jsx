@@ -13,7 +13,7 @@ const AUDIENCE_OPTIONS = [
   "บุคลากร",
 ];
 
-const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
+const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDuplicating }) => {
   const [formData, setFormData] = useState({
     title: "",
     speaker: [],
@@ -22,40 +22,42 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
     start_time: "",
     end_time: "",
     description: "",
-    format: "",
+    format: "ONLINE",
     join_link: "",
     location: "",
     target_groups: [...AUDIENCE_OPTIONS],
     max_participants: "1",
     files: [],
+    class_id: "",
   });
 
   const [speakerInput, setSpeakerInput] = useState("");
-  const startDateRef = useRef(null);
-  const endDateRef = useRef(null);
 
   useEffect(() => {
+    const randomId = () => Math.floor(100000 + Math.random() * 900000);
+
     if (initialData) {
       const formatDate = (d) => {
         if (!d) return "";
         const date = new Date(d);
-        return !isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : d;
+        if (isNaN(date.getTime())) return d;
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
       };
 
-      // Helper to safely parse JSON strings that might be arrays or single values
       const parseJsonField = (field) => {
-        if (Array.isArray(field)) return field; // Already an array
+        if (Array.isArray(field)) return field;
         if (typeof field === "string") {
           try {
             const parsed = JSON.parse(field);
-            // Return if it's an array, otherwise wrap the parsed (or original) string in an array
             return Array.isArray(parsed) ? parsed : [field];
           } catch (e) {
-            // If parsing fails, it's likely a plain string; wrap it in an array
             return field ? [field] : [];
           }
         }
-        return []; // Default to empty array if not a string or array
+        return [];
       };
 
       const speakers = parseJsonField(initialData.speaker);
@@ -64,7 +66,7 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
 
       setFormData({
         ...initialData,
-        class_id: initialData.class_id,
+        class_id: isDuplicating ? randomId() : initialData.class_id,
         speaker: speakers,
         start_date: formatDate(initialData.start_date),
         end_date: formatDate(initialData.end_date),
@@ -73,16 +75,30 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
         max_participants: initialData.max_participants || "1",
         files: files.map((f) => (typeof f === "string" ? { name: f } : f)),
       });
+    } else {
+        setFormData({
+            title: "",
+            speaker: [],
+            start_date: "",
+            end_date: "",
+            start_time: "",
+            end_time: "",
+            description: "",
+            format: "ONLINE",
+            join_link: "",
+            location: "",
+            target_groups: [...AUDIENCE_OPTIONS],
+            max_participants: "1",
+            files: [],
+            class_id: randomId(),
+        });
     }
-  }, [initialData]);
+  }, [initialData, isEditing, isDuplicating]);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
     if (type === "file") {
-      setFormData((prev) => ({
-        ...prev,
-        files: [...prev.files, ...Array.from(files)],
-      }));
+      setFormData((prev) => ({ ...prev, files: [...prev.files, ...Array.from(files)] }));
     } else if (name === "speaker") {
       setSpeakerInput(value);
     } else {
@@ -92,43 +108,32 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
 
   const handleAddSpeaker = () => {
     if (speakerInput && !formData.speaker.includes(speakerInput)) {
-      setFormData((prev) => ({
-        ...prev,
-        speaker: [...prev.speaker, speakerInput],
-      }));
+      setFormData((prev) => ({ ...prev, speaker: [...prev.speaker, speakerInput] }));
       setSpeakerInput("");
     }
   };
 
   const handleRemoveSpeaker = (speakerToRemove) => {
-    setFormData((prev) => ({
-      ...prev,
-      speaker: prev.speaker.filter((spk) => spk !== speakerToRemove),
-    }));
+    setFormData((prev) => ({ ...prev, speaker: prev.speaker.filter((spk) => spk !== speakerToRemove) }));
   };
 
   const handleRemoveFile = (indexToRemove) => {
-    setFormData((prev) => ({
-      ...prev,
-      files: prev.files.filter((_, i) => i !== indexToRemove),
-    }));
+    setFormData((prev) => ({ ...prev, files: prev.files.filter((_, i) => i !== indexToRemove) }));
   };
 
   const handleAudienceChange = (value) => {
     setFormData((prev) => {
       const exists = prev.target_groups.includes(value);
-      return {
-        ...prev,
-        target_groups: exists
-          ? prev.target_groups.filter((g) => g !== value)
-          : [...prev.target_groups, value],
-      };
+      return { ...prev, target_groups: exists ? prev.target_groups.filter((g) => g !== value) : [...prev.target_groups, value] };
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const dataToSend = { ...formData }; // ส่งข้อมูล formData ไปโดยตรงโดยที่ speaker ยังเป็น Array
+    const dataToSend = { ...formData };
+    if (dataToSend.format === 'ONLINE') {
+      dataToSend.max_participants = 999;
+    }
     onSubmit(dataToSend);
   };
 
@@ -136,9 +141,22 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
     <div className="fixed inset-0 bg-white/75 flex justify-center items-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6">
-          {isEditing ? "แก้ไขห้องเรียน" : "สร้างห้องเรียนใหม่"}
+          {isEditing ? "แก้ไขห้องเรียน" : (isDuplicating ? "สร้างโดยแก้ไขจากข้อมูลเดิม" : "สร้างห้องเรียนใหม่")}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block font-medium mb-1">
+              Class ID
+            </label>
+            <input
+              name="class_id"
+              value={formData.class_id || ""}
+              placeholder="ID"
+              className="w-full border px-4 py-2 rounded bg-gray-100"
+              disabled
+            />
+          </div>
+          
           <div>
             <label className="block font-medium mb-1">ชื่อวิชา</label>
             <input
@@ -155,13 +173,13 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
             <div className="flex gap-2">
               <select
                 name="speaker"
-                value={speakerInput} 
+                value={speakerInput}
                 onChange={handleChange}
                 className="w-full border px-4 py-2 rounded"
               >
                 <option value="">-- เลือกวิทยากร --</option>
                 {speakerOptions
-                  .filter((spk) => !formData.speaker.includes(spk)) 
+                  .filter((spk) => !formData.speaker.includes(spk))
                   .map((speaker) => (
                     <option key={speaker} value={speaker}>
                       {speaker}
@@ -267,18 +285,17 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
             <label className="block font-medium mb-1">รูปแบบการเรียน</label>
             <select
               name="format"
-              value={formData.format || "ห้องเรียนและออนไลน์"}
+              value={formData.format}
               onChange={handleChange}
               className="w-full border px-4 py-2 rounded"
               required
             >
-              <option value="ออนไลน์เท่านั้น">ออนไลน์เท่านั้น</option>
-              <option value="ห้องเรียนเท่านั้น">ห้องเรียนเท่านั้น</option>
+              <option value="ONLINE">ONLINE</option>
+              <option value="ONSITE">ONSITE</option>
             </select>
           </div>
 
-          {(formData.format === "ห้องเรียนเท่านั้น" ||
-            formData.format === "ห้องเรียนและออนไลน์") && (
+          {formData.format === "ONSITE" && (
             <div>
               <label className="block font-medium mb-1">สถานที่เรียน</label>
               <input
@@ -288,13 +305,12 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
                 onChange={handleChange}
                 placeholder="ระบุอาคาร ชั้นและห้อง"
                 className="w-full border px-4 py-2 rounded"
-                required={formData.format !== "ออนไลน์เท่านั้น"}
+                required
               />
             </div>
           )}
 
-          {(formData.format === "ออนไลน์เท่านั้น" ||
-            formData.format === "ห้องเรียนและออนไลน์") && (
+          {formData.format === "ONLINE" && (
             <div>
               <label className="block font-medium mb-1">
                 URL หรือ ลิงก์สำหรับห้องเรียนออนไลน์
@@ -306,32 +322,34 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing }) => {
                 onChange={handleChange}
                 placeholder="โปรดระบุเป็น https:// ตามด้วยลิงก์ของท่าน"
                 className="w-full border px-4 py-2 rounded"
-                required={formData.format !== "ห้องเรียนเท่านั้น"}
+                required
               />
             </div>
           )}
 
-          <div className="flex flex-rpw gap-2 item-center">
-            <div className="block font-medium my-auto w-fit">
-              จำนวนผู้เข้าร่วมได้สูงสุด
+          {formData.format === 'ONSITE' && (
+            <div className="flex flex-rpw gap-2 item-center">
+              <div className="block font-medium my-auto w-fit">
+                จำนวนผู้เข้าร่วมได้สูงสุด
+              </div>
+              <input
+                type="number"
+                min="1"
+                name="max_participants"
+                value={formData.max_participants || "1"}
+                onChange={handleChange}
+                placeholder="ตั้งแต่ 1 ท่านขึ้นไป"
+                className="w-max border px-4 py-2 rounded"
+                required
+              />
+              <div className="block font-medium my-auto w-fit">ท่าน</div>
             </div>
-            <input
-              type="number"
-              min="1"
-              name="max_participants"
-              value={formData.max_participants || "1"}
-              onChange={handleChange}
-              placeholder="ตั้งแต่ 1 ท่านขึ้นไป"
-              className="w-max border px-4 py-2 rounded"
-              required
-            />
-            <div className="block font-medium my-auto w-fit">ท่าน</div>
-          </div>
+          )}
 
           <div className="flex flex-rpw gap-2 item-center">
             <label className="block font-medium mr-3">สถานภาพของผู้เรียน</label>
             <div className="flex gap-4">
-              {["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร",].map((g) => (
+              {["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"].map((g) => (
                 <label key={g}>
                   <input
                     type="checkbox"

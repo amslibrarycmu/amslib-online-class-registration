@@ -115,7 +115,8 @@ const ClassCatalog = () => {
       return classes.filter(
         (cls) =>
           !isUserRegistered(cls) &&
-          cls.registered_users.length < cls.max_participants
+          (cls.max_participants === 999 ||
+            cls.registered_users.length < cls.max_participants)
       );
     }
     if (filter === "registered") {
@@ -159,77 +160,90 @@ const ClassCatalog = () => {
           <>
             {filteredClasses.length > 0 ? (
               <div className="grid grid-cols-1 gap-6">
-                {filteredClasses.map((cls) => (
-                  <div
-                    key={cls.class_id}
-                    className="bg-white rounded-lg shadow-lg p-6 flex flex-col hover:shadow-xl transition-shadow duration-300"
-                  >
-                    <h2 className="text-xl font-bold text-purple-800 mb-1">
-                      {cls.title}
-                    </h2>
-                    <p className="text-xs text-gray-500 mb-2">
-                      ID: {cls.class_id}
-                    </p>
-                    <p className="text-gray-600 mb-1">
-                      <strong>วิทยากร: </strong> {cls.speaker}
-                    </p>
-                    <p className="text-gray-600 mb-1">
-                      <strong>วันที่: </strong>{" "}
-                      {new Date(cls.start_date).toLocaleDateString("th-TH", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}{" "}
-                      ถึง{" "}
-                      {new Date(cls.end_date).toLocaleDateString("th-TH", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                    <p className="text-gray-600 mb-4">
-                      <strong>ตั้งแต่เวลา:</strong>{" "}
-                      {cls.start_time.substring(0, 5)} <strong>ถึง </strong>{" "}
-                      {cls.end_time.substring(0, 5)} น.
-                    </p>
-                    <p className="text-gray-700 mb-4 flex-grow">
-                      <strong>รายละเอียด </strong> <br />
-                      {cls.description}
-                    </p>
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-semibold text-gray-600">
-                        ลงทะเบียนแล้ว:
-                      </span>
-                      <span className="font-bold text-lg text-gray-800">
-                        {cls.registered_users.length} / {cls.max_participants}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() =>
-                        isUserRegistered(cls)
-                          ? handleCancelRegistration(cls.class_id)
-                          : handleRegister(cls.class_id)
-                      }
-                      disabled={
-                        !isUserRegistered(cls) &&
-                        cls.registered_users.length >= cls.max_participants
-                      }
-                      className={`w-full py-2 px-4 rounded font-semibold text-white transition-colors duration-300 ${
-                        isUserRegistered(cls)
-                          ? "bg-yellow-500 hover:bg-yellow-600"
-                          : cls.registered_users.length >= cls.max_participants
-                          ? "bg-red-600 cursor-not-allowed"
-                          : "bg-blue-600 hover:bg-blue-700"
-                      }`}
+                {filteredClasses.map((cls) => {
+                  const isFull =
+                    cls.max_participants !== 999 &&
+                    cls.registered_users.length >= cls.max_participants;
+                  const isRegistered = isUserRegistered(cls);
+
+                  return (
+                    <div
+                      key={cls.class_id}
+                      className="bg-white rounded-lg shadow-lg p-6 flex flex-col hover:shadow-xl transition-shadow duration-300"
                     >
-                      {isUserRegistered(cls)
-                        ? "ยกเลิก"
-                        : cls.registered_users.length >= cls.max_participants
-                        ? "เต็มแล้ว"
-                        : "ลงทะเบียน"}
-                    </button>
-                  </div>
-                ))}
+                      <h2 className="text-xl font-bold text-purple-800 mb-1">
+                        {cls.title}
+                      </h2>
+                      <p className="text-xs text-gray-500 mb-2">
+                        ID: {cls.class_id}
+                      </p>
+                      <p className="text-gray-600 mb-1">
+                        <strong>วิทยากร: </strong> {cls.speaker}
+                      </p>
+                      <p className="text-gray-600 mb-1">
+                        <strong>วันที่: </strong>{" "}
+                        {new Date(cls.start_date).toLocaleDateString("th-TH", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}{" "}
+                        ถึง{" "}
+                        {new Date(cls.end_date).toLocaleDateString("th-TH", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p className="text-gray-600 mb-1">
+                        <strong>ตั้งแต่เวลา:</strong>{" "}
+                        {cls.start_time.substring(0, 5)} <strong>ถึง </strong>{" "}
+                        {cls.end_time.substring(0, 5)} น.
+                      </p>
+                      <p className="text-gray-600 mb-1">
+                        <strong>รูปแบบการเรียน:</strong> {cls.format}
+                      </p>
+                      <p className="text-gray-700 mb-4 flex-grow">
+                        <strong>รายละเอียด </strong> <br />
+                        {cls.description}
+                      </p>
+                      <div className="flex justify-between items-center mb-4">
+                        <p className="font-semibold text-gray-700">
+                          <strong>รูปแบบการเรียน:</strong> {cls.format}
+                        </p>
+                        <div className="text-right">
+                            <span className="font-semibold text-gray-600">ลงทะเบียนแล้ว: </span>
+                            <span className="font-bold text-lg text-gray-800">
+                              {cls.registered_users.length} /{" "}
+                              {cls.max_participants === 999
+                                ? "ไม่จำกัด"
+                                : cls.max_participants}
+                            </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          isRegistered
+                            ? handleCancelRegistration(cls.class_id)
+                            : handleRegister(cls.class_id)
+                        }
+                        disabled={!isRegistered && isFull}
+                        className={`w-full py-2 px-4 rounded font-semibold text-white transition-colors duration-300 ${
+                          isRegistered
+                            ? "bg-yellow-500 hover:bg-yellow-600"
+                            : isFull
+                            ? "bg-red-600 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700"
+                        }`}
+                      >
+                        {isRegistered
+                          ? "ยกเลิก"
+                          : isFull
+                          ? "เต็มแล้ว"
+                          : "ลงทะเบียน"}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-10 px-6 bg-white rounded-lg shadow-md">

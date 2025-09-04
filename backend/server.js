@@ -72,10 +72,19 @@ app.post('/api/login', (req, res) => {
 
 // GET /api/classes
 app.get('/api/classes', (req, res) => {
-  const { email } = req.query;
-  const sql = 'SELECT * FROM classes WHERE created_by_email = ?';
+  const { email, status } = req.query;
 
-  db.query(sql, [email], (err, results) => {
+  let sql;
+  let params = [];
+
+  if (status === 'ผู้ดูแลระบบ') {
+    sql = 'SELECT * FROM classes';
+  } else {
+    sql = 'SELECT * FROM classes WHERE created_by_email = ?';
+    params.push(email);
+  }
+
+  db.query(sql, params, (err, results) => {
     if (err) return res.status(500).json({ error: 'Database error' });
     res.json(results);
   });

@@ -38,11 +38,12 @@ const LoginPage = () => {
 
   const handleAdminLogin = () => {
     performLogin("useradmin@email.com");
+    //performLogin("usersupport@email.com");
   };
 
   const handleNormalUserLogin = () => {
-    performLogin("usernormal@email.com");
-    //performLogin("usernew@email.com");
+    //performLogin("usernormal@email.com");
+    performLogin("usernew@email.com");
   };
 
   return (

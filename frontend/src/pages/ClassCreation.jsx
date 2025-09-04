@@ -12,6 +12,7 @@ export default function ClassCreation() {
   const [showExistingList, setShowExistingList] = useState(false);
   const [selectedClassToEdit, setSelectedClassToEdit] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const perPage = 5;
 
   const fetchClasses = async () => {
@@ -24,7 +25,7 @@ export default function ClassCreation() {
       const response = await fetch(
         `http://localhost:5000/api/classes?email=${encodeURIComponent(
           user.email
-        )}`
+        )}&status=${encodeURIComponent(user.status)}&t=${new Date().getTime()}`
       );
       const data = await response.json();
       setClassesList(data);
@@ -43,20 +44,25 @@ export default function ClassCreation() {
   const handleCreateNewClick = () => {
     setSelectedClassToEdit(null);
     setShowExistingList(false);
+    setIsDuplicating(false);
     setShowForm(true);
   };
 
   const handleEditExistingClick = (cls) => {
     setSelectedClassToEdit(cls);
     setShowExistingList(false);
+    setIsDuplicating(true);
     setShowForm(true);
   };
 
   const handleModalSubmit = async (formData) => {
     const newForm = new FormData();
-    const classId =
-      formData.class_id || Math.floor(100000 + Math.random() * 900000);
+    // When duplicating, we don't send the original class_id, the backend will generate a new one.
+    // However, for this implementation, the backend seems to require a class_id.
+    // We will generate a new one on the client-side for creation/duplication.
+    const classId = Math.floor(100000 + Math.random() * 900000);
     newForm.append("class_id", classId);
+    
     newForm.append("title", formData.title);
     newForm.append("speaker", JSON.stringify(formData.speaker));
     newForm.append("start_date", formData.start_date);
@@ -102,6 +108,7 @@ export default function ClassCreation() {
   const handleCloseModal = () => {
     setShowForm(false);
     setSelectedClassToEdit(null);
+    setIsDuplicating(false);
   };
 
   return (
@@ -166,7 +173,7 @@ export default function ClassCreation() {
 
         {showExistingList && (
           <div className="w-full max-w-4xl mx-auto space-y-4 bg-white text-black p-6 rounded shadow">
-            <h2 className="font-bold text-xl">เลือกห้องเรียนที่ต้องการแก้ไข</h2>
+            <h2 className="font-bold text-xl">เลือกห้องเรียนที่ต้องการใช้เป็นต้นฉบับ</h2>
             {loading ? (
               <p>กำลังโหลดข้อมูล...</p>
             ) : (
@@ -187,7 +194,7 @@ export default function ClassCreation() {
                       onClick={() => handleEditExistingClick(cls)}
                       className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
                     >
-                      แก้ไข
+                      ใช้เป็นต้นฉบับ
                     </button>
                   </li>
                 ))}
@@ -202,7 +209,8 @@ export default function ClassCreation() {
           onClose={handleCloseModal}
           initialData={selectedClassToEdit}
           onSubmit={handleModalSubmit}
-          isEditing={!!selectedClassToEdit}
+          isEditing={false}
+          isDuplicating={isDuplicating}
         />
       )}
     </div>
