@@ -96,7 +96,7 @@ export default function Sidebar() {
               onClick={() => navigate("/past-classes")}
               className="text-black cursor-pointer hover:underline text-[1.25rem]"
             >
-              ประวัติการเรียนที่ผ่านมา
+              ประวัติการเข้าร่วม
             </span>
           </>
         )}

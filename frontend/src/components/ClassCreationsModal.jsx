@@ -138,7 +138,7 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
   };
 
   return (
-    <div className="fixed inset-0 bg-white/75 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6">
           {isEditing ? "แก้ไขห้องเรียน" : (isDuplicating ? "สร้างโดยแก้ไขจากข้อมูลเดิม" : "สร้างห้องเรียนใหม่")}

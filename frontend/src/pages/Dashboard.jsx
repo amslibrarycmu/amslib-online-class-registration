@@ -107,8 +107,15 @@ const Dashboard = () => {
 
     const classId = selectedClassToClose.class_id;
     const closeForm = new FormData();
+
+    // Append the video link
     closeForm.append("video_link", formData.video_link);
-    for (const file of formData.materials) {
+
+    // Append the list of existing files to keep
+    closeForm.append("existing_materials", JSON.stringify(formData.existing_materials));
+
+    // Append new files
+    for (const file of formData.new_materials) {
       closeForm.append("materials", file);
     }
 

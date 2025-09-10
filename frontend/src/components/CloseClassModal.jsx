@@ -1,37 +1,62 @@
-
-
 import React, { useState, useEffect } from 'react';
 
 const CloseClassModal = ({ isOpen, onClose, onSubmit, classData, isEditing = false }) => {
   const [videoLink, setVideoLink] = useState('');
-  const [materials, setMaterials] = useState([]);
+  const [newMaterials, setNewMaterials] = useState([]); // For new file uploads
+  const [existingMaterials, setExistingMaterials] = useState([]); // For existing file names
 
   useEffect(() => {
-    if (isEditing && classData) {
+    if (isOpen && classData) {
       setVideoLink(classData.video_link || '');
-      // For materials, we typically don't pre-fill file inputs for security reasons.
-      // Users would re-select files if they want to update them.
-      // If you want to display existing materials, you'd need a separate display logic.
+      try {
+        const materials = typeof classData.materials === 'string' ? JSON.parse(classData.materials) : (classData.materials || []);
+        setExistingMaterials(materials);
+      } catch (error) {
+        console.error("Error parsing materials:", error);
+        setExistingMaterials([]);
+      }
+      // Reset new materials on open
+      setNewMaterials([]);
     } else {
       setVideoLink('');
-      setMaterials([]);
+      setNewMaterials([]);
+      setExistingMaterials([]);
     }
-  }, [isEditing, classData]);
+  }, [isOpen, classData]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ video_link: videoLink, materials });
+    onSubmit({ 
+      video_link: videoLink, 
+      new_materials: newMaterials, 
+      existing_materials: existingMaterials 
+    });
   };
 
   const handleFileChange = (e) => {
-    setMaterials([...e.target.files]);
+    const files = Array.from(e.target.files);
+    if (files.length > 5) {
+      alert("คุณสามารถอัปโหลดไฟล์ได้ไม่เกิน 5 ไฟล์ในแต่ละครั้ง");
+      return;
+    }
+    setNewMaterials(prev => [...prev, ...files]);
+    // Reset file input value to allow selecting the same file again
+    e.target.value = null;
+  };
+
+  const handleDeleteExistingFile = (fileName) => {
+    setExistingMaterials(existingMaterials.filter(file => file !== fileName));
+  };
+
+  const handleDeleteNewFile = (fileIndex) => {
+    setNewMaterials(newMaterials.filter((_, index) => index !== fileIndex));
   };
 
   return (
-    <div className="fixed inset-0 bg-white/85 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-lg">
+    <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50">
+      <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-2xl">
         <h2 className="text-2xl font-bold mb-6 text-center">
           {isEditing ? "แก้ไขข้อมูลห้องเรียน" : "จบการสอน"} <br/>"{classData.title}"
         </h2>
@@ -48,18 +73,64 @@ const CloseClassModal = ({ isOpen, onClose, onSubmit, classData, isEditing = fal
             />
           </div>
 
-          <div className="mb-6">
-            <label htmlFor="materials" className="block text-gray-700 font-semibold mb-2">ไฟล์เอกสารประกอบการสอนเพิ่มเติม</label>
-            <input
-              type="file"
-              id="materials"
-              multiple
-              onChange={handleFileChange}
-              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-            />
+          {/* --- File Management --- */}
+          <div className="space-y-4">
+            {/* Existing Materials */}
+            {existingMaterials.length > 0 && (
+              <div>
+                <h4 className="block text-gray-700 font-semibold mb-2">ไฟล์ที่มีอยู่</h4>
+                <ul className="list-disc space-y-2">
+                  {existingMaterials.map((fileName, index) => (
+                    <li key={`existing-${index}`} className="text-gray-800 flex justify-between items-center bg-gray-50 p-2 rounded">
+                      <span>{fileName}</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleDeleteExistingFile(fileName)}
+                        className="text-red-500 hover:text-red-700 font-semibold ml-4"
+                      >
+                        ลบ
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* New Materials to be Uploaded */}
+            {newMaterials.length > 0 && (
+              <div>
+                <h4 className="block text-gray-700 font-semibold mb-2">ไฟล์ใหม่ที่เลือก</h4>
+                <ul className="list-disc space-y-2">
+                  {newMaterials.map((file, index) => (
+                    <li key={`new-${index}`} className="text-gray-800 flex justify-between items-center bg-purple-50 text-purple-800 p-2 rounded">
+                      <span>{file.name}</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleDeleteNewFile(index)}
+                        className="text-red-500 hover:text-red-700 font-semibold ml-4"
+                      >
+                        ลบ
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* File Input */}
+            <div className="mb-6">
+              <label htmlFor="materials" className="block text-gray-700 font-semibold mb-2">เพิ่มเอกสารใหม่</label>
+              <input
+                type="file"
+                id="materials"
+                multiple
+                onChange={handleFileChange}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-4 mt-8">
             <button
               type="button"
               onClick={onClose}

@@ -204,11 +204,27 @@ const materialsStorage = multer.diskStorage({
 });
 const uploadMaterials = multer({ storage: materialsStorage });
 app.post("/api/classes/:classId/close", uploadMaterials.array("materials"), (req, res) => {
-  const { classId } = req.params;
-  const { video_link } = req.body;
-  const materialFiles = req.files.map((file) => file.filename);
+  const { classId } = req.params;
+  const { video_link, existing_materials } = req.body;
+
+  // Get the filenames of newly uploaded files
+  const newMaterialFiles = req.files ? req.files.map((file) => file.filename) : [];
+
+  // Parse the list of existing materials to keep
+  let finalMaterials = [];
+  try {
+    const existing = existing_materials ? JSON.parse(existing_materials) : [];
+    // Combine existing files with new files
+    finalMaterials = [...existing, ...newMaterialFiles];
+  } catch (error) {
+    console.error("Error parsing existing_materials:", error);
+    // If parsing fails, just use the new files to prevent data loss
+    finalMaterials = newMaterialFiles;
+  }
+
   const sql = `UPDATE classes SET status = 'closed', video_link = ?, materials = ? WHERE class_id = ?`;
-  const params = [video_link || null, JSON.stringify(materialFiles), classId];
+  const params = [video_link || null, JSON.stringify(finalMaterials), classId];
+
   db.query(sql, params, (err, result) => {
     if (err) {
       console.error("❌ Error closing class:", err);

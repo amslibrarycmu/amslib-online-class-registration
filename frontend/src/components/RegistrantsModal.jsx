@@ -11,7 +11,7 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
     : [];
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-75 z-50 flex justify-center items-center">
+    <div className="fixed inset-0 bg-white/85 z-50 flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center border-b pb-3 mb-4">
           <h2 className="text-2xl font-bold text-gray-800">รายชื่อผู้ลงทะเบียน</h2>
