@@ -9,6 +9,8 @@ import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import ClassCreation from "./pages/ClassCreation";
 import ClassCatalog from "./pages/ClassCatalog"; // Import the new component
+import Statistics from "./pages/Statistics";
+import PastClassesHistory from "./pages/PastClassesHistory";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -44,6 +46,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClassCatalog />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/statistics"
+            element={
+              <ProtectedRoute>
+                <Statistics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/past-classes"
+            element={
+              <ProtectedRoute>
+                <PastClassesHistory />
               </ProtectedRoute>
             }
           />

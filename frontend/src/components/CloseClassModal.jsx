@@ -1,8 +1,22 @@
-import React, { useState } from 'react';
 
-const CloseClassModal = ({ isOpen, onClose, onSubmit, classData }) => {
+
+import React, { useState, useEffect } from 'react';
+
+const CloseClassModal = ({ isOpen, onClose, onSubmit, classData, isEditing = false }) => {
   const [videoLink, setVideoLink] = useState('');
   const [materials, setMaterials] = useState([]);
+
+  useEffect(() => {
+    if (isEditing && classData) {
+      setVideoLink(classData.video_link || '');
+      // For materials, we typically don't pre-fill file inputs for security reasons.
+      // Users would re-select files if they want to update them.
+      // If you want to display existing materials, you'd need a separate display logic.
+    } else {
+      setVideoLink('');
+      setMaterials([]);
+    }
+  }, [isEditing, classData]);
 
   if (!isOpen) return null;
 
@@ -18,7 +32,9 @@ const CloseClassModal = ({ isOpen, onClose, onSubmit, classData }) => {
   return (
     <div className="fixed inset-0 bg-white/85 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-6 text-center"> จบการสอน <br/>"{classData.title}"</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center">
+          {isEditing ? "แก้ไขข้อมูลห้องเรียน" : "จบการสอน"} <br/>"{classData.title}"
+        </h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="video_link" className="block text-gray-700 font-semibold mb-2">ลิงก์วิดีโอย้อนหลัง</label>
@@ -55,7 +71,7 @@ const CloseClassModal = ({ isOpen, onClose, onSubmit, classData }) => {
               type="submit"
               className="px-6 py-2 rounded-lg text-white bg-purple-600 hover:bg-purple-700 font-semibold"
             >
-              ยืนยัน
+              {isEditing ? "บันทึก" : "ยืนยัน"}
             </button>
           </div>
         </form>

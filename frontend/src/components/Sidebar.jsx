@@ -60,23 +60,45 @@ export default function Sidebar() {
         </div>
       </div>
       <div className="flex flex-col items-center gap-5">
-        {isAdmin && (
-          <span
-            onClick={handleOverviewClick}
-            className="text-black cursor-pointer hover:underline text-[1.25rem] "
-            style={{ background: "transparent", borderColor: "" }}
-          >
-            ภาพรวม
-          </span>
-        )}
+        {isAdmin ? (
+          <>
+            <span
+              onClick={handleOverviewClick}
+              className="text-black cursor-pointer hover:underline text-[1.25rem] "
+              style={{ background: "transparent", borderColor: "" }}
+            >
+              ภาพรวม
+            </span>
 
-        {isAdmin && (
-          <span
-            onClick={() => navigate("/creations")}
-            className="text-black cursor-pointer hover:underline text-[1.25rem]"
-          >
-            สร้างห้องเรียน
-          </span>
+            <span
+              onClick={() => navigate("/creations")}
+              className="text-black cursor-pointer hover:underline text-[1.25rem]"
+            >
+              สร้างห้องเรียน
+            </span>
+
+            <span
+              onClick={() => navigate("/statistics")}
+              className="text-black cursor-pointer hover:underline text-[1.25rem]"
+            >
+              สถิติ
+            </span>
+          </>
+        ) : (
+          <>
+            <span
+              onClick={() => navigate("/classes")}
+              className="text-black cursor-pointer hover:underline text-[1.25rem]"
+            >
+              ห้องเรียน
+            </span>
+            <span
+              onClick={() => navigate("/past-classes")}
+              className="text-black cursor-pointer hover:underline text-[1.25rem]"
+            >
+              ประวัติการเรียนที่ผ่านมา
+            </span>
+          </>
         )}
       </div>
     </div>

@@ -57,12 +57,9 @@ export default function ClassCreation() {
 
   const handleModalSubmit = async (formData) => {
     const newForm = new FormData();
-    // When duplicating, we don't send the original class_id, the backend will generate a new one.
-    // However, for this implementation, the backend seems to require a class_id.
-    // We will generate a new one on the client-side for creation/duplication.
-    const classId = Math.floor(100000 + Math.random() * 900000);
-    newForm.append("class_id", classId);
-    
+
+    // Append fields in the correct order
+    newForm.append("class_id", formData.class_id);
     newForm.append("title", formData.title);
     newForm.append("speaker", JSON.stringify(formData.speaker));
     newForm.append("start_date", formData.start_date);
@@ -72,20 +69,16 @@ export default function ClassCreation() {
     newForm.append("description", formData.description);
     newForm.append("format", formData.format);
     newForm.append("join_link", formData.join_link);
-    newForm.append("max_participants", formData.max_participants);
-    const allGroups = ["นักศึกษา", "อาจารย์", "พนักงาน", "บุคคลภายนอก"];
-    let groupsToSend = formData.target_groups.filter(
-      (g) => g !== "" && g !== null
-    );
-    if (groupsToSend.length === 0) {
-      groupsToSend = allGroups;
-    }
-    newForm.append("target_groups", JSON.stringify(groupsToSend));
-    formData.files.forEach((file) => {
-      newForm.append("files", file);
-    });
     newForm.append("location", formData.location);
+    newForm.append("max_participants", formData.max_participants);
+    newForm.append("target_groups", JSON.stringify(formData.target_groups));
     newForm.append("created_by_email", user.email);
+
+    formData.files.forEach((file) => {
+      if (file instanceof File) {
+        newForm.append("files", file);
+      }
+    });
 
     try {
       const res = await fetch("http://localhost:5000/api/classes", {
@@ -97,7 +90,9 @@ export default function ClassCreation() {
         alert("✅ สร้างห้องเรียนสำเร็จ");
         navigate("/index");
       } else {
-        alert("❌ สร้างห้องเรียนไม่สำเร็จ");
+        const errorData = await res.json();
+        console.error("Server error details:", errorData);
+        alert(`❌ สร้างห้องเรียนไม่สำเร็จ: ${errorData.message || "ไม่ทราบสาเหตุ"}\n${errorData.error ? JSON.stringify(errorData.error, null, 2) : ""}`);
       }
     } catch (error) {
       console.error("💥 error", error);

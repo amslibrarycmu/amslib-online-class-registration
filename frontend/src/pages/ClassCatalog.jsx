@@ -24,7 +24,9 @@ const ClassCatalog = () => {
         speaker: parseAndJoin(cls.speaker),
         registered_users: JSON.parse(cls.registered_users || "[]"),
       }));
-      setClasses(parsedData);
+      // Filter out closed classes for ClassCatalog
+      const activeClasses = parsedData.filter(cls => cls.status !== 'closed');
+      setClasses(activeClasses);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -53,7 +55,13 @@ const ClassCatalog = () => {
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-        fetchPromotedClasses();
+        setClasses(prevClasses =>
+            prevClasses.map(cls =>
+                cls.class_id === classId
+                    ? { ...cls, registered_users: [...cls.registered_users, user.email] }
+                    : cls
+            )
+        );
       } else {
         alert(`Error: ${data.message}`);
       }
@@ -80,7 +88,13 @@ const ClassCatalog = () => {
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-        fetchPromotedClasses();
+        setClasses(prevClasses =>
+            prevClasses.map(cls =>
+                cls.class_id === classId
+                    ? { ...cls, registered_users: cls.registered_users.filter(email => email !== user.email) }
+                    : cls
+            )
+        );
       } else {
         alert(`Error: ${data.message}`);
       }
@@ -98,16 +112,14 @@ const ClassCatalog = () => {
       if (typeof parsed === "string") parsed = JSON.parse(parsed);
       if (Array.isArray(parsed)) return parsed.join(", ");
     } catch (e) {
-      return speakerData.replace(/["[\\]]/g, "").replace(/,/g, ", ");
+      return speakerData.replace(/["[\]]/g, "").replace(/,/g, ", ");
     }
     return speakerData;
   };
 
   const isUserRegistered = (cls) => {
     if (!user || !Array.isArray(cls.registered_users)) return false;
-    return cls.registered_users.some(
-      (registeredUser) => registeredUser.email === user.email
-    );
+    return cls.registered_users.includes(user.email);
   };
 
   const getFilteredClasses = () => {
@@ -223,16 +235,20 @@ const ClassCatalog = () => {
                             ? handleCancelRegistration(cls.class_id)
                             : handleRegister(cls.class_id)
                         }
-                        disabled={!isRegistered && isFull}
+                        disabled={(!isRegistered && isFull) || cls.status === 'closed'}
                         className={`w-full py-2 px-4 rounded font-semibold text-white transition-colors duration-300 ${
-                          isRegistered
+                          cls.status === 'closed'
+                            ? "bg-gray-400 cursor-not-allowed" // Gray out if closed
+                            : isRegistered
                             ? "bg-yellow-500 hover:bg-yellow-600"
                             : isFull
                             ? "bg-red-600 cursor-not-allowed"
                             : "bg-blue-600 hover:bg-blue-700"
                         }`}
                       >
-                        {isRegistered
+                        {cls.status === 'closed'
+                          ? "จบการสอนแล้ว" // Text for closed classes
+                          : isRegistered
                           ? "ยกเลิก"
                           : isFull
                           ? "เต็มแล้ว"

@@ -22,7 +22,7 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
             <h3 className="text-xl font-semibold text-purple-800 mb-2">{classData.title}</h3>
             <p className="text-lg text-gray-700">
                 <strong>จำนวนผู้ลงทะเบียน:</strong> 
-                <span className="font-bold ml-2">{registrants.length} / {classData.max_participants}</span>
+                <span className="font-bold ml-2">{registrants.length} / {classData.max_participants === 999 ? 'ไม่จำกัด' : classData.max_participants}</span>
             </p>
         </div>
 
@@ -34,6 +34,7 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
                   <th className="py-2 px-4 border-b text-left">#</th>
                   <th className="py-2 px-4 border-b text-left">ชื่อ-สกุล</th>
                   <th className="py-2 px-4 border-b text-left">อีเมล</th>
+                  <th className="py-2 px-4 border-b text-left">สถานะ</th>
                 </tr>
               </thead>
               <tbody>
@@ -42,6 +43,7 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
                     <td className="py-2 px-4 border-b">{index + 1}</td>
                     <td className="py-2 px-4 border-b">{user.name}</td>
                     <td className="py-2 px-4 border-b">{user.email}</td>
+                    <td className="py-2 px-4 border-b">{user.status}</td>
                   </tr>
                 ))}
               </tbody>
