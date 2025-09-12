@@ -31,14 +31,16 @@ const PastClassesHistory = () => {
       }
       const data = await response.json();
 
-      const parsedData = data.map((cls) => ({
-        ...cls,
-        speaker: parseAndJoin(cls.speaker),
-        materials: cls.materials ? JSON.parse(cls.materials) : [],
-        registered_users: JSON.parse(cls.registered_users || "[]"),
-      }));
+      const parsedAndSortedData = data
+        .map((cls) => ({
+          ...cls,
+          speaker: parseAndJoin(cls.speaker),
+          materials: cls.materials ? JSON.parse(cls.materials) : [],
+          registered_users: JSON.parse(cls.registered_users || "[]"),
+        }))
+        .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
-      setPastClasses(parsedData);
+      setPastClasses(parsedAndSortedData);
     } catch (err) {
       setError(err.message);
       console.error("Error fetching past classes:", err);

@@ -41,10 +41,15 @@ const Dashboard = () => {
         )}&status=${encodeURIComponent(user.status)}&t=${new Date().getTime()}`
       );
       const data = await response.json();
-      setClasses(data);
-      // Separate classes into active and closed
-      const active = data.filter(cls => cls.status !== 'closed');
-      const closed = data.filter(cls => cls.status === 'closed');
+      setClasses(data); // Keep original fetched data if needed elsewhere
+
+      // Sort data by start date, newest first
+      const sortedData = data.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+
+      // Separate classes into active and closed from the sorted list
+      const active = sortedData.filter(cls => cls.status !== 'closed');
+      const closed = sortedData.filter(cls => cls.status === 'closed');
+
       setActiveClasses(active);
       setClosedClasses(closed);
     } catch (error) {
@@ -259,7 +264,7 @@ const Dashboard = () => {
   return (
     <div className="w-screen grid grid-cols-[auto_1fr] h-screen">
       <Sidebar />
-      <div className="p-8 overflow-y-auto">
+      <div className="p-8 overflow-y-auto bg-gray-100">
         <h1 className="text-2xl font-bold mb-6 text-center">ภาพรวม</h1>
           <h2 className="font-bold mb-[10px] text-[1.25rem]">
             {user && user.status === "ผู้ดูแลระบบ"
@@ -296,7 +301,7 @@ const Dashboard = () => {
                     return (
                       <li
                         key={cls.class_id || cls.id}
-                        className="bg-gray-50 p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                        className="bg-gray-50 p-4 rounded-lg shadow-md hover:shadow-md transition-shadow"
                       >
                         <div className="flex justify-between items-start">
                           <h3 className="font-semibold text-lg text-purple-800 justify-center">
@@ -488,7 +493,7 @@ const Dashboard = () => {
                       return (
                         <li
                           key={cls.class_id || cls.id}
-                          className="bg-gray-50 p-4 border rounded-lg shadow-sm"
+                          className="bg-gray-50 p-4 rounded-lg shadow-md"
                         >
                           <div className="flex justify-between items-start">
                             <h3 className="font-semibold text-lg text-gray-600 justify-center">
