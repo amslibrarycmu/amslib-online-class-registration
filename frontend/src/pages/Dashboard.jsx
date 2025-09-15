@@ -301,7 +301,7 @@ const Dashboard = () => {
                     return (
                       <li
                         key={cls.class_id || cls.id}
-                        className="bg-gray-50 p-4 rounded-lg shadow-md hover:shadow-md transition-shadow"
+                        className="bg-white p-4 rounded-lg shadow-md hover:shadow-md transition-shadow"
                       >
                         <div className="flex justify-between items-start">
                           <h3 className="font-semibold text-lg text-purple-800 justify-center">
@@ -493,7 +493,7 @@ const Dashboard = () => {
                       return (
                         <li
                           key={cls.class_id || cls.id}
-                          className="bg-gray-50 p-4 rounded-lg shadow-md"
+                          className="bg-white p-4 rounded-lg shadow-md"
                         >
                           <div className="flex justify-between items-start">
                             <h3 className="font-semibold text-lg text-gray-600 justify-center">
