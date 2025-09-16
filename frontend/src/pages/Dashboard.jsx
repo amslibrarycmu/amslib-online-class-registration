@@ -62,6 +62,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchClasses();
+
+    // Cleanup function to reset state when the component unmounts
+    return () => {
+      setClasses([]);
+      setActiveClasses([]);
+      setClosedClasses([]);
+    };
   }, [user]);
 
   const handleEditClick = (cls) => {

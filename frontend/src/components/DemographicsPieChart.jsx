@@ -14,6 +14,9 @@ const DemographicsPieChart = ({ demographics }) => {
   const options = {
     is3D: true,
     pieSliceText: 'value-and-percentage', // Keep this for now, can be changed to 'none' if desired
+    pieSliceTextStyle: {
+      color: 'white',
+    },
     colors: ['#FF9900', '#3366CC', '#990099', '#109618', '#DC3912', '#AAAAAA'],
     fontName: 'Sarabun',
     legend: {
@@ -31,10 +34,10 @@ const DemographicsPieChart = ({ demographics }) => {
       },
     },
     chartArea: {
-      left: 0,
-      top: 0,
-      width: '75%',
-      height: '100%',
+      left: '5%',
+      top: '5%',
+      width: '90%',
+      height: '90%',
       backgroundColor: 'transparent',
     },
     backgroundColor: 'transparent',

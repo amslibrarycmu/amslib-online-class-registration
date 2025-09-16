@@ -562,6 +562,72 @@ app.get('/api/statistics/evaluation-categories/:classId', (req, res) => {
   });
 });
 
+// Get all class IDs a user has evaluated
+app.get('/api/evaluations/user/:email', (req, res) => {
+  const { email } = req.params;
+  const sql = 'SELECT DISTINCT class_id FROM evaluations WHERE user_email = ?';
+  db.query(sql, [email], (err, results) => {
+    if (err) {
+      console.error(`Error fetching evaluations for user ${email}:`, err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    const classIds = results.map(row => row.class_id);
+    res.json(classIds);
+  });
+});
+
+// Submit a new evaluation
+app.post('/api/evaluations', (req, res) => {
+  const {
+    class_id,
+    user_email,
+    score_content,
+    score_material,
+    score_duration,
+    score_format,
+    score_speaker,
+    comment
+  } = req.body;
+
+  // Basic validation
+  if (!class_id || !user_email || score_content === undefined) {
+    return res.status(400).json({ error: 'Missing required evaluation data.' });
+  }
+
+  const checkSql = 'SELECT id FROM evaluations WHERE class_id = ? AND user_email = ?';
+  db.query(checkSql, [class_id, user_email], (checkErr, checkResults) => {
+    if (checkErr) {
+      return res.status(500).json({ error: 'Database error while checking for existing evaluation.' });
+    }
+    if (checkResults.length > 0) {
+      return res.status(409).json({ error: 'You have already submitted an evaluation for this class.' });
+    }
+
+    const insertSql = `
+      INSERT INTO evaluations (class_id, user_email, score_content, score_material, score_duration, score_format, score_speaker, comment)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      class_id,
+      user_email,
+      score_content,
+      score_material,
+      score_duration,
+      score_format,
+      score_speaker,
+      comment || null
+    ];
+
+    db.query(insertSql, values, (insertErr, result) => {
+      if (insertErr) {
+        console.error('Error submitting evaluation:', insertErr);
+        return res.status(500).json({ error: 'Failed to submit evaluation.' });
+      }
+      res.status(201).json({ message: 'Evaluation submitted successfully.' });
+    });
+  });
+});
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const PORT = 5000;
