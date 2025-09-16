@@ -1,91 +1,59 @@
 import React from 'react';
-import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels'; // Import the plugin
-
-ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels); // Register the plugin
+import { Chart } from 'react-google-charts';
 
 const DemographicsPieChart = ({ demographics }) => {
-  const labels = Object.keys(demographics);
-  const dataValues = Object.values(demographics);
-
-  // Define a more appealing color palette
-  const backgroundColors = [
-    'rgba(255, 159, 64, 0.8)',  // Orange
-    'rgba(54, 162, 235, 0.8)',  // Blue
-    'rgba(153, 102, 255, 0.8)', // Purple
-    'rgba(75, 192, 192, 0.8)',  // Green
-    'rgba(255, 99, 132, 0.8)',  // Red
-    'rgba(255, 206, 86, 0.8)',  // Yellow
+  const data = [
+    ['ประเภทผู้ลงทะเบียน', 'จำนวน', { role: 'tooltip', type: 'string' }],
+    ...Object.entries(demographics).map(([status, count]) => [
+      `${status}: ${count} คน`,
+      count,
+      `${status}: ${count} คน (${((count / Object.values(demographics).reduce((sum, val) => sum + val, 0)) * 100).toFixed(2)}%)`,
+    ]),
   ];
-  const borderColors = [
-    'rgba(255, 159, 64, 1)',
-    'rgba(54, 162, 235, 1)',
-    'rgba(153, 102, 255, 1)',
-    'rgba(75, 192, 192, 1)',
-    'rgba(255, 99, 132, 1)',
-    'rgba(255, 206, 86, 1)',
-  ];
-
-  const total = dataValues.reduce((sum, value) => sum + value, 0);
-
-  const data = {
-    labels: labels,
-    datasets: [
-      {
-        label: 'จำนวนผู้ลงทะเบียน',
-        data: dataValues,
-        backgroundColor: backgroundColors,
-        borderColor: borderColors,
-        borderWidth: 2, // Thicker border
-      },
-    ],
-  };
 
   const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          font: {
-            size: 14, // Larger legend font
-          },
-        },
+    is3D: true,
+    pieSliceText: 'value-and-percentage', // Keep this for now, can be changed to 'none' if desired
+    colors: ['#FF9900', '#3366CC', '#990099', '#109618', '#DC3912', '#AAAAAA'],
+    fontName: 'Sarabun',
+    legend: {
+      position: 'right',
+      alignment: 'center',
+      textStyle: {
+        fontSize: 14,
+        fontName: 'Sarabun',
       },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            let label = context.label || '';
-            if (label) {
-              label += ': ';
-            }
-            if (context.parsed !== null) {
-              const value = context.parsed;
-              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-              label += `${value} คน (${percentage}%)`;
-            }
-            return label;
-          }
-        }
+    },
+    tooltip: {
+      trigger: 'focus',
+      textStyle: {
+        fontName: 'Sarabun',
       },
-      datalabels: { // Configure datalabels plugin
-        color: '#fff', // White color for labels
-        formatter: (value, context) => {
-          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-          return percentage > 0 ? `${percentage}%` : ''; // Only show percentage if greater than 0
-        },
-        font: {
-          weight: 'bold',
-          size: 14,
-        },
-        textShadowBlur: 4,
-        textShadowColor: 'rgba(0, 0, 0, 0.6)',
-      },
+    },
+    chartArea: {
+      left: 0,
+      top: 0,
+      width: '75%',
+      height: '100%',
+      backgroundColor: 'transparent',
+    },
+    backgroundColor: 'transparent',
+    title: '',
+    titleTextStyle: {
+      fontName: 'Sarabun',
     },
   };
 
-  return <Pie data={data} options={options} />;
+  return (
+    <Chart
+      chartType="PieChart"
+      data={data}
+      options={options}
+      width="100%"
+      height="100%"
+      legendToggle
+    />
+  );
 };
 
 export default DemographicsPieChart;
