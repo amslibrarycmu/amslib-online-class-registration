@@ -501,6 +501,67 @@ app.get('/api/statistics/class-demographics', (req, res) => {
   });
 });
 
+app.get('/api/statistics/evaluation-categories', (req, res) => {
+  const { year, month } = req.query;
+
+  let sql = `
+    SELECT 
+      AVG(e.score_content) AS avg_score_content,
+      AVG(e.score_material) AS avg_score_material,
+      AVG(e.score_duration) AS avg_score_duration,
+      AVG(e.score_format) AS avg_score_format,
+      AVG(e.score_speaker) AS avg_score_speaker
+    FROM evaluations e
+    JOIN classes c ON e.class_id = c.class_id
+    WHERE c.status = 'closed'
+  `;
+  const params = [];
+
+  if (year && year !== 'all') {
+    sql += ' AND YEAR(c.start_date) = ?';
+    params.push(year);
+  }
+  if (month && month !== 'all') {
+    sql += ' AND MONTH(c.start_date) = ?';
+    params.push(month);
+  }
+
+  db.query(sql, params, (err, results) => {
+    if (err) {
+      console.error("Error fetching evaluation category summary:", err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results[0] || {});
+  });
+});
+
+app.get('/api/statistics/evaluation-categories/:classId', (req, res) => {
+  const { classId } = req.params;
+  const sql = `
+    SELECT 
+      AVG(score_content) AS avg_score_content,
+      AVG(score_material) AS avg_score_material,
+      AVG(score_duration) AS avg_score_duration,
+      AVG(score_format) AS avg_score_format,
+      AVG(score_speaker) AS avg_score_speaker
+    FROM evaluations
+    WHERE class_id = ?
+  `;
+  db.query(sql, [classId], (err, results) => {
+    if (err) {
+      console.error(`Error fetching evaluation summary for class ${classId}:`, err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    // results[0] will contain the averages. If no evaluations exist, the values will be null.
+    // Check if the first average is null to determine if any evaluations were found.
+    if (results.length > 0 && results[0].avg_score_content !== null) {
+      res.json(results[0]);
+    } else {
+      res.json({}); // Return empty object if no evaluations found
+    }
+  });
+});
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const PORT = 5000;

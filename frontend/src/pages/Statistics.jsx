@@ -3,23 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import DemographicsPieChart from "../components/DemographicsPieChart";
+import CategoryBarChart from "../components/CategoryBarChart";
 
 const Statistics = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState([]);
+  const [categoryEvalData, setCategoryEvalData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [classEvaluationStats, setClassEvaluationStats] = useState({});
+  const [loadingClassEval, setLoadingClassEval] = useState(null);
 
   const [selectedYear, setSelectedYear] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState("all");
-  const [searchTerm, setSearchTerm] = useState(""); // State for input field value
-  const [triggerSearchTerm, setTriggerSearchTerm] = useState(""); // State to trigger search
+  const [searchTerm, setSearchTerm] = useState("");
+  const [triggerSearchTerm, setTriggerSearchTerm] = useState("");
+
+  const [sortKey, setSortKey] = useState("start_date");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const [expandedClassId, setExpandedClassId] = useState(null);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from(
-    { length: currentYear - 2021 },
+    { length: currentYear - 2021 + 1 },
     (_, i) => currentYear - i
   );
 
@@ -39,67 +46,137 @@ const Statistics = () => {
   ];
 
   useEffect(() => {
+    let isMounted = true;
+
     if (user && user.status === "ผู้ดูแลระบบ") {
       setLoading(true);
-      const url = new URL(
+
+      const demographicsUrl = new URL(
         "http://localhost:5000/api/statistics/class-demographics"
       );
-      url.searchParams.append("year", selectedYear);
-      url.searchParams.append("month", selectedMonth);
+      demographicsUrl.searchParams.append("year", selectedYear);
+      demographicsUrl.searchParams.append("month", selectedMonth);
 
-      fetch(url)
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-          }
+      const categoryEvalUrl = new URL(
+        "http://localhost:5000/api/statistics/evaluation-categories"
+      );
+      categoryEvalUrl.searchParams.append("year", selectedYear);
+      categoryEvalUrl.searchParams.append("month", selectedMonth);
+
+      Promise.all([
+        fetch(demographicsUrl).then((res) => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
           return res.json();
-        })
-        .then((data) => {
-          setStats(data);
-          setLoading(false);
+        }),
+        fetch(categoryEvalUrl).then((res) => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        }),
+      ])
+        .then(([demographicsData, categoryData]) => {
+          if (isMounted) {
+            setStats(demographicsData);
+            setCategoryEvalData(categoryData);
+            setLoading(false);
+          }
         })
         .catch((err) => {
-          console.error("Error fetching statistics:", err);
-          setLoading(false);
+          if (isMounted) {
+            console.error("Error fetching statistics:", err);
+            setLoading(false);
+          }
         });
     } else if (user) {
       navigate("/login");
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, navigate, selectedYear, selectedMonth]);
 
-  // Function to handle search button click
   const handleSearch = () => {
     setTriggerSearchTerm(searchTerm);
   };
 
-  // Filter stats based on triggerSearchTerm
-  const filteredStats = useMemo(() => {
-    if (!triggerSearchTerm) {
-      return stats;
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
     }
-    const lowerCaseSearchTerm = triggerSearchTerm.toLowerCase();
-    return stats.filter(
-      (classStat) =>
+  };
+
+  const handleToggleExpand = (classId) => {
+    const newExpandedClassId = expandedClassId === classId ? null : classId;
+    setExpandedClassId(newExpandedClassId);
+
+    if (newExpandedClassId && !classEvaluationStats[newExpandedClassId]) {
+      setLoadingClassEval(newExpandedClassId);
+      fetch(`http://localhost:5000/api/statistics/evaluation-categories/${newExpandedClassId}`)
+        .then(res => res.json())
+        .then(data => {
+          setClassEvaluationStats(prevStats => ({
+            ...prevStats,
+            [newExpandedClassId]: data
+          }));
+          setLoadingClassEval(null);
+        })
+        .catch(err => {
+          console.error(`Error fetching evaluations for class ${newExpandedClassId}:`, err);
+          setClassEvaluationStats(prevStats => ({
+            ...prevStats,
+            [newExpandedClassId]: {}
+          }));
+          setLoadingClassEval(null);
+        });
+    }
+  };
+
+  const filteredAndSortedStats = useMemo(() => {
+    const filtered = stats.filter((classStat) => {
+      if (!triggerSearchTerm) {
+        return true;
+      }
+      const lowerCaseSearchTerm = triggerSearchTerm.toLowerCase();
+      return (
         classStat.title.toLowerCase().includes(lowerCaseSearchTerm) ||
         classStat.class_id.toLowerCase().includes(lowerCaseSearchTerm)
-    );
-  }, [stats, triggerSearchTerm]); // Dependency changed to triggerSearchTerm
+      );
+    });
 
-  // Calculate total participants from filteredStats
+    return filtered.sort((a, b) => {
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortOrder === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else if (sortKey === "start_date") {
+        const dateA = new Date(a.start_date);
+        const dateB = new Date(b.start_date);
+        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+      } else {
+        return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+      }
+    });
+  }, [stats, triggerSearchTerm, sortKey, sortOrder]);
+
   const totalParticipants = useMemo(() => {
     let total = 0;
-    filteredStats.forEach((classStat) => {
+    filteredAndSortedStats.forEach((classStat) => {
       for (const status in classStat.demographics) {
         total += classStat.demographics[status];
       }
     });
     return total;
-  }, [filteredStats]);
+  }, [filteredAndSortedStats]);
 
-  // Calculate aggregated demographics from filteredStats
   const aggregatedDemographics = useMemo(() => {
     const aggregated = {};
-    filteredStats.forEach((classStat) => {
+    filteredAndSortedStats.forEach((classStat) => {
       for (const status in classStat.demographics) {
         if (aggregated[status]) {
           aggregated[status] += classStat.demographics[status];
@@ -109,14 +186,28 @@ const Statistics = () => {
       }
     });
     return aggregated;
-  }, [filteredStats]);
+  }, [filteredAndSortedStats]);
+
+  const overallAverageScore = useMemo(() => {
+    if (!categoryEvalData) return 0;
+    const scores = Object.values(categoryEvalData).filter(
+      (score) => score !== null
+    );
+    if (scores.length === 0) return 0;
+    const average =
+      scores.reduce((sum, score) => sum + parseFloat(score), 0) / scores.length;
+    return average.toFixed(2);
+  }, [categoryEvalData]);
 
   if (!user || user.status !== "ผู้ดูแลระบบ") {
     return <p>Loading...</p>;
   }
 
-  const handleToggleExpand = (classId) => {
-    setExpandedClassId(expandedClassId === classId ? null : classId);
+  const getSortIcon = (key) => {
+    if (sortKey === key) {
+      return sortOrder === "asc" ? "▲" : "▼";
+    }
+    return "";
   };
 
   return (
@@ -127,8 +218,7 @@ const Statistics = () => {
           สถิติ
         </h1>
 
-        {/* Filter UI */}
-        <div className="flex gap-y-2 mb-8 p-4 rounded-lg shadow flex-col relative">
+        <div className="flex gap-y-2 mb-8 p-4 flex-col relative">
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
               <span className="text-xl font-bold">
@@ -190,43 +280,86 @@ const Statistics = () => {
               />
               <button
                 onClick={handleSearch}
-                className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 ค้นหา
               </button>
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 flex justify-between items-center">
             <span className="text-lg font-semibold">
-              จำนวนผู้เข้าร่วมทั้งหมด {totalParticipants} คน
+              จำนวนผู้เข้าร่วมทั้งหมด: {totalParticipants} คน
+            </span>
+            <span className="text-lg font-semibold">
+              คะแนนเฉลี่ยโดยภาพรวม: {overallAverageScore} / 5
             </span>
           </div>
 
-          {Object.keys(aggregatedDemographics).length > 0 && (
+          {Object.keys(aggregatedDemographics).length > 0 ? (
             <div>
-              <div className="flex flex-col lg:flex-row lg:justify-around items-center gap-4">
+              <div className="flex flex-col lg:flex-row lg:justify-around items-start gap-4">
                 <div className="relative h-80 w-full lg:w-1/2 min-w-[300px]">
-                  <DemographicsPieChart demographics={aggregatedDemographics} />
+                  <DemographicsPieChart
+                    demographics={aggregatedDemographics}
+                  />
                 </div>
 
-                <div className="relative h-80 w-full lg:w-1/2 min-w-[300px] flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
-                  <p>พื้นที่สำหรับแผนภูมิแท่ง</p>
+                <div className="relative h-80 w-full lg:w-1/2 min-w-[300px]">
+                  {categoryEvalData &&
+                  Object.values(categoryEvalData).some((v) => v !== null) ? (
+                    <CategoryBarChart data={categoryEvalData} />
+                  ) : (
+                    <div className="flex items-center justify-center h-full border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
+                      <p>ไม่มีข้อมูลการประเมินผลในช่วงเวลานี้</p>
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="mt-4 text-center text-gray-500">
+              <p>ไม่มีข้อมูลผู้เข้าร่วมในช่วงเวลาที่เลือก</p>
             </div>
           )}
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow mt-8">
-          <h2 className="text-xl font-bold mb-4">สถิติโดยแยกตามห้องเรียน</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">สถิติโดยแยกตามห้องเรียน</h2>
+            <div className="flex items-center gap-2">
+              <label htmlFor="sort-by" className="text-gray-700">
+                เรียงตาม:
+              </label>
+              <select
+                id="sort-by"
+                value={sortKey}
+                onChange={(e) => handleSort(e.target.value)}
+                className="block w-auto text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="start_date">วันที่เปิดสอน</option>
+                <option value="class_id">Class ID</option>
+                <option value="title">ชื่อห้องเรียน</option>
+              </select>
+              <button
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                className="p-2 bg-gray-200 rounded-md hover:bg-gray-300"
+                title="สลับทิศทางการเรียง"
+              >
+                {sortOrder === "asc" ? "▲" : "▼"}
+              </button>
+            </div>
+          </div>
+
           <div>
             {loading ? (
               <p>กำลังโหลดข้อมูลสถิติ...</p>
             ) : (
               <div className="space-y-4">
-                {filteredStats.length > 0 ? (
-                  filteredStats.map((classStat) => (
+                {filteredAndSortedStats.length > 0 ? (
+                  filteredAndSortedStats.map((classStat) => (
                     <div
                       key={classStat.class_id}
                       className="bg-gray-50 p-4 rounded-lg shadow cursor-pointer transition-all duration-300 ease-in-out"
@@ -252,7 +385,6 @@ const Statistics = () => {
                             )}
                           </p>
                         </h2>
-
                         <span>
                           {expandedClassId === classStat.class_id ? (
                             <svg
@@ -287,21 +419,31 @@ const Statistics = () => {
                           )}
                         </span>
                       </div>
-
                       {expandedClassId === classStat.class_id && (
                         <div className="mt-4 pt-4 border-t border-gray-200">
                           {Object.keys(classStat.demographics).length > 0 ? (
                             <div className="flex flex-col lg:flex-row lg:justify-around gap-4">
                               <div className="flex flex-col gap-y-4 relative h-70 w-full lg:w-1/2 min-w-[300px]">
                                 <span className="text-lg font-semibold">
-                                  จำนวนผู้เข้าร่วมทั้งหมด {totalParticipants} คน
+                                  จำนวนผู้เข้าร่วมทั้งหมด{" "}
+                                  {Object.values(classStat.demographics).reduce(
+                                    (sum, count) => sum + count,
+                                    0
+                                  )}{" "}
+                                  คน
                                 </span>
                                 <DemographicsPieChart
                                   demographics={classStat.demographics}
                                 />
                               </div>
-                              <div className="relative h-70 w-full lg:w-1/2 min-w-[300px] flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
-                                <p>พื้นที่สำหรับแผนภูมิแท่ง</p>
+                              <div className="relative h-70 w-full lg:w-1/2 min-w-[300px] flex items-center justify-center">
+                                {loadingClassEval === classStat.class_id ? <p>กำลังโหลดข้อมูล...</p> :
+                                  (classEvaluationStats[classStat.class_id] && Object.values(classEvaluationStats[classStat.class_id]).some(v => v !== null) ?
+                                    <div className="w-full h-full">
+                                      <CategoryBarChart data={classEvaluationStats[classStat.class_id]} />
+                                    </div>
+                                    : <p className="text-gray-500">ไม่พบข้อมูล</p>)
+                                }
                               </div>
                             </div>
                           ) : (
