@@ -9,10 +9,7 @@ const Statistics = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState([]);
-  const [categoryEvalData, setCategoryEvalData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [classEvaluationStats, setClassEvaluationStats] = useState({});
-  const [loadingClassEval, setLoadingClassEval] = useState(null);
 
   const [selectedYear, setSelectedYear] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState("all");
@@ -20,9 +17,9 @@ const Statistics = () => {
   const [triggerSearchTerm, setTriggerSearchTerm] = useState("");
 
   const [sortKey, setSortKey] = useState("start_date");
-  const [sortOrder, setSortOrder] = useState("desc");
+  const [sortOrder, setSortOrder] = useState("desc"); // Default to descending for newest classes first
 
-  const [expandedClassId, setExpandedClassId] = useState(null);
+  const [expandedClassIds, setExpandedClassIds] = useState([]);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from(
@@ -46,53 +43,32 @@ const Statistics = () => {
   ];
 
   useEffect(() => {
-    let isMounted = true;
-
     if (user && user.status === "ผู้ดูแลระบบ") {
       setLoading(true);
-
-      const demographicsUrl = new URL(
+      const url = new URL(
         "http://localhost:5000/api/statistics/class-demographics"
       );
-      demographicsUrl.searchParams.append("year", selectedYear);
-      demographicsUrl.searchParams.append("month", selectedMonth);
+      url.searchParams.append("year", selectedYear);
+      url.searchParams.append("month", selectedMonth);
 
-      const categoryEvalUrl = new URL(
-        "http://localhost:5000/api/statistics/evaluation-categories"
-      );
-      categoryEvalUrl.searchParams.append("year", selectedYear);
-      categoryEvalUrl.searchParams.append("month", selectedMonth);
-
-      Promise.all([
-        fetch(demographicsUrl).then((res) => {
-          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-          return res.json();
-        }),
-        fetch(categoryEvalUrl).then((res) => {
-          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-          return res.json();
-        }),
-      ])
-        .then(([demographicsData, categoryData]) => {
-          if (isMounted) {
-            setStats(demographicsData);
-            setCategoryEvalData(categoryData);
-            setLoading(false);
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
           }
+          return res.json();
+        })
+        .then((data) => {
+          setStats(data);
+          setLoading(false);
         })
         .catch((err) => {
-          if (isMounted) {
-            console.error("Error fetching statistics:", err);
-            setLoading(false);
-          }
+          console.error("Error fetching statistics:", err);
+          setLoading(false);
         });
     } else if (user) {
       navigate("/login");
     }
-
-    return () => {
-      isMounted = false;
-    };
   }, [user, navigate, selectedYear, selectedMonth]);
 
   const handleSearch = () => {
@@ -105,32 +81,6 @@ const Statistics = () => {
     } else {
       setSortKey(key);
       setSortOrder("asc");
-    }
-  };
-
-  const handleToggleExpand = (classId) => {
-    const newExpandedClassId = expandedClassId === classId ? null : classId;
-    setExpandedClassId(newExpandedClassId);
-
-    if (newExpandedClassId && !classEvaluationStats[newExpandedClassId]) {
-      setLoadingClassEval(newExpandedClassId);
-      fetch(`http://localhost:5000/api/statistics/evaluation-categories/${newExpandedClassId}`)
-        .then(res => res.json())
-        .then(data => {
-          setClassEvaluationStats(prevStats => ({
-            ...prevStats,
-            [newExpandedClassId]: data
-          }));
-          setLoadingClassEval(null);
-        })
-        .catch(err => {
-          console.error(`Error fetching evaluations for class ${newExpandedClassId}:`, err);
-          setClassEvaluationStats(prevStats => ({
-            ...prevStats,
-            [newExpandedClassId]: {}
-          }));
-          setLoadingClassEval(null);
-        });
     }
   };
 
@@ -188,20 +138,58 @@ const Statistics = () => {
     return aggregated;
   }, [filteredAndSortedStats]);
 
-  const overallAverageScore = useMemo(() => {
-    if (!categoryEvalData) return 0;
-    const scores = Object.values(categoryEvalData).filter(
-      (score) => score !== null
-    );
-    if (scores.length === 0) return 0;
-    const average =
-      scores.reduce((sum, score) => sum + parseFloat(score), 0) / scores.length;
-    return average.toFixed(2);
-  }, [categoryEvalData]);
+  const aggregatedEvaluationData = useMemo(() => {
+    const totals = {
+      content: 0,
+      material: 0,
+      duration: 0,
+      format: 0,
+      speaker: 0,
+    };
+    let totalEvaluations = 0;
+
+    filteredAndSortedStats.forEach((classStat) => {
+      if (classStat.total_evaluations > 0) {
+        totals.content +=
+          parseFloat(classStat.avg_score_content) * classStat.total_evaluations;
+        totals.material +=
+          parseFloat(classStat.avg_score_material) *
+          classStat.total_evaluations;
+        totals.duration +=
+          parseFloat(classStat.avg_score_duration) *
+          classStat.total_evaluations;
+        totals.format +=
+          parseFloat(classStat.avg_score_format) * classStat.total_evaluations;
+        totals.speaker +=
+          parseFloat(classStat.avg_score_speaker) * classStat.total_evaluations;
+        totalEvaluations += classStat.total_evaluations;
+      }
+    });
+
+    if (totalEvaluations === 0) {
+      return null;
+    }
+
+    return {
+      avg_score_content: totals.content / totalEvaluations,
+      avg_score_material: totals.material / totalEvaluations,
+      avg_score_duration: totals.duration / totalEvaluations,
+      avg_score_format: totals.format / totalEvaluations,
+      avg_score_speaker: totals.speaker / totalEvaluations,
+    };
+  }, [filteredAndSortedStats]);
 
   if (!user || user.status !== "ผู้ดูแลระบบ") {
     return <p>Loading...</p>;
   }
+
+  const handleToggleExpand = (classId) => {
+    setExpandedClassIds((prevIds) =>
+      prevIds.includes(classId)
+        ? prevIds.filter((id) => id !== classId)
+        : [...prevIds, classId]
+    );
+  };
 
   const getSortIcon = (key) => {
     if (sortKey === key) {
@@ -287,39 +275,32 @@ const Statistics = () => {
             </div>
           </div>
 
-          <div className="mt-4 flex justify-between items-center">
+          <div className="mt-4">
             <span className="text-lg font-semibold">
-              จำนวนผู้เข้าร่วมทั้งหมด: {totalParticipants} คน
+              จำนวนผู้เข้าร่วมทั้งหมด {totalParticipants} คน
             </span>
-            <span className="text-lg font-semibold">
-              คะแนนเฉลี่ยโดยภาพรวม: {overallAverageScore} / 5
+            <span className="text-lg font-semibold text-right float-right">
+              คะแนนการประเมินโดยเฉลี่ยคือ {}
             </span>
           </div>
 
-          {Object.keys(aggregatedDemographics).length > 0 ? (
+          {Object.keys(aggregatedDemographics).length > 0 && (
             <div>
-              <div className="flex flex-col lg:flex-row lg:justify-around items-start gap-4">
+              <div className="flex flex-col lg:flex-row lg:justify-around items-center gap-4">
                 <div className="relative h-80 w-full lg:w-1/2 min-w-[300px]">
-                  <DemographicsPieChart
-                    demographics={aggregatedDemographics}
-                  />
+                  <DemographicsPieChart demographics={aggregatedDemographics} />
                 </div>
 
                 <div className="relative h-80 w-full lg:w-1/2 min-w-[300px]">
-                  {categoryEvalData &&
-                  Object.values(categoryEvalData).some((v) => v !== null) ? (
-                    <CategoryBarChart data={categoryEvalData} />
+                  {aggregatedEvaluationData ? (
+                    <CategoryBarChart data={aggregatedEvaluationData} />
                   ) : (
                     <div className="flex items-center justify-center h-full border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
-                      <p>ไม่มีข้อมูลการประเมินผลในช่วงเวลานี้</p>
+                      <p>ไม่มีข้อมูลการประเมินสำหรับห้องเรียนที่เลือก</p>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="mt-4 text-center text-gray-500">
-              <p>ไม่มีข้อมูลผู้เข้าร่วมในช่วงเวลาที่เลือก</p>
             </div>
           )}
         </div>
@@ -386,7 +367,7 @@ const Statistics = () => {
                           </p>
                         </h2>
                         <span>
-                          {expandedClassId === classStat.class_id ? (
+                          {expandedClassIds.includes(classStat.class_id) ? (
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="h-6 w-6 text-gray-500"
@@ -419,7 +400,7 @@ const Statistics = () => {
                           )}
                         </span>
                       </div>
-                      {expandedClassId === classStat.class_id && (
+                      {expandedClassIds.includes(classStat.class_id) && (
                         <div className="mt-4 pt-4 border-t border-gray-200">
                           {Object.keys(classStat.demographics).length > 0 ? (
                             <div className="flex flex-col lg:flex-row lg:justify-around gap-4">
@@ -436,14 +417,14 @@ const Statistics = () => {
                                   demographics={classStat.demographics}
                                 />
                               </div>
-                              <div className="relative h-70 w-full lg:w-1/2 min-w-[300px] flex items-center justify-center">
-                                {loadingClassEval === classStat.class_id ? <p>กำลังโหลดข้อมูล...</p> :
-                                  (classEvaluationStats[classStat.class_id] && Object.values(classEvaluationStats[classStat.class_id]).some(v => v !== null) ?
-                                    <div className="w-full h-full">
-                                      <CategoryBarChart data={classEvaluationStats[classStat.class_id]} />
-                                    </div>
-                                    : <p className="text-gray-500">ไม่พบข้อมูล</p>)
-                                }
+                              <div className="relative h-70 w-full lg:w-1/2 min-w-[300px]">
+                                {classStat.total_evaluations > 0 ? (
+                                  <CategoryBarChart data={classStat} />
+                                ) : (
+                                  <div className="flex items-center justify-center h-full border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
+                                    <p>ยังไม่มีผู้ประเมินในห้องเรียนนี้</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ) : (

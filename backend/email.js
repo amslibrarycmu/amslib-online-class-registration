@@ -133,8 +133,104 @@ async function sendAdminCancellationNotification(adminEmails, studentName, stude
     }
 }
 
+async function sendNewClassRequestAdminNotification(adminEmails, requestDetails) {
+    if (!adminEmails || adminEmails.length === 0) {
+        console.log("No admin emails found to send new class request notification.");
+        return;
+    }
+
+    try {
+        const transporter = await createTransporter();
+        const mailOptions = {
+            from: '"AMSLIB Course Registration" <noreply@amslib.com>',
+            to: adminEmails.join(', '),
+            subject: `[แจ้งเตือน] มีคำขอเปิดห้องเรียนใหม่: ${requestDetails.title}`,
+            html: `
+                <h1>[แจ้งเตือน] มีคำขอเปิดห้องเรียนใหม่</h1>
+                <p>หัวข้อ: <strong>${requestDetails.title}</strong></p>
+                <p>ผู้เสนอ: <strong>${requestDetails.requestedBy}</strong></p>
+                <p>เหตุผล: ${requestDetails.reason || '-'}</p>
+                <p>วันที่เสนอ: ${new Date().toLocaleDateString('th-TH')}</p>
+                <hr>
+                <p>โปรดเข้าสู่ระบบเพื่อตรวจสอบและดำเนินการ</p>
+                <p>ทีมงาน AMSLIB</p>
+            `,
+        };
+
+        let info = await transporter.sendMail(mailOptions);
+        console.log('New class request admin notification sent: %s', info.messageId);
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+            console.log('New Class Request Admin Notification Preview URL: %s', previewUrl);
+        }
+    } catch (error) {
+        console.error('Error sending new class request admin notification email:', error);
+    }
+}
+
+// เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการอนุมัติ
+async function sendRequestApprovedNotification(recipientEmail, requestDetails) {
+    try {
+        const transporter = await createTransporter();
+        const mailOptions = {
+            from: '"AMSLIB Course Registration" <noreply@amslib.com>',
+            to: recipientEmail,
+            subject: `แจ้งผลการพิจารณาคำขอหลักสูตร: ${requestDetails.title} ได้รับการอนุมัติ`,
+            html: `
+                <h1>คำขอหลักสูตรของท่านได้รับการอนุมัติแล้ว</h1>
+                <p>สวัสดีครับ/ค่ะ,</p>
+                <p>คำขอหลักสูตร <strong>"${requestDetails.title}"</strong> ของท่านได้รับการอนุมัติจากผู้ดูแลระบบแล้ว</p>
+                <p>ท่านสามารถติดตามความคืบหน้าของหลักสูตรนี้ได้ในระบบต่อไป</p>
+                <hr>
+                <p>ขอแสดงความนับถือ</p>
+                <p>ทีมงาน AMSLIB</p>
+            `,
+        };
+        let info = await transporter.sendMail(mailOptions);
+        console.log('Request approved email sent: %s', info.messageId);
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+            console.log('Request Approved Email Preview URL: %s', previewUrl);
+        }
+    } catch (error) {
+        console.error('Error sending request approved email:', error);
+    }
+}
+
+// เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการปฏิเสธ
+async function sendRequestRejectedNotification(recipientEmail, requestDetails) {
+    try {
+        const transporter = await createTransporter();
+        const mailOptions = {
+            from: '"AMSLIB Course Registration" <noreply@amslib.com>',
+            to: recipientEmail,
+            subject: `แจ้งผลการพิจารณาคำขอหลักสูตร: ${requestDetails.title} ไม่ได้รับการอนุมัติ`,
+            html: `
+                <h1>คำขอหลักสูตรของท่านไม่ได้รับการอนุมัติ</h1>
+                <p>สวัสดีครับ/ค่ะ,</p>
+                <p>คำขอหลักสูตร <strong>"${requestDetails.title}"</strong> ของท่านไม่ได้รับการอนุมัติจากผู้ดูแลระบบ</p>
+                <p>หากมีข้อสงสัยเพิ่มเติม สามารถติดต่อผู้ดูแลระบบได้โดยตรง</p>
+                <hr>
+                <p>ขอแสดงความนับถือ</p>
+                <p>ทีมงาน AMSLIB</p>
+            `,
+        };
+        let info = await transporter.sendMail(mailOptions);
+        console.log('Request rejected email sent: %s', info.messageId);
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+            console.log('Request Rejected Email Preview URL: %s', previewUrl);
+        }
+    } catch (error) {
+        console.error('Error sending request rejected email:', error);
+    }
+}
+
 module.exports = { 
     sendRegistrationConfirmation,
     sendAdminNotification,
-    sendAdminCancellationNotification
+    sendAdminCancellationNotification,
+    sendNewClassRequestAdminNotification,
+    sendRequestApprovedNotification,
+    sendRequestRejectedNotification
 };

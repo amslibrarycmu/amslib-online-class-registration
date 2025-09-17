@@ -4,8 +4,8 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState({
-    id: 99,
-    name: 'นักศึกษาทดสอบ (Test Student)',
+    id: 100,
+    name: 'User Normal',
     status: 'นักศึกษา',
     email: 'usernormal@email.com',
     phone: '0123456789',

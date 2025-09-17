@@ -44,8 +44,8 @@ export default function Sidebar() {
           <span>
             {firstname} {lastname}
           </span>{" "}
-          <span className="text-xs text-gray-500">{user?.email}</span>
-          <span className="text-xs text-gray-500 py-1">({user?.status})</span>
+          <span className="text-xs text-black">{user?.email}</span>
+          <span className="text-xs text-black py-1">({user?.status})</span>
           <span
             className="font-semibold cursor-pointer hover:underline"
             style={{ color: "black" }}
@@ -83,6 +83,13 @@ export default function Sidebar() {
             >
               สถิติ
             </span>
+
+            <span
+              onClick={() => navigate("/admin/class-requests")}
+              className="text-black cursor-pointer hover:underline text-[1.25rem]"
+            >
+              จัดการคำขอ
+            </span>
           </>
         ) : (
           <>
@@ -97,6 +104,12 @@ export default function Sidebar() {
               className="text-black cursor-pointer hover:underline text-[1.25rem]"
             >
               ประวัติการเข้าร่วม
+            </span>
+            <span
+              onClick={() => navigate("/class-request")}
+              className="text-black cursor-pointer hover:underline text-[1.25rem]"
+            >
+              ยื่นคำขอเปิดห้องเรียน
             </span>
           </>
         )}

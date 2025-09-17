@@ -2,6 +2,7 @@ import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
+
   Route,
   Navigate,
 } from "react-router-dom";
@@ -11,6 +12,8 @@ import ClassCreation from "./pages/ClassCreation";
 import ClassCatalog from "./pages/ClassCatalog"; // Import the new component
 import Statistics from "./pages/Statistics";
 import PastClassesHistory from "./pages/PastClassesHistory";
+import ClassRequest from "./pages/ClassRequest";
+import AdminClassRequests from "./pages/AdminClassRequests";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -62,6 +65,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <PastClassesHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/class-request"
+            element={
+              <ProtectedRoute>
+                <ClassRequest />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/class-requests"
+            element={
+              <ProtectedRoute>
+                <AdminClassRequests />
               </ProtectedRoute>
             }
           />

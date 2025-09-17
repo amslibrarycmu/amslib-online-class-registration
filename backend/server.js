@@ -6,7 +6,7 @@ const path = require("path");
 const fs = require('fs');
 require('dotenv').config();
 
-const { sendRegistrationConfirmation, sendAdminNotification, sendAdminCancellationNotification } = require('./email.js');
+const { sendRegistrationConfirmation, sendAdminNotification, sendAdminCancellationNotification, sendNewClassRequestAdminNotification, sendRequestApprovedNotification, sendRequestRejectedNotification } = require('./email.js');
 
 const uploadsDir = path.join(__dirname, 'uploads');
 const materialsDir = path.join(__dirname, 'uploads/materials');
@@ -19,8 +19,45 @@ if (!fs.existsSync(materialsDir)) {
 }
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
+
+// API: ผลการประเมินห้องเรียน
+app.get('/api/classes/:classId/evaluations', (req, res) => {
+  const classId = req.params.classId;
+  const sql = `
+    SELECT
+      u.name,
+      e.score_content,
+      e.score_material,
+      e.score_duration,
+      e.score_format,
+      e.score_speaker,
+      e.comments
+    FROM evaluations e
+    JOIN users u ON e.user_email = u.email
+    WHERE e.class_id = ?
+  `;
+  db.query(sql, [classId], (err, results) => {
+    if (err) {
+      console.error("Error fetching evaluation results:", err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    if (!results || results.length === 0) {
+      return res.json({ evaluations: [], suggestions: [] });
+    }
+
+    const suggestions = results
+      .map(r => r.comments)
+      .filter(c => c && c.trim() !== '' && c.trim().toLowerCase() !== 'null');
+
+    // The results are already in the format of { name, score_content, ... }
+    // So we can just pass them as 'evaluations'
+    res.json({ evaluations: results, suggestions });
+  });
+});
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -147,6 +184,205 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
       res.status(201).json({ message: "Class created successfully" });
     }
   );
+});
+
+app.post("/api/requests", (req, res) => {
+  const { title, reason, startDate, endDate, startTime, endTime, format, speaker, requestedBy } = req.body;
+
+  // Basic validation
+  if (!title || !requestedBy) {
+    return res.status(400).json({ message: "Title and requestedBy email are required." });
+  }
+
+  const sql = `
+    INSERT INTO requests (title, reason, start_date, end_date, start_time, end_time, format, suggested_speaker, user_email)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  const values = [
+    title,
+    reason || null,
+    startDate || null,
+    endDate || null,
+    startTime || null,
+    endTime || null,
+    format || 'ONLINE',
+    speaker || null,
+    requestedBy,
+  ];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("❌ Error submitting class request:", err);
+      return res.status(500).json({ message: "Database server error.", error: err });
+    }
+    console.log("✅ Class request submitted successfully:", result);
+    res.status(201).json({ message: "Class request submitted successfully!" });
+
+    // --- Email Notification for Admins ---
+    const adminQuery = "SELECT email FROM users WHERE status = 'ผู้ดูแลระบบ'";
+    db.query(adminQuery, (err, adminResults) => {
+      if (err) {
+        console.error("Error fetching admin emails for request notification:", err);
+        return;
+      }
+      const adminEmails = adminResults.map(admin => admin.email);
+      if (adminEmails.length > 0) {
+        const requestDetails = {
+          title,
+          reason,
+          startDate,
+          endDate,
+          startTime,
+          endTime,
+          format,
+          speaker,
+          requestedBy,
+        };
+        sendNewClassRequestAdminNotification(adminEmails, requestDetails);
+      }
+    });
+  });
+});
+
+app.get('/api/requests', (req, res) => {
+  const { user_email } = req.query;
+  let sql = 'SELECT request_id, title, request_date, status, start_date, end_date, start_time, end_time FROM requests';
+  const params = [];
+
+  if (user_email) {
+    sql += ' WHERE user_email = ?';
+    params.push(user_email);
+  }
+
+  db.query(sql, params, (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching class requests:", err);
+      return res.status(500).json({ message: "Database server error." });
+    }
+    res.json(results);
+  });
+});
+
+// Admin API to get all class requests with user details
+app.get('/api/admin/class-requests', (req, res) => {
+  const sql = `
+    SELECT
+      r.request_id,
+      r.title,
+      r.reason,
+      r.start_date,
+      r.end_date,
+      r.start_time,
+      r.end_time,
+      r.format,
+      r.suggested_speaker,
+      r.request_date,
+      r.status,
+      u.name AS requested_by_name,
+      u.email AS requested_by_email
+    FROM requests r
+    JOIN users u ON r.user_email = u.email
+    ORDER BY r.request_date DESC
+  `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching admin class requests:", err);
+      return res.status(500).json({ message: "Database server error." });
+    }
+    res.json(results);
+  });
+});
+
+// Admin API to approve or reject a class request
+app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
+  const { requestId, action } = req.params;
+
+  if (!['approve', 'reject'].includes(action)) {
+    return res.status(400).json({ message: "Invalid action." });
+  }
+
+  try {
+    // Start a transaction
+    await new Promise((resolve, reject) => {
+      db.beginTransaction(err => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Update request status
+    const updateRequestSql = 'UPDATE requests SET status = ? WHERE request_id = ?';
+    await new Promise((resolve, reject) => {
+      db.query(updateRequestSql, [action === 'approve' ? 'approved' : 'rejected', requestId], (err, result) => {
+        if (err) reject(err);
+        else if (result.affectedRows === 0) reject(new Error("Request not found."));
+        else resolve();
+      });
+    });
+
+    if (action === 'approve') {
+      // Fetch request details to send approval email to requester
+      const getRequestSql = 'SELECT * FROM requests WHERE request_id = ?';
+      const requestDetails = await new Promise((resolve, reject) => {
+        db.query(getRequestSql, [requestId], (err, results) => {
+          if (err) reject(err);
+          else if (results.length === 0) reject(new Error("Request details not found."));
+          else resolve(results[0]);
+        });
+      });
+      sendRequestApprovedNotification(requestDetails.user_email, requestDetails);
+    }
+
+    // If action is reject, send rejection email to requester
+    if (action === 'reject') {
+      // Fetch request details to send rejection email
+      const getRequestSql = 'SELECT * FROM requests WHERE request_id = ?';
+      const requestDetails = await new Promise((resolve, reject) => {
+        db.query(getRequestSql, [requestId], (err, results) => {
+          if (err) reject(err);
+          else if (results.length === 0) reject(new Error("Request details not found."));
+          else resolve(results[0]);
+        });
+      });
+      sendRequestRejectedNotification(requestDetails.user_email, requestDetails);
+    }
+
+    // Commit transaction
+    await new Promise((resolve, reject) => {
+      db.commit(err => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    res.status(200).json({ message: `Request ${action}ed successfully.` });
+  } catch (error) {
+    // Rollback transaction on error
+    await new Promise(resolve => {
+      db.rollback(() => {
+        console.error("❌ Transaction rolled back:", error);
+        resolve();
+      });
+    });
+    console.error(`Error ${action}ing class request:`, error);
+    res.status(500).json({ message: "Database server error.", error: error.message });
+  }
+});
+
+app.delete('/api/requests/:requestId', (req, res) => {
+  const { requestId } = req.params;
+  const sql = 'DELETE FROM requests WHERE request_id = ?';
+  db.query(sql, [requestId], (err, result) => {
+    if (err) {
+      console.error("❌ Error deleting class request:", err);
+      return res.status(500).json({ message: "Database server error." });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Class request not found." });
+    }
+    console.log(`✅ Class request ${requestId} deleted successfully.`);
+    res.status(200).json({ message: "Class request deleted successfully!" });
+  });
 });
 
 app.delete('/api/classes/:classId', (req, res) => {
@@ -421,15 +657,47 @@ app.get("/api/classes/registered/closed", (req, res) => {
 app.get('/api/statistics/class-demographics', (req, res) => {
   const { year, month } = req.query;
 
-  let classesSql = "SELECT class_id, title, registered_users, start_date FROM classes WHERE status = 'closed'";
+  let classesSql = `
+    SELECT
+      c.class_id,
+      c.title,
+      c.registered_users,
+      c.start_date,
+      eval_stats.total_evaluations,
+      eval_stats.avg_score_content,
+      eval_stats.avg_score_material,
+      eval_stats.avg_score_duration,
+      eval_stats.avg_score_format,
+      eval_stats.avg_score_speaker
+    FROM
+      classes c
+    LEFT JOIN (
+      SELECT
+        class_id,
+        COUNT(evaluation_id) AS total_evaluations,
+        AVG(score_content) AS avg_score_content,
+        AVG(score_material) AS avg_score_material,
+        AVG(score_duration) AS avg_score_duration,
+        AVG(score_format) AS avg_score_format,
+        AVG(score_speaker) AS avg_score_speaker
+      FROM
+        evaluations
+      GROUP BY
+        class_id
+    ) AS eval_stats
+    ON
+      c.class_id = eval_stats.class_id
+    WHERE
+      c.status = 'closed'
+  `;
   const params = [];
 
   if (year && year !== 'all') {
-    classesSql += ' AND YEAR(start_date) = ?';
+    classesSql += ' AND YEAR(c.start_date) = ?';
     params.push(year);
   }
   if (month && month !== 'all') {
-    classesSql += ' AND MONTH(start_date) = ?';
+    classesSql += ' AND MONTH(c.start_date) = ?';
     params.push(month);
   }
 
@@ -453,11 +721,17 @@ app.get('/api/statistics/class-demographics', (req, res) => {
     }, []);
 
     if (allRegisteredEmails.length === 0) {
-      const stats = classes.map(c => ({ 
-        class_id: c.class_id, 
-        title: c.title, 
+      const stats = classes.map(c => ({
+        class_id: c.class_id,
+        title: c.title,
         start_date: c.start_date,
-        demographics: {} 
+        demographics: {},
+        total_evaluations: c.total_evaluations || 0,
+        avg_score_content: c.avg_score_content,
+        avg_score_material: c.avg_score_material,
+        avg_score_duration: c.avg_score_duration,
+        avg_score_format: c.avg_score_format,
+        avg_score_speaker: c.avg_score_speaker,
       }));
       return res.json(stats);
     }
@@ -493,6 +767,12 @@ app.get('/api/statistics/class-demographics', (req, res) => {
           title: currentClass.title,
           start_date: currentClass.start_date,
           demographics,
+          total_evaluations: currentClass.total_evaluations || 0,
+          avg_score_content: currentClass.avg_score_content,
+          avg_score_material: currentClass.avg_score_material,
+          avg_score_duration: currentClass.avg_score_duration,
+          avg_score_format: currentClass.avg_score_format,
+          avg_score_speaker: currentClass.avg_score_speaker,
         };
       });
 
@@ -594,7 +874,7 @@ app.post('/api/evaluations', (req, res) => {
     return res.status(400).json({ error: 'Missing required evaluation data.' });
   }
 
-  const checkSql = 'SELECT id FROM evaluations WHERE class_id = ? AND user_email = ?';
+  const checkSql = 'SELECT evaluation_id FROM evaluations WHERE class_id = ? AND user_email = ?';
   db.query(checkSql, [class_id, user_email], (checkErr, checkResults) => {
     if (checkErr) {
       return res.status(500).json({ error: 'Database error while checking for existing evaluation.' });
@@ -604,7 +884,7 @@ app.post('/api/evaluations', (req, res) => {
     }
 
     const insertSql = `
-      INSERT INTO evaluations (class_id, user_email, score_content, score_material, score_duration, score_format, score_speaker, comment)
+      INSERT INTO evaluations (class_id, user_email, score_content, score_material, score_duration, score_format, score_speaker, comments)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [

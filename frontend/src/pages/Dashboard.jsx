@@ -7,6 +7,7 @@ import Sidebar from "../components/Sidebar";
 import ClassCreationModal from "../components/ClassCreationsModal";
 import RegistrantsModal from "../components/RegistrantsModal";
 import CloseClassModal from "../components/CloseClassModal";
+import EvaluationResultsModal from "../components/EvaluationResultsModal";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -17,6 +18,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [editingClass, setEditingClass] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // State for evaluation results modal
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [evaluationData, setEvaluationData] = useState(null);
+  const [selectedClassForEvaluation, setSelectedClassForEvaluation] = useState(null);
 
   // State for the registrants modal
   const [isRegistrantsModalOpen, setIsRegistrantsModalOpen] = useState(false);
@@ -218,6 +223,25 @@ const Dashboard = () => {
         alert("⚠️ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์");
       }
     }
+  };
+
+  const handleEvaluationResultsClick = async (cls) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/classes/${cls.class_id}/evaluations`);
+      if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลผลการประเมินได้");
+      const data = await response.json();
+      setEvaluationData(data);
+      setSelectedClassForEvaluation(cls);
+      setIsEvaluationModalOpen(true);
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleCloseEvaluationModal = () => {
+    setIsEvaluationModalOpen(false);
+    setEvaluationData(null);
+    setSelectedClassForEvaluation(null);
   };
 
   const handlePromoteToggle = async (classId, isPromoted) => {
@@ -617,13 +641,24 @@ const Dashboard = () => {
                                 />
                               </svg>
                             </button>
-                            <button
-                              title="แก้ไข"
-                              className="ml-auto bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                              onClick={() => handleOpenCloseClassModal(cls)}
-                            >
-                              แก้ไข
-                            </button>
+                            <div className="flex items-center ml-auto gap-x-2">
+                              <button
+                                title="ผลการประเมินความพึงพอใจ"
+                                className="bg-sky-500 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded"
+                                onClick={() =>
+                                  handleEvaluationResultsClick(cls)
+                                }
+                              >
+                                ผลการประเมิน
+                              </button>
+                              <button
+                                title="แก้ไข"
+                                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                                onClick={() => handleOpenCloseClassModal(cls)}
+                              >
+                                แก้ไข
+                              </button>
+                            </div>
                           </div>
                         </li>
                       );
@@ -662,6 +697,14 @@ const Dashboard = () => {
           onSubmit={handleCloseClassSubmit}
           classData={selectedClassToClose}
           isEditing={selectedClassToClose?.status === 'closed'}
+        />
+      )}
+      {isEvaluationModalOpen && selectedClassForEvaluation && (
+        <EvaluationResultsModal
+          isOpen={isEvaluationModalOpen}
+          onClose={handleCloseEvaluationModal}
+          evaluationData={evaluationData}
+          classTitle={selectedClassForEvaluation.title}
         />
       )}
     </div>

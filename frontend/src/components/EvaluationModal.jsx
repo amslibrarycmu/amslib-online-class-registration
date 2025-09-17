@@ -155,7 +155,7 @@ const EvaluationModal = ({
             <button
               type="submit"
               disabled={submitting}
-              className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
+              className="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
             >
               {submitting ? "กำลังส่ง..." : "ส่งแบบประเมิน"}
             </button>
