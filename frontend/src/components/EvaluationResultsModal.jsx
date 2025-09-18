@@ -25,7 +25,7 @@ const EvaluationResultsModal = ({
     <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <h2 className="font-bold mb-6 text-gray-800 text-center">
-          <span className="text-2xl"> ผลการประเมินสำหรับ <br/></span> 
+          <span className="text-2xl"> ผลการประเมิน <br/></span> 
           <span className="text-purple-700 text-2xl"> "{classTitle}" </span>
         </h2>
 

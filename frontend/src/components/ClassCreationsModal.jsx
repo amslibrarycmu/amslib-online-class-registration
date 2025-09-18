@@ -7,13 +7,15 @@ const speakerOptions = [
   "วรรธนันทพร วิลัยรักษ์",
 ];
 
-const AUDIENCE_OPTIONS = [
-  "นักศึกษา",
-  "อาจารย์/นักวิจัย",
-  "บุคลากร",
-];
+const AUDIENCE_OPTIONS = ["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"];
 
-const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDuplicating }) => {
+const ClassCreationModal = ({
+  onClose,
+  initialData,
+  onSubmit,
+  isEditing,
+  isDuplicating,
+}) => {
   const [formData, setFormData] = useState({
     title: "",
     speaker: [],
@@ -42,8 +44,8 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
         const date = new Date(d);
         if (isNaN(date.getTime())) return d;
         const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const day = date.getDate().toString().padStart(2, "0");
         return `${year}-${month}-${day}`;
       };
 
@@ -76,29 +78,32 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
         files: files.map((f) => (typeof f === "string" ? { name: f } : f)),
       });
     } else {
-        setFormData({
-            title: "",
-            speaker: [],
-            start_date: "",
-            end_date: "",
-            start_time: "",
-            end_time: "",
-            description: "",
-            format: "ONLINE",
-            join_link: "",
-            location: "",
-            target_groups: [...AUDIENCE_OPTIONS],
-            max_participants: "1",
-            files: [],
-            class_id: randomId(),
-        });
+      setFormData({
+        title: "",
+        speaker: [],
+        start_date: "",
+        end_date: "",
+        start_time: "",
+        end_time: "",
+        description: "",
+        format: "ONLINE",
+        join_link: "",
+        location: "",
+        target_groups: [...AUDIENCE_OPTIONS],
+        max_participants: "1",
+        files: [],
+        class_id: randomId(),
+      });
     }
   }, [initialData, isEditing, isDuplicating]);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
     if (type === "file") {
-      setFormData((prev) => ({ ...prev, files: [...prev.files, ...Array.from(files)] }));
+      setFormData((prev) => ({
+        ...prev,
+        files: [...prev.files, ...Array.from(files)],
+      }));
     } else if (name === "speaker") {
       setSpeakerInput(value);
     } else {
@@ -108,30 +113,44 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
 
   const handleAddSpeaker = () => {
     if (speakerInput && !formData.speaker.includes(speakerInput)) {
-      setFormData((prev) => ({ ...prev, speaker: [...prev.speaker, speakerInput] }));
+      setFormData((prev) => ({
+        ...prev,
+        speaker: [...prev.speaker, speakerInput],
+      }));
       setSpeakerInput("");
     }
   };
 
   const handleRemoveSpeaker = (speakerToRemove) => {
-    setFormData((prev) => ({ ...prev, speaker: prev.speaker.filter((spk) => spk !== speakerToRemove) }));
+    setFormData((prev) => ({
+      ...prev,
+      speaker: prev.speaker.filter((spk) => spk !== speakerToRemove),
+    }));
   };
 
   const handleRemoveFile = (indexToRemove) => {
-    setFormData((prev) => ({ ...prev, files: prev.files.filter((_, i) => i !== indexToRemove) }));
+    setFormData((prev) => ({
+      ...prev,
+      files: prev.files.filter((_, i) => i !== indexToRemove),
+    }));
   };
 
   const handleAudienceChange = (value) => {
     setFormData((prev) => {
       const exists = prev.target_groups.includes(value);
-      return { ...prev, target_groups: exists ? prev.target_groups.filter((g) => g !== value) : [...prev.target_groups, value] };
+      return {
+        ...prev,
+        target_groups: exists
+          ? prev.target_groups.filter((g) => g !== value)
+          : [...prev.target_groups, value],
+      };
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const dataToSend = { ...formData };
-    if (dataToSend.format === 'ONLINE') {
+    if (dataToSend.format === "ONLINE") {
       dataToSend.max_participants = 999;
     }
     onSubmit(dataToSend);
@@ -141,13 +160,15 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
     <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6">
-          {isEditing ? "แก้ไขห้องเรียน" : (isDuplicating ? "สร้างโดยแก้ไขจากข้อมูลเดิม" : "สร้างห้องเรียนใหม่")}
+          {isEditing
+            ? "แก้ไขห้องเรียน"
+            : isDuplicating
+            ? "สร้างโดยแก้ไขจากข้อมูลเดิม"
+            : "สร้างห้องเรียนใหม่"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block font-medium mb-1">
-              Class ID
-            </label>
+            <label className="block font-medium mb-1">Class ID</label>
             <input
               name="class_id"
               value={formData.class_id || ""}
@@ -156,7 +177,7 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
               disabled
             />
           </div>
-          
+
           <div>
             <label className="block font-medium mb-1">ชื่อวิชา</label>
             <input
@@ -235,6 +256,17 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
               />
             </div>
             <div>
+              <label className="block font-medium mb-1">เวลา</label>
+              <input
+                type="time"
+                name="start_time"
+                value={formData.start_time || ""}
+                onChange={handleChange}
+                className="w-full border px-4 py-2 rounded"
+                required
+              />
+            </div>
+            <div>
               <label className="block font-medium mb-1">
                 วันที่สิ้นสุด <span>(วัน/เดือน/ค.ศ.)</span>
               </label>
@@ -249,17 +281,6 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
             </div>
             <div>
               <label className="block font-medium mb-1">เวลา</label>
-              <input
-                type="time"
-                name="start_time"
-                value={formData.start_time || ""}
-                onChange={handleChange}
-                className="w-full border px-4 py-2 rounded"
-                required
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">ถึง</label>
               <input
                 type="time"
                 name="end_time"
@@ -327,7 +348,7 @@ const ClassCreationModal = ({ onClose, initialData, onSubmit, isEditing, isDupli
             </div>
           )}
 
-          {formData.format === 'ONSITE' && (
+          {formData.format === "ONSITE" && (
             <div className="flex flex-rpw gap-2 item-center">
               <div className="block font-medium my-auto w-fit">
                 จำนวนผู้เข้าร่วมได้สูงสุด

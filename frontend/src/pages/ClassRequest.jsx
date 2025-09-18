@@ -119,7 +119,7 @@ const ClassRequest = () => {
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
         <h1 className="text-3xl font-bold text-gray-800 text-center lg:text-center mb-6">
-          เสนอแนะห้องเรียน
+          ยื่นคำขอเปิดห้องเรียน
         </h1>
         
         <div className="flex flex-col lg:flex-row gap-8">

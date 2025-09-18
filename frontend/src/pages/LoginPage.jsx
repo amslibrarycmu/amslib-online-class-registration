@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import amsliblogo from "../assets/amslib-logo.svg";
@@ -24,8 +24,7 @@ const LoginPage = () => {
       setUser(userData);
       console.log("Login successful:", userData);
 
-      // Redirect based on user status
-      if (userData.status === 'ผู้ดูแลระบบ') {
+      if (userData.status === "ผู้ดูแลระบบ") {
         navigate("/index");
       } else {
         navigate("/classes");
@@ -36,14 +35,18 @@ const LoginPage = () => {
     }
   };
 
+  const [email, setEmail] = useState("");
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    performLogin(email);
+  };
+
   const handleAdminLogin = () => {
     performLogin("useradmin@email.com");
-    //performLogin("usersupport@email.com");
   };
 
   const handleNormalUserLogin = () => {
     performLogin("usernormal@email.com");
-    //performLogin("usernew@email.com");
   };
 
   return (
@@ -60,19 +63,38 @@ const LoginPage = () => {
           <br />
           (HSL KM)
         </p>
-        <div className="flex flex-col items-center gap-4 w-80 mx-auto">
-            <button
-              onClick={handleAdminLogin}
-              className="bg-purple-700 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
-            >
-              เข้าสู่ระบบ (ผู้ดูแลระบบ)
-            </button>
-            <button
-              onClick={handleNormalUserLogin}
-              className="bg-gray-500 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
-            >
-              เข้าสู่ระบบ (ผู้ใช้ทั่วไป)
-            </button>
+        <form
+          onSubmit={handleLogin}
+          className="flex flex-col items-center gap-4 w-80 mx-auto"
+        >
+          <input
+            type="email"
+            placeholder="ระบุอีเมล"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"
+            required
+          />
+          <button
+            type="submit"
+            className="bg-blue-500 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
+          >
+            เข้าสู่ระบบ
+          </button>
+        </form>
+        <div className="flex flex-col items-center gap-4 w-80 mx-auto mt-4">
+          <button
+            onClick={handleAdminLogin}
+            className="bg-purple-700 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
+          >
+            ผู้ดูแลระบบ
+          </button>
+          <button
+            onClick={handleNormalUserLogin}
+            className="bg-gray-500 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
+          >
+            ผู้ใช้ทั่วไป
+          </button>
         </div>
       </div>
     </div>

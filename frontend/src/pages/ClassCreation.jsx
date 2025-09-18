@@ -92,7 +92,11 @@ export default function ClassCreation() {
       } else {
         const errorData = await res.json();
         console.error("Server error details:", errorData);
-        alert(`❌ สร้างห้องเรียนไม่สำเร็จ: ${errorData.message || "ไม่ทราบสาเหตุ"}\n${errorData.error ? JSON.stringify(errorData.error, null, 2) : ""}`);
+        alert(
+          `❌ สร้างห้องเรียนไม่สำเร็จ: ${
+            errorData.message || "ไม่ทราบสาเหตุ"
+          }\n${errorData.error ? JSON.stringify(errorData.error, null, 2) : ""}`
+        );
       }
     } catch (error) {
       console.error("💥 error", error);
@@ -109,10 +113,9 @@ export default function ClassCreation() {
   return (
     <div className="w-screen grid grid-cols-[auto_1fr] h-screen">
       <Sidebar />
-      <div className="p-8 overflow-y-auto">
+      <div className="p-8 overflow-y-auto bg-gray-100">
         <h1 className="text-2xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
         <div className="flex flex-row gap-10 justify-center mb-8">
-    
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={handleCreateNewClick}
@@ -161,14 +164,17 @@ export default function ClassCreation() {
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
-            <span className="font-semibold mt-1"><h2>สร้างโดยแก้ไขจากข้อมูลเดิม</h2>
+            <span className="font-semibold mt-1">
+              <h2>สร้างโดยแก้ไขจากข้อมูลเดิม</h2>
             </span>
           </div>
         </div>
 
         {showExistingList && (
-          <div className="w-full max-w-4xl mx-auto space-y-4 bg-white text-black p-6 rounded shadow">
-            <h2 className="font-bold text-xl">เลือกห้องเรียนที่ต้องการใช้เป็นต้นฉบับ</h2>
+          <div className="w-full max-w-4xl mx-auto space-y-4 bg-white text-black p-6 rounded-md shadow">
+            <h2 className="font-bold text-xl">
+              เลือกห้องเรียนที่ต้องการใช้เป็นต้นฉบับ
+            </h2>
             {loading ? (
               <p>กำลังโหลดข้อมูล...</p>
             ) : (
@@ -176,20 +182,21 @@ export default function ClassCreation() {
                 {classesList.map((cls) => (
                   <li
                     key={cls.class_id}
-                    className="flex justify-between items-center p-3 border rounded-md shadow-sm"
+                    className="flex bg-gray-50 p-4 rounded-lg shadow justify-between items-center"
                   >
-                    <span>
-                      {cls.title}
+                    <span className="text-wrap break-normal w-full mr-6">
                       <span className="text-red-500 font-bold">
-                        {" "}
-                        (ID:{cls.class_id}){" "}
+                        {cls.class_id}
+                      </span>
+                      <span className="text-purple-800 font-bold text-wrap ml-2">
+                        {cls.title}
                       </span>
                     </span>
                     <button
                       onClick={() => handleEditExistingClick(cls)}
                       className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
                     >
-                      ใช้เป็นต้นฉบับ
+                      ใช้
                     </button>
                   </li>
                 ))}
