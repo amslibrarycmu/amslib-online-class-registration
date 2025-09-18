@@ -111,63 +111,69 @@ const PastClassesHistory = () => {
           {!loading && !error && (
             <>
               {pastClasses.length > 0 ? (
-                <div className="overflow-x-auto relative shadow-md sm:rounded-lg">
-                  <table className="w-full text-md text-left text-gray-500">
-                    <thead className="text-lg text-gray-700 uppercase bg-gray-50">
-                      <tr>
-                        <th scope="col" className="py-3 px-6">Class ID</th>
-                        <th scope="col" className="py-3 px-6">หลักสูตร</th>
-                        <th scope="col" className="py-3 px-6">เข้าร่วมเมื่อ</th>
-                        <th scope="col" className="py-3 px-6 text-right"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pastClasses.map((cls) => (
-                        <tr key={cls.class_id} className="bg-white border-b hover:bg-gray-50">
-                          <td className="py-4 px-6 font-bold text-red-600 whitespace-nowrap">{cls.class_id}</td>
-                          <td className="py-4 px-6 font-bold text-purple-600">{cls.title}</td>
-                          <td className="py-4 px-6">
-                            {new Date(cls.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
-                          </td>
-                          <td className="py-4 px-6 flex justify-end space-x-2">
-                            {/* 7. Conditionally render the evaluation button */}
-                            {!evaluatedClasses.has(cls.class_id) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {pastClasses.map((cls) => (
+                    <div key={cls.class_id} className="bg-white rounded-xl shadow-lg flex flex-col hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                      <div className="p-6 flex-grow flex flex-col">
+                        <h2 className="text-xl font-bold text-purple-800 mb-2">{cls.title}</h2>
+                        <p className="text-xs text-gray-400 mb-4">ID: {cls.class_id}</p>
+
+                        <div className="space-y-3 text-gray-700 text-sm mb-4 flex-grow">
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+                            <span><strong>วิทยากร:</strong> {cls.speaker}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
+                            <span><strong>เข้าร่วมเมื่อ:</strong> {new Date(cls.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</span>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 pt-4 mt-auto">
+                          <div className="flex justify-end items-center space-x-2">
+                            {!evaluatedClasses.has(cls.class_id) ? (
                               <button
                                 title="ตอบแบบประเมินความพึงพอใจ"
-                                className="text-blue-600 hover:text-blue-800 p-1 rounded-full"
+                                className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold py-2 px-3 rounded-md transition-colors"
                                 onClick={() => handleOpenEvalModal(cls)}
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                                   <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
                                 </svg>
+                                <span>ประเมิน</span>
                               </button>
+                            ) : (
+                                <div className="flex items-center gap-1 text-green-600 text-sm font-semibold py-2 px-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                    <span>ประเมินแล้ว</span>
+                                </div>
                             )}
                             <button
                               title="ดูไฟล์"
                               disabled={!cls.materials || cls.materials.length === 0}
-                              className="text-green-600 hover:text-green-800 p-1 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed"
+                              className="text-green-600 hover:text-green-800 p-2 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
                               onClick={() => handleViewFiles(cls.materials, cls.title)}
                             >
-                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                               </svg>
                             </button>
                             <button
                               title="ดูวิดีโอย้อนหลัง"
                               disabled={!cls.video_link}
-                              className="text-purple-600 hover:text-purple-800 p-1 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed"
+                              className="text-purple-600 hover:text-purple-800 p-2 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
                               onClick={() => window.open(cls.video_link, "_blank")}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z" />
                               </svg>
                             </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-10 px-6 bg-white rounded-lg shadow-md">

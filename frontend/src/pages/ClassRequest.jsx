@@ -2,6 +2,31 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../contexts/AuthContext";
 
+const StatusBadge = ({ status }) => {
+  let statusText;
+  let statusStyle;
+
+  switch (status) {
+    case "pending":
+      statusText = "รอตรวจสอบ";
+      statusStyle = "bg-yellow-100 text-yellow-800";
+      break;
+    case "approved":
+      statusText = "อนุมัติ";
+      statusStyle = "bg-green-100 text-green-800";
+      break;
+    case "rejected":
+      statusText = "ไม่อนุมัติ";
+      statusStyle = "bg-red-100 text-red-800";
+      break;
+    default:
+      statusText = status;
+      statusStyle = "bg-gray-100 text-gray-800";
+  }
+
+  return <span className={`text-xs font-medium me-2 px-2.5 py-0.5 rounded-full ${statusStyle}`}>{statusText}</span>;
+};
+
 const ClassRequest = () => {
   const { user } = useAuth();
   const [topic, setTopic] = useState("");
@@ -14,6 +39,7 @@ const ClassRequest = () => {
   const [speaker, setSpeaker] = useState("");
   const [myRequests, setMyRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
+  const [isViewing, setIsViewing] = useState(false);
 
   const fetchRequests = async () => {
     if (!user || !user.email) {
@@ -42,6 +68,18 @@ const ClassRequest = () => {
   useEffect(() => {
     fetchRequests();
   }, [user]); // Refetch when user changes
+
+  const resetForm = () => {
+    setTopic("");
+    setReason("");
+    setStartDate("");
+    setEndDate("");
+    setStartTime("");
+    setEndTime("");
+    setFormat("ONLINE");
+    setSpeaker("");
+    setIsViewing(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,15 +110,7 @@ const ClassRequest = () => {
       }
 
       alert("ขอบคุณสำหรับข้อเสนอแนะ! เราจะนำไปพิจารณาต่อไป");
-      // Reset form
-      setTopic("");
-      setReason("");
-      setStartDate("");
-      setEndDate("");
-      setStartTime("");
-      setEndTime("");
-      setFormat("ONLINE");
-      setSpeaker("");
+      resetForm();
       fetchRequests(); // Refetch requests after successful submission
     } catch (error) {
       console.error("Error submitting class request:", error);
@@ -114,6 +144,28 @@ const ClassRequest = () => {
     }
   };
 
+  const handleRequestClick = (request) => {
+    // Helper to format date to YYYY-MM-DD for the input
+    const formatDate = (dateString) => {
+      if (!dateString) return "";
+      try {
+        return new Date(dateString).toISOString().split("T")[0];
+      } catch (e) {
+        return "";
+      }
+    };
+
+    setTopic(request.title || "");
+    setReason(request.reason || "");
+    setStartDate(formatDate(request.start_date));
+    setEndDate(formatDate(request.end_date));
+    setStartTime(request.start_time || "");
+    setEndTime(request.end_time || "");
+    setFormat(request.format || "ONLINE");
+    setSpeaker(request.speaker || "");
+    setIsViewing(true);
+  };
+
   return (
     <div className="flex h-screen w-screen">
       <Sidebar />
@@ -123,12 +175,12 @@ const ClassRequest = () => {
         </h1>
         
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="w-full lg:w-1/2 bg-white p-8 rounded-lg shadow-md">
+          <div className="w-full lg:w-1/2 bg-white p-6 rounded-xl shadow-lg">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label
                   htmlFor="topic"
-                  className="block text-md font-medium text-black"
+                  className="block text-sm font-medium text-gray-700"
                 >
                   หัวข้อที่สนใจ <span className="text-red-500">*</span>
                 </label>
@@ -138,14 +190,15 @@ const ClassRequest = () => {
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   required
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                  disabled={isViewing}
+                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="reason"
-                  className="block text-md font-medium text-black"
+                  className="block text-sm font-medium text-gray-700"
                 >
                   เหตุผลที่ต้องการให้เปิดห้องเรียนดังกล่าว
                 </label>
@@ -154,7 +207,8 @@ const ClassRequest = () => {
                   rows="4"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                  disabled={isViewing}
+                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                 ></textarea>
               </div>
 
@@ -162,7 +216,7 @@ const ClassRequest = () => {
                 <div>
                   <label
                     htmlFor="start-date"
-                    className="block text-md font-medium text-black"
+                    className="block text-sm font-medium text-gray-700"
                   >
                     เริ่มวันที่
                   </label>
@@ -172,7 +226,8 @@ const ClassRequest = () => {
                       id="start-date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                      disabled={isViewing}
+                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                       <svg
@@ -195,7 +250,7 @@ const ClassRequest = () => {
                 <div>
                   <label
                     htmlFor="end-date"
-                    className="block text-md font-medium text-black"
+                    className="block text-sm font-medium text-gray-700"
                   >
                     ถึงวันที่
                   </label>
@@ -205,7 +260,8 @@ const ClassRequest = () => {
                       id="end-date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                      disabled={isViewing}
+                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                       <svg
@@ -231,7 +287,7 @@ const ClassRequest = () => {
                 <div>
                   <label
                     htmlFor="start-time"
-                    className="block text-md font-medium text-black"
+                    className="block text-sm font-medium text-gray-700"
                   >
                     เริ่มเวลา
                   </label>
@@ -241,7 +297,8 @@ const ClassRequest = () => {
                       id="start-time"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                      disabled={isViewing}
+                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                       <svg
@@ -264,7 +321,7 @@ const ClassRequest = () => {
                 <div>
                   <label
                     htmlFor="end-time"
-                    className="block text-md font-medium text-black"
+                    className="block text-sm font-medium text-gray-700"
                   >
                     ถึงเวลา
                   </label>
@@ -274,7 +331,8 @@ const ClassRequest = () => {
                       id="end-time"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                      disabled={isViewing}
+                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                       <svg
@@ -299,7 +357,7 @@ const ClassRequest = () => {
               <div>
                 <label
                   htmlFor="format"
-                  className="block text-md font-medium text-black"
+                  className="block text-sm font-medium text-gray-700"
                 >
                   รูปแบบการเรียน
                 </label>
@@ -307,7 +365,8 @@ const ClassRequest = () => {
                   id="format"
                   value={format}
                   onChange={(e) => setFormat(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                  disabled={isViewing}
+                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                 >
                   <option value="ONLINE">ONLINE</option>
                   <option value="ONSITE">ONSITE</option>
@@ -317,7 +376,7 @@ const ClassRequest = () => {
               <div>
                 <label
                   htmlFor="speaker"
-                  className="block text-md font-medium text-black"
+                  className="block text-sm font-medium text-gray-700"
                 >
                   วิทยากรที่แนะนำ (ถ้ามี)
                 </label>
@@ -326,92 +385,57 @@ const ClassRequest = () => {
                   id="speaker"
                   value={speaker}
                   onChange={(e) => setSpeaker(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-md"
+                  disabled={isViewing}
+                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                 />
               </div>
-              <div className="text-center">
-                <button
-                  type="submit"
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-md font-medium rounded-md text-white bg-purple-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  ส่งแบบฟอร์ม
-                </button>
+              <div className="pt-2">
+                {isViewing ? (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    เลิกดู
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    ส่งแบบฟอร์ม
+                  </button>
+                )}
               </div>
             </form>
           </div>
-          <div className="w-full lg:w-1/2 px-4 h-fit overflow-y-auto">
+          <div className="w-full lg:w-1/2">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">ประวัติคำขอของคุณ</h2>
             {loadingRequests ? (
               <p className="text-center">กำลังโหลดคำขอ...</p>
             ) : myRequests.length === 0 ? (
-              <p className="text-center">คุณยังไม่มีคำขอห้องเรียน</p>
+              <div className="text-center py-10 px-6 bg-white rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-700">ไม่พบคำขอ</h3>
+                <p className="text-gray-500 mt-2">คุณยังไม่ได้ยื่นคำขอเปิดห้องเรียน</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {myRequests.map((request) => {
-                  let statusText;
-                  let statusStyle;
-                  
-                  // สร้างเงื่อนไขตาม status
-                  switch (request.status) {
-                    case "pending":
-                      statusText = "รอ";
-                      statusStyle =
-                        "font-bold uppercase text-xl text-white bg-orange-400 px-4 py-1 rounded-3xl h-full";
-                      break;
-                    case "accepted":
-                      statusText = "อนุมัติ";
-                      statusStyle =
-                        "font-bold uppercase text-xl text-white bg-green-600 px-4 py-1 rounded-3xl h-full";
-                      break;
-                    case "rejected":
-                      statusText = "ไม่อนุมัติ";
-                      statusStyle =
-                        "font-bold uppercase text-xl text-white bg-red-600 px-4 py-1 rounded-3xl h-full";
-                      break;
-                    default:
-                      statusText = request.status;
-                      statusStyle =
-                        "font-bold uppercase text-xl text-white bg-gray-500 px-4 py-1 rounded-3xl w-[115px] h-full";
-                      break;
-                  }
-
                   return (
                     <div
                       key={request.request_id}
-                      className="p-4 rounded-md shadow-lg bg-gray-50 border border-gray-200"
+                      className="p-4 rounded-lg shadow-md bg-white border border-gray-200"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-2xl font-semibold text-purple-600">
-                          {request.title}
+                        <h3
+                          className="text-lg font-semibold text-purple-700 cursor-pointer hover:underline"
+                          onClick={() => handleRequestClick(request)}
+                        >
+                           {request.title}
                         </h3>
-                        <p className="text-sm ml-auto">
-                          <span className={statusStyle}>{statusText}</span>
-                        </p>
+                        <StatusBadge status={request.status} />
                       </div>
-                      <p className="text-sm mb-1 font-bold">
-                        {new Date(request.start_date).toLocaleDateString("th-TH", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}{" "}
-                        -{" "}
-                        {new Date(request.end_date).toLocaleDateString("th-TH", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}{" "}
-                        เวลา{" "}
-                        {new Date(`2000-01-01T${request.start_time}`).toLocaleTimeString(
-                          "th-TH",
-                          { hour: "2-digit", minute: "2-digit", hour12: false }
-                        )}{" "}
-                        -{" "}
-                        {new Date(`2000-01-01T${request.end_time}`).toLocaleTimeString(
-                          "th-TH",
-                          { hour: "2-digit", minute: "2-digit", hour12: false }
-                        )}{" "}
-                        น.
-                      </p>
-                      <p className="text-sm mb-1">
+                      <p className="text-xs text-gray-500 mb-2">
                         ส่งเมื่อ{" "}
                         {new Date(request.request_date).toLocaleDateString("th-TH", {
                           year: "numeric",
@@ -419,14 +443,15 @@ const ClassRequest = () => {
                           day: "numeric",
                         })}
                       </p>
-                      <div className="flex justify-end items-center mt-2">
-                        <div className="w-24 ">                  
-                        </div>
+                      <div className="flex justify-end items-center mt-3 pt-3 border-t border-gray-200">
                         <button
                           onClick={() => handleDeleteRequest(request.request_id)}
-                          className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                          className="text-red-500 hover:text-red-700 p-1 rounded-full transition-colors"
+                          title="ลบคำขอ"
                         >
-                          ลบ
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
+                          </svg>
                         </button>
                       </div>
                     </div>

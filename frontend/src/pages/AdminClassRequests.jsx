@@ -3,6 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 
+const StatusBadge = ({ status }) => {
+  let statusText;
+  let statusStyle;
+
+  switch (status) {
+    case "pending":
+      statusText = "รอ";
+      statusStyle = "bg-orange-400";
+      break;
+    case "approved":
+      statusText = "อนุมัติ";
+      statusStyle = "bg-green-600";
+      break;
+    case "rejected":
+      statusText = "ไม่อนุมัติ";
+      statusStyle = "bg-red-600";
+      break;
+    default:
+      statusText = status;
+      statusStyle = "bg-gray-500";
+  }
+
+  return <span className={`font-bold uppercase text-sm text-white px-3 py-1 rounded-full ${statusStyle}`}>{statusText}</span>;
+};
+
 const AdminClassRequests = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -141,21 +166,7 @@ const AdminClassRequests = () => {
                         })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-md text-black">
-                        {request.status === "pending" && (
-                          <span className="font-bold uppercase text-xl text-white bg-orange-400 px-4 py-1 rounded-3xl w-[115px] h-full flex items-center justify-center">
-                            รอ
-                          </span>
-                        )}
-                        {request.status === "approved" && (
-                          <span className="font-bold uppercase text-xl text-white bg-green-600 px-4 py-1 rounded-3xl w-[115px] h-full flex items-center justify-center">
-                            อนุมัติ
-                          </span>
-                        )}
-                        {request.status === "rejected" && (
-                          <span className="font-bold uppercase text-xl text-white bg-red-600 px-4 py-1 rounded-3xl w-[115px] h-full flex items-center justify-center">
-                            ไม่อนุมัติ
-                          </span>
-                        )}
+                        <StatusBadge status={request.status} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-md font-medium">
                         {request.status === "pending" && (

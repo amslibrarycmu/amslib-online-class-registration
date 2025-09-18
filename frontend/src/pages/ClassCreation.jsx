@@ -9,10 +9,15 @@ export default function ClassCreation() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [classesList, setClassesList] = useState([]);
+  const [approvedRequests, setApprovedRequests] = useState([]);
   const [showExistingList, setShowExistingList] = useState(false);
   const [selectedClassToEdit, setSelectedClassToEdit] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [classSearchTerm, setClassSearchTerm] = useState("");
+  const [requestSearchTerm, setRequestSearchTerm] = useState("");
+  const [isClassListExpanded, setIsClassListExpanded] = useState(true);
+  const [isRequestListExpanded, setIsRequestListExpanded] = useState(true);
   const perPage = 5;
 
   const fetchClasses = async () => {
@@ -37,9 +42,29 @@ export default function ClassCreation() {
     }
   };
 
+  const fetchApprovedRequests = async () => {
+    if (!user || user.status !== "ผู้ดูแลระบบ") return;
+    try {
+      setLoading(true);
+      const response = await fetch(
+        "http://localhost:5000/api/admin/class-requests?status=approved"
+      );
+      const data = await response.json();
+      setApprovedRequests(data);
+    } catch (error) {
+      console.error("Error fetching approved requests:", error);
+      setApprovedRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchClasses();
-  }, [user]);
+    if (showExistingList) {
+      fetchClasses();
+      fetchApprovedRequests();
+    }
+  }, [showExistingList, user]);
 
   const handleCreateNewClick = () => {
     setSelectedClassToEdit(null);
@@ -52,6 +77,22 @@ export default function ClassCreation() {
     setSelectedClassToEdit(cls);
     setShowExistingList(false);
     setIsDuplicating(true);
+    setShowForm(true);
+  };
+
+  const handleCreateFromRequestClick = (request) => {
+    const requestAsClassData = {
+      title: request.title,
+      speaker: request.speaker ? [request.speaker] : [],
+      start_date: request.start_date,
+      end_date: request.end_date,
+      start_time: request.start_time,
+      end_time: request.end_time,
+      description: request.reason,
+      format: request.format,
+    };
+    setSelectedClassToEdit(requestAsClassData);
+    setIsDuplicating(true); // Treat it like duplicating to pre-fill the form
     setShowForm(true);
   };
 
@@ -115,17 +156,19 @@ export default function ClassCreation() {
       <Sidebar />
       <div className="p-8 overflow-y-auto bg-gray-100">
         <h1 className="text-2xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
-        <div className="flex flex-row gap-10 justify-center mb-8">
-          <div className="flex flex-col items-center gap-2">
-            <button
-              onClick={handleCreateNewClick}
-              className="w-52 h-52 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-black font-bold rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105"
-              aria-label="สร้างใหม่ทั้งหมด"
-            >
+        <div className="flex flex-col md:flex-row gap-8 justify-center mb-8">
+          {/* Card for creating a new class */}
+          <div
+            onClick={handleCreateNewClick}
+            className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl border border-transparent transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer flex flex-col items-center text-center w-full md:w-80"
+            role="button"
+            aria-label="สร้างใหม่ทั้งหมด"
+          >
+            <div className="bg-purple-100 p-4 rounded-full mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="96"
-                height="96"
+                width="48"
+                height="48"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#6e11b0"
@@ -136,23 +179,28 @@ export default function ClassCreation() {
                 <path d="M12 5v14" />
                 <path d="M5 12h14" />
               </svg>
-            </button>
-            <span className="font-semibold mt-1">สร้างใหม่ทั้งหมด</span>
+            </div>
+            <h2 className="font-bold text-lg text-gray-800">สร้างใหม่ทั้งหมด</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              เริ่มต้นสร้างห้องเรียนจากฟอร์มเปล่า
+            </p>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-            <button
-              onClick={() => {
-                setShowExistingList(true);
-                setShowForm(false);
-              }}
-              className="w-52 h-52 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-black font-bold rounded-lg shadow-md transition-all duration-200 ease-in-out transform hover:scale-105"
-              aria-label="สร้างโดยแก้ไขจากข้อมูลเดิม"
-            >
+          {/* Card for creating from existing */}
+          <div
+            onClick={() => {
+              setShowExistingList(true);
+              setShowForm(false);
+            }}
+            className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl border-transparent hover:border-purple-500 transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer flex flex-col items-center text-center w-full md:w-80"
+            role="button"
+            aria-label="สร้างโดยแก้ไขจากข้อมูลเดิม"
+          >
+            <div className="bg-purple-100 p-4 rounded-full mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="96"
-                height="96"
+                width="48"
+                height="48"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="#6e11b0"
@@ -163,45 +211,152 @@ export default function ClassCreation() {
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
-            </button>
-            <span className="font-semibold mt-1">
-              <h2>สร้างโดยแก้ไขจากข้อมูลเดิม</h2>
-            </span>
+            </div>
+            <h2 className="font-bold text-lg text-gray-800">สร้างจากรายการเดิม</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              ใช้ข้อมูลจากห้องเรียนที่เคยสร้างหรือจากคำขอที่อนุมัติแล้ว
+            </p>
           </div>
         </div>
 
         {showExistingList && (
-          <div className="w-full max-w-4xl mx-auto space-y-4 bg-white text-black p-6 rounded-md shadow">
-            <h2 className="font-bold text-xl">
-              เลือกห้องเรียนที่ต้องการใช้เป็นต้นฉบับ
-            </h2>
-            {loading ? (
-              <p>กำลังโหลดข้อมูล...</p>
-            ) : (
-              <ul className="space-y-2">
-                {classesList.map((cls) => (
-                  <li
-                    key={cls.class_id}
-                    className="flex bg-gray-50 p-4 rounded-lg shadow justify-between items-center"
-                  >
-                    <span className="text-wrap break-normal w-full mr-6">
-                      <span className="text-red-500 font-bold">
-                        {cls.class_id}
-                      </span>
-                      <span className="text-purple-800 font-bold text-wrap ml-2">
-                        {cls.title}
-                      </span>
-                    </span>
-                    <button
-                      onClick={() => handleEditExistingClick(cls)}
-                      className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
-                    >
-                      ใช้
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="grid grid-cols-1 gap-8 w-full max-w-6xl mx-auto">
+            <div className="bg-white text-black p-6 rounded-md shadow">
+              <div
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => setIsClassListExpanded(!isClassListExpanded)}
+              >
+                <h2 className="font-bold text-xl">เลือกห้องเรียนต้นฉบับ</h2>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="text"
+                    placeholder="ค้นหา Class ID หรือชื่อห้องเรียน"
+                    value={classSearchTerm}
+                    onChange={(e) => setClassSearchTerm(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
+                  />
+                  <span className="transition-transform duration-300">
+                    {isClassListExpanded ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isClassListExpanded ? 'max-h-[500px] mt-4' : 'max-h-0'}`}>
+                {loading ? (
+                  <p>กำลังโหลดข้อมูล...</p>
+                ) : (
+                  <ul className="space-y-2 max-h-96 overflow-y-auto">
+                    {classesList.length > 0 ? (
+                      classesList
+                        .filter(
+                          (cls) =>
+                            cls.title
+                              .toLowerCase()
+                              .includes(classSearchTerm.toLowerCase()) ||
+                            cls.class_id
+                              .toString()
+                              .includes(classSearchTerm.toLowerCase())
+                        )
+                        .map((cls) => (
+                          <li
+                            key={cls.class_id} // Ensure key is here
+                            className="flex bg-gray-50 p-4 rounded-lg shadow justify-between items-center"
+                          >
+                            <span className="text-wrap break-normal w-full mr-6">
+                              <span className="text-red-500 font-bold">
+                              {cls.class_id}
+                            </span>
+                            <span className="text-purple-800 font-bold text-wrap ml-2">
+                              {cls.title}
+                            </span>
+                          </span>
+                          <button
+                                onClick={() => handleEditExistingClick(cls)}
+                                className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600 flex-shrink-0"
+                              >
+                                ใช้
+                              </button>
+                            </li>
+                        ))
+                    ) : (
+                      <p className="text-gray-500">ไม่พบห้องเรียนที่สร้างไว้</p>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side: Approved Requests */}
+            <div className="bg-white text-black p-6 rounded-md shadow">
+              <div
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => setIsRequestListExpanded(!isRequestListExpanded)}
+              >
+                <h2 className="font-bold text-xl">สร้างจากคำขอที่อนุมัติแล้ว</h2>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="text"
+                    placeholder="ค้นหาจากชื่อคำขอ"
+                    value={requestSearchTerm}
+                    onChange={(e) => setRequestSearchTerm(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
+                  />
+                  <span className="transition-transform duration-300">
+                    {isRequestListExpanded ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isRequestListExpanded ? 'max-h-[500px] mt-4' : 'max-h-0'}`}>
+                {loading ? (
+                  <p>กำลังโหลดข้อมูล...</p>
+                ) : (
+                  <ul className="space-y-2 max-h-96 overflow-y-auto">
+                    {approvedRequests.length > 0 ? (
+                      approvedRequests
+                        .filter((req) =>
+                          req.title
+                            .toLowerCase()
+                            .includes(requestSearchTerm.toLowerCase())
+                        )
+                        .map((req) => (
+                          <li
+                            key={req.request_id} // Ensure key is here
+                            className="flex bg-green-50 p-4 rounded-lg shadow justify-between items-center hover:bg-green-100 transition-colors"
+                          >
+                            <span className="text-wrap break-normal w-full mr-6">
+                              <span className="text-green-800 font-bold text-wrap">
+                              {req.title}
+                            </span>
+                            <span className="text-xs text-gray-600 block">
+                              (ผู้ขอ: {req.requested_by_name})
+                            </span>
+                          </span>
+                          <button
+                                onClick={() => handleCreateFromRequestClick(req)}
+                                className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 flex-shrink-0"
+                              >
+                                สร้าง
+                              </button>
+                            </li>
+                        ))
+                    ) : (
+                      <p className="text-gray-500 text-center">
+                        ไม่มีคำขอที่ได้รับการอนุมัติ
+                      </p>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
