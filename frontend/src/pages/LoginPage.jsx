@@ -82,18 +82,23 @@ const LoginPage = () => {
             เข้าสู่ระบบ
           </button>
         </form>
-        <div className="flex flex-col items-center gap-4 w-80 mx-auto mt-4">
+        <div className="relative flex py-5 items-center w-80 mx-auto">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="flex-shrink mx-4 text-gray-400">หรือ</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
+        <div className="flex flex-col items-center gap-4 w-80 mx-auto">
           <button
             onClick={handleAdminLogin}
             className="bg-purple-700 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
           >
-            ผู้ดูแลระบบ
+            ทดสอบในบทบาท "ผู้ดูแลระบบ"
           </button>
           <button
             onClick={handleNormalUserLogin}
             className="bg-gray-500 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
           >
-            ผู้ใช้ทั่วไป
+            ทดสอบในบทบาท "ผู้ใช้ทั่วไป"
           </button>
         </div>
       </div>

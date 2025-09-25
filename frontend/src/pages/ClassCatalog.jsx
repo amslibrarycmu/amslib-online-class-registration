@@ -2,12 +2,52 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 
+const DescriptionModal = ({ isOpen, onClose, title, description }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 bg-white/85 flex justify-center items-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-purple-800 mb-4 text-center">{title}</h2>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            รายละเอียด
+          </h3>
+          <div className="text-gray-600 whitespace-pre-wrap bg-gray-50 p-4 rounded-md border min-h-[100px]  break-words">
+            {description || (
+              <p className="text-gray-400 italic">ไม่มีรายละเอียดเพิ่มเติม</p>
+            )}
+          </div>
+        </div>
+        <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            ปิด
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ClassCatalog = () => {
   const { user } = useAuth();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState("all"); // 'all', 'available', 'registered'
+  const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
+  const [selectedClassForDescription, setSelectedClassForDescription] =
+    useState(null);
 
   const fetchPromotedClasses = async () => {
     try {
@@ -22,10 +62,11 @@ const ClassCatalog = () => {
       const parsedData = data.map((cls) => ({
         ...cls,
         speaker: parseAndJoin(cls.speaker),
+        target_groups: parseAndJoin(cls.target_groups),
         registered_users: JSON.parse(cls.registered_users || "[]"),
       }));
       // Filter out closed classes for ClassCatalog
-      const activeClasses = parsedData.filter(cls => cls.status !== 'closed');
+      const activeClasses = parsedData.filter((cls) => cls.status !== "closed");
       setClasses(activeClasses);
     } catch (err) {
       setError(err.message);
@@ -55,12 +96,15 @@ const ClassCatalog = () => {
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-        setClasses(prevClasses =>
-            prevClasses.map(cls =>
-                cls.class_id === classId
-                    ? { ...cls, registered_users: [...cls.registered_users, user.email] }
-                    : cls
-            )
+        setClasses((prevClasses) =>
+          prevClasses.map((cls) =>
+            cls.class_id === classId
+              ? {
+                  ...cls,
+                  registered_users: [...cls.registered_users, user.email],
+                }
+              : cls
+          )
         );
       } else {
         alert(`Error: ${data.message}`);
@@ -88,12 +132,17 @@ const ClassCatalog = () => {
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
-        setClasses(prevClasses =>
-            prevClasses.map(cls =>
-                cls.class_id === classId
-                    ? { ...cls, registered_users: cls.registered_users.filter(email => email !== user.email) }
-                    : cls
-            )
+        setClasses((prevClasses) =>
+          prevClasses.map((cls) =>
+            cls.class_id === classId
+              ? {
+                  ...cls,
+                  registered_users: cls.registered_users.filter(
+                    (email) => email !== user.email
+                  ),
+                }
+              : cls
+          )
         );
       } else {
         alert(`Error: ${data.message}`);
@@ -137,6 +186,11 @@ const ClassCatalog = () => {
     return classes; // 'all'
   };
 
+  const handleOpenDescriptionModal = (cls) => {
+    setSelectedClassForDescription(cls);
+    setIsDescriptionModalOpen(true);
+  };
+
   const filteredClasses = getFilteredClasses();
 
   const renderNavButton = (key, label) => (
@@ -156,8 +210,16 @@ const ClassCatalog = () => {
   return (
     <div className="w-screen flex flex-col lg:flex-row">
       <Sidebar />
+      <DescriptionModal
+        isOpen={isDescriptionModalOpen}
+        onClose={() => setIsDescriptionModalOpen(false)}
+        title={selectedClassForDescription?.title}
+        description={selectedClassForDescription?.description}
+      />
       <div className="flex-1 p-8 bg-gray-100 min-h-screen">
-        <h1 className="text-3xl font-bold mb-4 text-gray-800 text-center">ห้องเรียน</h1>
+        <h1 className="text-3xl font-bold mb-4 text-gray-800 text-center">
+          ห้องเรียน
+        </h1>
 
         <div className="mb-6 p-2 bg-gray-200 rounded-lg inline-flex space-x-2">
           {renderNavButton("all", "ทั้งหมด")}
@@ -180,10 +242,18 @@ const ClassCatalog = () => {
 
                   const StatusBadge = () => {
                     if (isRegistered) {
-                      return <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">ลงทะเบียนแล้ว</div>;
+                      return (
+                        <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                          ลงทะเบียนแล้ว
+                        </div>
+                      );
                     }
                     if (isFull) {
-                      return <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">เต็มแล้ว</div>;
+                      return (
+                        <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                          เต็มแล้ว
+                        </div>
+                      );
                     }
                     return null;
                   };
@@ -202,35 +272,158 @@ const ClassCatalog = () => {
                           ID: {cls.class_id}
                         </p>
 
-                        <div className="space-y-3 text-gray-700 text-sm mb-4">
-                          <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
-                            <span><strong>วิทยากร:</strong> {cls.speaker}</span>
+                        <div className="space-y-3 text-gray-700 text-sm mb-4 flex-grow">
+                          <div className="flex items-start gap-2">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span>
+                              <strong>วิทยากร:</strong> {cls.speaker}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
-                            <span><strong>วันที่:</strong> {new Date(cls.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</span>
+                          <div className="flex items-start gap-2">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span>
+                              <strong>วันที่:</strong>{" "}
+                              {new Date(cls.start_date).toLocaleDateString(
+                                "th-TH",
+                                {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                }
+                              )}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                            <span><strong>เวลา:</strong> {cls.start_time.substring(0, 5)} - {cls.end_time.substring(0, 5)} น.</span>
+                          <div className="flex items-start gap-2">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span>
+                              <strong>เวลา:</strong>{" "}
+                              {cls.start_time.substring(0, 5)} -{" "}
+                              {cls.end_time.substring(0, 5)} น.
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-                            <span><strong>รูปแบบ:</strong> {cls.format}</span>
+                          <div className="flex items-start gap-2">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5 text-gray-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                            </svg>
+                            <span>
+                              <strong>รูปแบบ:</strong> {cls.format}
+                            </span>
+                          </div>
+                          {cls.format === "ONSITE" && cls.location && (
+                            <div className="flex items-start gap-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5 text-gray-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span>
+                                <strong>สถานที่:</strong> {cls.location}
+                              </span>
+                            </div>
+                          )}
+                          {cls.format === "ONLINE" && cls.join_link && (
+                            <div className="flex items-start gap-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5 text-gray-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path d="M12.232 4.232a2.5 2.5 0 013.536 3.536l-1.225 1.224a.75.75 0 001.061 1.06l1.224-1.224a4 4 0 00-5.656-5.656l-3 3a4 4 0 00.225 5.865.75.75 0 00.977-1.138 2.5 2.5 0 01-.142-3.665l3-3z" />
+                                <path d="M8.603 17.002a4 4 0 005.656-5.656l-3-3a4 4 0 00-5.865-.225.75.75 0 00.977 1.138 2.5 2.5 0 013.665.142l3 3a2.5 2.5 0 01-3.536 3.536l-1.225-1.224a.75.75 0 00-1.061-1.06l-1.224 1.224a4 4 0 000 5.656z" />
+                              </svg>
+                              <span>
+                                <strong>ลิงก์:</strong>{" "}
+                                <a
+                                  href={cls.join_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline break-all"
+                                >
+                                  {cls.join_link}
+                                </a>
+                              </span>
+                            </div>
+                          )}
+                          {cls.target_groups && (
+                            <div className="flex items-start gap-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5 text-gray-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                              </svg>
+                              <span>
+                                <strong>กลุ่มเป้าหมาย:</strong>{" "}
+                                {cls.target_groups}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-start gap-2">
+                            <button
+                              onClick={() => handleOpenDescriptionModal(cls)}
+                              className="text-purple-700 font-semibold hover:underline hover:text-purple-900 transition-colors"
+                            >
+                              ดูรายละเอียดเพิ่มเติม
+                            </button>
                           </div>
                         </div>
-
-                        <p className="text-gray-600 text-sm mb-4 flex-grow">
-                          {cls.description}
-                        </p>
 
                         <div className="border-t border-gray-200 pt-4 mt-auto">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
                               <span className="font-bold text-gray-800">
-                                {cls.registered_users.length} / {cls.max_participants === 999 ? "ไม่จำกัด" : cls.max_participants}
+                                {cls.registered_users.length} /{" "}
+                                {cls.max_participants === 999
+                                  ? "ไม่จำกัด"
+                                  : cls.max_participants}
                               </span>
                             </div>
                             <button
@@ -239,9 +432,12 @@ const ClassCatalog = () => {
                                   ? handleCancelRegistration(cls.class_id)
                                   : handleRegister(cls.class_id)
                               }
-                              disabled={(!isRegistered && isFull) || cls.status === 'closed'}
+                              disabled={
+                                (!isRegistered && isFull) ||
+                                cls.status === "closed"
+                              }
                               className={`py-2 px-4 rounded-md font-semibold text-white text-sm transition-colors duration-300 ${
-                                cls.status === 'closed'
+                                cls.status === "closed"
                                   ? "bg-gray-400 cursor-not-allowed"
                                   : isRegistered
                                   ? "bg-yellow-500 hover:bg-yellow-600"
@@ -250,7 +446,7 @@ const ClassCatalog = () => {
                                   : "bg-blue-600 hover:bg-blue-700"
                               }`}
                             >
-                              {cls.status === 'closed'
+                              {cls.status === "closed"
                                 ? "จบการสอนแล้ว"
                                 : isRegistered
                                 ? "ยกเลิก"

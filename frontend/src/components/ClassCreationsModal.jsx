@@ -72,7 +72,8 @@ const ClassCreationModal = ({
         speaker: speakers,
         start_date: formatDate(initialData.start_date),
         end_date: formatDate(initialData.end_date),
-        location: initialData.location || "",
+        join_link: initialData.join_link || "https://cmu-th.zoom.us/my/amslibclass",
+        location: initialData.location || "ห้อง Group Study ห้องสมุดคณะเทคนิคการแพทย์",
         target_groups: groups.length > 0 ? groups : [...AUDIENCE_OPTIONS],
         max_participants: initialData.max_participants || "1",
         files: files.map((f) => (typeof f === "string" ? { name: f } : f)),
@@ -87,8 +88,8 @@ const ClassCreationModal = ({
         end_time: "",
         description: "",
         format: "ONLINE",
-        join_link: "",
-        location: "",
+        join_link: "https://cmu-th.zoom.us/my/amslibclass",
+        location: "ห้อง Group Study ห้องสมุดคณะเทคนิคการแพทย์",
         target_groups: [...AUDIENCE_OPTIONS],
         max_participants: "1",
         files: [],
@@ -158,15 +159,15 @@ const ClassCreationModal = ({
 
   return (
     <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6">
+      <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-6 text-center">
           {isEditing
             ? "แก้ไขห้องเรียน"
             : isDuplicating
             ? "สร้างโดยแก้ไขจากข้อมูลเดิม"
             : "สร้างห้องเรียนใหม่"}
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block font-medium mb-1">Class ID</label>
             <input
@@ -349,27 +350,30 @@ const ClassCreationModal = ({
           )}
 
           {formData.format === "ONSITE" && (
-            <div className="flex flex-rpw gap-2 item-center">
-              <div className="block font-medium my-auto w-fit">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <label htmlFor="max_participants" className="block font-medium sm:my-auto w-fit flex-shrink-0">
                 จำนวนผู้เข้าร่วมได้สูงสุด
-              </div>
+              </label>
               <input
                 type="number"
                 min="1"
+                id="max_participants"
                 name="max_participants"
                 value={formData.max_participants || "1"}
                 onChange={handleChange}
                 placeholder="ตั้งแต่ 1 ท่านขึ้นไป"
-                className="w-max border px-4 py-2 rounded"
+                className="w-24 border px-4 py-2 rounded"
                 required
               />
-              <div className="block font-medium my-auto w-fit">ท่าน</div>
+              <span className="block font-medium my-auto w-fit">ท่าน</span>
             </div>
           )}
 
-          <div className="flex flex-rpw gap-2 item-center">
-            <label className="block font-medium mr-3">สถานภาพของผู้เรียน</label>
-            <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <label className="block font-medium mr-3 flex-shrink-0">
+              สถานภาพของผู้เรียน
+            </label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
               {["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"].map((g) => (
                 <label key={g}>
                   <input

@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import DemographicsPieChart from "../components/DemographicsPieChart";
 import CategoryBarChart from "../components/CategoryBarChart";
-import { useStatisticsData } from "./useStatisticsData";
+import { useStatisticsData } from "../components/๊UseStatisticsData";
 
 const Statistics = () => {
   const { user } = useAuth();
@@ -271,7 +271,7 @@ const Statistics = () => {
           <h1 className="text-3xl font-bold text-gray-800">สถิติ</h1>
           <button
             onClick={handleDownloadCSV}
-            className="p-2 text-gray-600 bg-white rounded-full shadow-md hover:bg-gray-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
+            className="p-2 text-gray-600  rounded-3xl shadow-md hover:bg-gray-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
             title="ดาวน์โหลดข้อมูล (CSV)"
           >
             <svg
@@ -293,24 +293,17 @@ const Statistics = () => {
 
         <div className="space-y-8">
           {/* Filters and Tools Card */}
-          <div className="lg:col-span-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-800">
-                ตัวกรองและเครื่องมือ
-              </h2>
-            </div>
-            <div className="flex flex-wrap justify-between items-end gap-4 mt-2">
-              {/* Filters on the left */}
-              <div className="flex items-end gap-x-6 gap-y-4">
+          <div className="flex flex-wrap justify-between items-center gap-4">
+              <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <label htmlFor="year-filter" className="text-lg font-medium text-gray-700">ปี</label>
+                  <label htmlFor="year-filter" className="text-lg font-medium text-gray-700">ปี:</label>
                   <select id="year-filter" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                     <option value="all">ทั้งหมด</option>
                     {years.map((year) => (<option key={year} value={year}>{year}</option>))}
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label htmlFor="month-filter" className="text-lg font-medium text-gray-700">เดือน</label>
+                  <label htmlFor="month-filter" className="text-lg font-medium text-gray-700">เดือน:</label>
                   <select id="month-filter" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                     <option value="all">ทั้งหมด</option>
                     {months.map((month) => (<option key={month.value} value={month.value}>{month.label}</option>))}
@@ -318,29 +311,19 @@ const Statistics = () => {
                 </div>
               </div>
 
-              {/* Search on the right */}
-              <div className="flex items-end gap-2">
-                <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="search"
-                    className="text-lg font-medium text-gray-700"
-                  >
-                    ค้นหา
-                  </label>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                   <input
                     id="search"
                     type="text"
                     placeholder="ระบุ Class ID หรือชื่อห้องเรียน"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-96 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="block w-full sm:w-80 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
-                </div>
                 <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
                   ค้นหา
                 </button>
               </div>
-            </div>
           </div>
 
           <div>

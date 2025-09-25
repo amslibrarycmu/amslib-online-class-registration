@@ -17,4 +17,7 @@ CREATE TABLE requests (
 ALTER TABLE requests
 ADD COLUMN approved_by VARCHAR(255),
 ADD COLUMN approval_date TIMESTAMP NULL;
+
+ALTER TABLE requests
+ADD COLUMN rejection_reason TEXT;
 SELECT * FROM requests;  

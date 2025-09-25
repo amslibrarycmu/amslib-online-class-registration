@@ -198,7 +198,7 @@ async function sendRequestApprovedNotification(recipientEmail, requestDetails) {
 }
 
 // เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการปฏิเสธ
-async function sendRequestRejectedNotification(recipientEmail, requestDetails) {
+async function sendRequestRejectedNotification(recipientEmail, requestDetails, rejectionReason) {
     try {
         const transporter = await createTransporter();
         const mailOptions = {
@@ -209,6 +209,7 @@ async function sendRequestRejectedNotification(recipientEmail, requestDetails) {
                 <h1>คำขอหลักสูตรของท่านไม่ได้รับการอนุมัติ</h1>
                 <p>สวัสดีครับ/ค่ะ,</p>
                 <p>คำขอหลักสูตร <strong>"${requestDetails.title}"</strong> ของท่านไม่ได้รับการอนุมัติจากผู้ดูแลระบบ</p>
+                ${rejectionReason ? `<p><strong>เหตุผล:</strong> ${rejectionReason}</p>` : ''}
                 <p>หากมีข้อสงสัยเพิ่มเติม สามารถติดต่อผู้ดูแลระบบได้โดยตรง</p>
                 <hr>
                 <p>ขอแสดงความนับถือ</p>

@@ -246,7 +246,7 @@ app.post("/api/requests", (req, res) => {
 
 app.get('/api/requests', (req, res) => {
   const { user_email } = req.query;
-  let sql = 'SELECT request_id, title, request_date, status, start_date, end_date, start_time, end_time FROM requests';
+  let sql = 'SELECT request_id, title, request_date, status, start_date, end_date, start_time, end_time, rejection_reason FROM requests';
   const params = [];
 
   if (user_email) {
@@ -265,7 +265,9 @@ app.get('/api/requests', (req, res) => {
 
 // Admin API to get all class requests with user details
 app.get('/api/admin/class-requests', (req, res) => {
-  const sql = `
+  const { status } = req.query;
+
+  let sql = `
     SELECT
       r.request_id,
       r.title,
@@ -278,13 +280,22 @@ app.get('/api/admin/class-requests', (req, res) => {
       r.suggested_speaker,
       r.request_date,
       r.status,
+      r.rejection_reason,
       u.name AS requested_by_name,
       u.email AS requested_by_email
     FROM requests r
     JOIN users u ON r.user_email = u.email
-    ORDER BY r.request_date DESC
   `;
-  db.query(sql, (err, results) => {
+  const params = [];
+
+  if (status) {
+    sql += ' WHERE r.status = ?';
+    params.push(status);
+  }
+
+  sql += ' ORDER BY r.request_date DESC';
+
+  db.query(sql, params, (err, results) => {
     if (err) {
       console.error("❌ Error fetching admin class requests:", err);
       return res.status(500).json({ message: "Database server error." });
@@ -296,6 +307,7 @@ app.get('/api/admin/class-requests', (req, res) => {
 // Admin API to approve or reject a class request
 app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
   const { requestId, action } = req.params;
+  const { reason } = req.body; // Get reason from request body
 
   if (!['approve', 'reject'].includes(action)) {
     return res.status(400).json({ message: "Invalid action." });
@@ -310,10 +322,23 @@ app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
       });
     });
 
-    // Update request status
-    const updateRequestSql = 'UPDATE requests SET status = ? WHERE request_id = ?';
+    // Update request status and rejection reason if applicable
+    let updateRequestSql;
+    let updateParams;
+    if (action === 'reject') {
+      // Ensure a reason is provided for rejection
+      if (!reason || reason.trim() === '') {
+        return res.status(400).json({ message: "Rejection reason is required." });
+      }
+      updateRequestSql = 'UPDATE requests SET status = ?, rejection_reason = ? WHERE request_id = ?';
+      updateParams = ['rejected', reason, requestId];
+    } else {
+      updateRequestSql = 'UPDATE requests SET status = ? WHERE request_id = ?';
+      updateParams = ['approved', requestId];
+    }
+
     await new Promise((resolve, reject) => {
-      db.query(updateRequestSql, [action === 'approve' ? 'approved' : 'rejected', requestId], (err, result) => {
+      db.query(updateRequestSql, updateParams, (err, result) => {
         if (err) reject(err);
         else if (result.affectedRows === 0) reject(new Error("Request not found."));
         else resolve();
@@ -344,7 +369,7 @@ app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
           else resolve(results[0]);
         });
       });
-      sendRequestRejectedNotification(requestDetails.user_email, requestDetails);
+      sendRequestRejectedNotification(requestDetails.user_email, requestDetails, reason);
     }
 
     // Commit transaction
@@ -367,6 +392,41 @@ app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
     console.error(`Error ${action}ing class request:`, error);
     res.status(500).json({ message: "Database server error.", error: error.message });
   }
+});
+
+app.put('/api/requests/:requestId', (req, res) => {
+  const { requestId } = req.params;
+  const { title, reason, startDate, endDate, startTime, endTime, format, speaker } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ message: "Title is required." });
+  }
+
+  const sql = `
+    UPDATE requests 
+    SET 
+      title = ?, 
+      reason = ?, 
+      start_date = ?, 
+      end_date = ?, 
+      start_time = ?, 
+      end_time = ?, 
+      format = ?, 
+      suggested_speaker = ?,
+      status = 'pending',
+      rejection_reason = NULL
+    WHERE request_id = ?
+  `;
+  const values = [title, reason, startDate, endDate, startTime, endTime, format, speaker, requestId];
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("❌ Error updating class request:", err);
+      return res.status(500).json({ message: "Database server error.", error: err });
+    }
+    console.log(`✅ Class request ${requestId} updated successfully.`);
+    res.status(200).json({ message: "Class request updated successfully!" });
+  });
 });
 
 app.delete('/api/requests/:requestId', (req, res) => {

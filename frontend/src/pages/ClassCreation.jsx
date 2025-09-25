@@ -152,9 +152,9 @@ export default function ClassCreation() {
   };
 
   return (
-    <div className="w-screen grid grid-cols-[auto_1fr] h-screen">
+    <div className="w-screen flex h-screen">
       <Sidebar />
-      <div className="p-8 overflow-y-auto bg-gray-100">
+      <div className="flex-1 p-8 overflow-y-auto bg-gray-100">
         <h1 className="text-2xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
         <div className="flex flex-col md:flex-row gap-8 justify-center mb-8">
           {/* Card for creating a new class */}
@@ -220,21 +220,21 @@ export default function ClassCreation() {
         </div>
 
         {showExistingList && (
-          <div className="grid grid-cols-1 gap-8 w-full max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl mx-auto">
             <div className="bg-white text-black p-6 rounded-md shadow">
               <div
-                className="flex justify-between items-center cursor-pointer"
-                onClick={() => setIsClassListExpanded(!isClassListExpanded)}
+                className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); setIsClassListExpanded(!isClassListExpanded); }}
               >
                 <h2 className="font-bold text-xl">เลือกห้องเรียนต้นฉบับ</h2>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
                   <input
                     type="text"
                     placeholder="ค้นหา Class ID หรือชื่อห้องเรียน"
                     value={classSearchTerm}
                     onChange={(e) => setClassSearchTerm(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
+                    className="w-full sm:w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
                   />
                   <span className="transition-transform duration-300">
                     {isClassListExpanded ? (
@@ -264,7 +264,7 @@ export default function ClassCreation() {
                         .map((cls) => (
                           <li
                             key={cls.class_id} // Ensure key is here
-                            className="flex bg-gray-50 p-4 rounded-lg shadow justify-between items-center"
+                            className="flex bg-gray-50 p-4 rounded-lg shadow justify-between items-center hover:bg-gray-100 transition-colors"
                           >
                             <span className="text-wrap break-normal w-full mr-6">
                               <span className="text-red-500 font-bold">
@@ -293,18 +293,18 @@ export default function ClassCreation() {
             {/* Right Side: Approved Requests */}
             <div className="bg-white text-black p-6 rounded-md shadow">
               <div
-                className="flex justify-between items-center cursor-pointer"
-                onClick={() => setIsRequestListExpanded(!isRequestListExpanded)}
+                className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); setIsRequestListExpanded(!isRequestListExpanded); }}
               >
                 <h2 className="font-bold text-xl">สร้างจากคำขอที่อนุมัติแล้ว</h2>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
                   <input
                     type="text"
                     placeholder="ค้นหาจากชื่อคำขอ"
                     value={requestSearchTerm}
                     onChange={(e) => setRequestSearchTerm(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
+                    className="w-full sm:w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
                   />
                   <span className="transition-transform duration-300">
                     {isRequestListExpanded ? (
