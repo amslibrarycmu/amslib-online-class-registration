@@ -7,7 +7,7 @@ import CategoryBarChart from "../components/CategoryBarChart";
 import { useStatisticsData } from "../components/๊UseStatisticsData";
 
 const Statistics = () => {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
   const navigate = useNavigate();
 
   const [selectedYear, setSelectedYear] = useState("all");
@@ -20,6 +20,7 @@ const Statistics = () => {
 
   const { stats, loading, error } = useStatisticsData(
     user,
+    activeRole,
     selectedYear,
     selectedMonth
   );
@@ -49,10 +50,10 @@ const Statistics = () => {
 
   useEffect(() => {
     // Redirect if user is not an admin
-    if (user && user.status !== "ผู้ดูแลระบบ") {
+    if (user && activeRole !== "ผู้ดูแลระบบ") {
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, [user, activeRole, navigate]);
 
   const handleSearch = () => {
     setTriggerSearchTerm(searchTerm);
@@ -158,7 +159,7 @@ const Statistics = () => {
     return <p>Error loading data: {error.message}</p>;
   }
 
-  if (!user || user.status !== "ผู้ดูแลระบบ") {
+  if (!user || activeRole !== "ผู้ดูแลระบบ") {
     return <p>Loading...</p>;
   }
 

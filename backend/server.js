@@ -84,7 +84,7 @@ db.connect((err) => {
 
 app.post('/api/login', (req, res) => {
   const { email } = req.body;
-  const sql = 'SELECT * FROM users WHERE email = ? AND is_active = 1';
+  const sql = 'SELECT id, name, roles, email, phone, pdpa, is_active, photo FROM users WHERE email = ? AND is_active = 1';
   db.query(sql, [email], (err, results) => {
     if (err) return res.status(500).json({ error: 'Database error' });
     if (results.length === 0) {
@@ -94,20 +94,108 @@ app.post('/api/login', (req, res) => {
     res.json({
       id: user.id,
       name: user.name,
-      status: user.status,
+      roles: (() => {
+        try {
+          // Attempt to parse if it's a JSON string; otherwise, return it if it's already an array or default to empty.
+          return Array.isArray(user.roles) ? user.roles : JSON.parse(user.roles || '[]');
+        } catch (e) {
+          return []; // Return empty array on parsing error
+        }
+      })(),
       email: user.email,
       phone: user.phone,
       pdpa: user.pdpa,
       is_active: user.is_active,
+      photo: user.photo,
+    });
+  });
+});
+
+app.put('/api/users/profile-picture', upload.single('photo'), (req, res) => {
+  const { email } = req.body;
+  const photo = req.file ? req.file.filename : null;
+
+  if (!email || !photo) {
+    return res.status(400).json({ message: 'Email and photo are required.' });
+  }
+
+  const sql = 'UPDATE users SET photo = ? WHERE email = ?';
+  db.query(sql, [photo, email], (err, result) => {
+    if (err) {
+      console.error('Error updating profile picture:', err);
+      return res.status(500).json({ message: 'Database error.' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Fetch the updated user data to send back to the client
+    const fetchUserSql = 'SELECT id, name, roles, email, phone, pdpa, is_active, photo FROM users WHERE email = ?';
+    db.query(fetchUserSql, [email], (fetchErr, users) => {
+      if (fetchErr || users.length === 0) {
+        return res.status(500).json({ message: 'Could not fetch updated user data.' });
+      }
+      const updatedUser = users[0];
+      updatedUser.roles = JSON.parse(updatedUser.roles || '[]');
+      res.status(200).json(updatedUser);
+    });
+  });
+});
+
+app.delete('/api/users/profile-picture', (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required.' });
+  }
+
+  // First, get the current photo filename to delete it from the filesystem
+  const findUserSql = 'SELECT photo FROM users WHERE email = ?';
+  db.query(findUserSql, [email], (findErr, findResults) => {
+    if (findErr) {
+      return res.status(500).json({ message: 'Database error on find.' });
+    }
+    if (findResults.length === 0) {
+      // User exists but might not have a photo, which is fine. Proceed to update DB.
+    }
+
+    const oldPhoto = findResults[0]?.photo;
+
+    // Update the database to set photo to NULL
+    const sql = 'UPDATE users SET photo = NULL WHERE email = ?';
+    db.query(sql, [email], (err, result) => {
+      if (err) {
+        return res.status(500).json({ message: 'Database error on update.' });
+      }
+
+      // Delete the old file from the filesystem if it exists
+      if (oldPhoto) {
+        const filePath = path.join(__dirname, 'uploads', oldPhoto);
+        fs.unlink(filePath, (unlinkErr) => {
+          if (unlinkErr) console.error('Error deleting old photo file:', unlinkErr);
+          else console.log(`✅ Deleted old photo file: ${oldPhoto}`);
+        });
+      }
+
+      // Fetch and return the updated user data
+      const fetchUserSql = 'SELECT id, name, roles, email, phone, pdpa, is_active, photo FROM users WHERE email = ?';
+      db.query(fetchUserSql, [email], (fetchErr, users) => {
+        if (fetchErr || users.length === 0) return res.status(500).json({ message: 'Could not fetch updated user data.' });
+        const updatedUser = users[0];
+        updatedUser.roles = JSON.parse(updatedUser.roles || '[]');
+        res.status(200).json(updatedUser);
+      });
     });
   });
 });
 
 app.get('/api/classes', (req, res) => {
-  const { email, status } = req.query;
+  const { email, roles } = req.query;
   let sql;
   let params = [];
-  if (status === 'ผู้ดูแลระบบ') {
+  // ตรวจสอบว่ามีบทบาท 'ผู้ดูแลระบบ' หรือไม่
+  const userRoles = roles ? roles.split(',') : [];
+  if (userRoles.includes('ผู้ดูแลระบบ')) {
     sql = 'SELECT * FROM classes';
   } else {
     sql = 'SELECT * FROM classes WHERE created_by_email = ?';
@@ -154,7 +242,7 @@ app.get('/api/classes/:classId/registrants', (req, res) => {
       return res.json([]);
     }
 
-    const getUsersSql = "SELECT name, email, status FROM users WHERE email IN (?)";
+    const getUsersSql = "SELECT name, email, roles FROM users WHERE email IN (?)";
     db.query(getUsersSql, [registeredEmails], (err, userResults) => {
       if (err) {
         console.error("❌ Database error while fetching users:", err);
@@ -219,7 +307,7 @@ app.post("/api/requests", (req, res) => {
     res.status(201).json({ message: "Class request submitted successfully!" });
 
     // --- Email Notification for Admins ---
-    const adminQuery = "SELECT email FROM users WHERE status = 'ผู้ดูแลระบบ'";
+    const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
     db.query(adminQuery, (err, adminResults) => {
       if (err) {
         console.error("Error fetching admin emails for request notification:", err);
@@ -610,7 +698,7 @@ app.post("/api/classes/:classId/register", (req, res) => {
       sendRegistrationConfirmation(email, emailClassDetails, name);
 
       // 2. Send notification to all admins
-      const adminQuery = "SELECT email FROM users WHERE status = 'ผู้ดูแลระบบ'";
+      const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
       db.query(adminQuery, (err, adminResults) => {
         if (err) {
           console.error("Error fetching admin emails:", err);
@@ -676,7 +764,7 @@ app.post("/api/classes/:classId/cancel", (req, res) => {
             emailClassDetails.speaker = JSON.parse(emailClassDetails.speaker).join(', ');
         } catch (e) { /* Ignore parsing errors */ }
 
-        const adminQuery = "SELECT email FROM users WHERE status = 'ผู้ดูแลระบบ'";
+        const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
         db.query(adminQuery, (err, adminResults) => {
             if (err) {
             console.error("Error fetching admin emails for cancellation:", err);
@@ -797,15 +885,19 @@ app.get('/api/statistics/class-demographics', (req, res) => {
     }
 
     const uniqueEmails = [...new Set(allRegisteredEmails)];
-    const usersSql = 'SELECT email, status FROM users WHERE email IN (?)';
+    const usersSql = 'SELECT email, roles FROM users WHERE email IN (?)';
     db.query(usersSql, [uniqueEmails], (userErr, users) => {
       if (userErr) {
         console.error("Error fetching users for statistics:", userErr);
         return res.status(500).json({ error: 'Database error while fetching users.' });
       }
 
-      const userStatusMap = users.reduce((map, user) => {
-        map[user.email] = user.status;
+      const userRolesMap = users.reduce((map, user) => {
+        try {
+          map[user.email] = Array.isArray(user.roles) ? user.roles : JSON.parse(user.roles || '[]');
+        } catch (e) {
+          map[user.email] = [];
+        }
         return map;
       }, {});
 
@@ -814,10 +906,12 @@ app.get('/api/statistics/class-demographics', (req, res) => {
         try {
           const registeredEmails = JSON.parse(currentClass.registered_users || '[]');
           registeredEmails.forEach(email => {
-            const status = userStatusMap[email];
-            if (status) {
-              demographics[status] = (demographics[status] || 0) + 1;
-            }
+            const roles = userRolesMap[email] || [];
+            // Filter out the 'ผู้ดูแลระบบ' role from statistics
+            const nonAdminRoles = roles.filter(role => role !== 'ผู้ดูแลระบบ');
+            nonAdminRoles.forEach(role => {
+              demographics[role] = (demographics[role] || 0) + 1;
+            });
           });
         } catch (e) {
           // Ignore parsing errors for a specific class

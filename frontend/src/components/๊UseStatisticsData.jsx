@@ -7,13 +7,13 @@ import { useState, useEffect } from "react";
  * @param {string} selectedMonth - The selected month for filtering.
  * @returns {{stats: Array, loading: boolean, error: Error|null}}
  */
-export const useStatisticsData = (user, selectedYear, selectedMonth) => {
+export const useStatisticsData = (user, activeRole, selectedYear, selectedMonth) => {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!user || user.status !== "ผู้ดูแลระบบ") {
+    if (!user || activeRole !== "ผู้ดูแลระบบ") {
       setLoading(false);
       return;
     }
@@ -38,7 +38,7 @@ export const useStatisticsData = (user, selectedYear, selectedMonth) => {
     };
 
     fetchData();
-  }, [user, selectedYear, selectedMonth]);
+  }, [user, activeRole, selectedYear, selectedMonth]);
 
   return { stats, loading, error };
 };

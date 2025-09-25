@@ -13,9 +13,8 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
   return (
     <div className="fixed inset-0 bg-white/85 z-50 flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex justify-between items-center border-b pb-3 mb-4">
+        <div className="text-center border-b pb-3 mb-4">
           <h2 className="text-2xl font-bold text-gray-800">รายชื่อผู้ลงทะเบียน</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
         </div>
 
         <div className="mb-4">
@@ -43,7 +42,20 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
                     <td className="py-2 px-4 border-b">{index + 1}</td>
                     <td className="py-2 px-4 border-b">{user.name}</td>
                     <td className="py-2 px-4 border-b">{user.email}</td>
-                    <td className="py-2 px-4 border-b">{user.status}</td>
+                    <td className="py-2 px-4 border-b">
+                      {(() => {
+                        try {
+                          let roles = Array.isArray(user.roles) ? user.roles : JSON.parse(user.roles || '[]');
+                          // If user has more than one role, filter out 'ผู้ดูแลระบบ'
+                          if (roles.length > 1) {
+                            roles = roles.filter(role => role !== 'ผู้ดูแลระบบ');
+                          }
+                          return roles.join(', ') || 'N/A';
+                        } catch (e) {
+                          return user.roles || ''; // Fallback for non-JSON string
+                        }
+                      })()}
+                    </td>
                   </tr>
                 ))}
               </tbody>

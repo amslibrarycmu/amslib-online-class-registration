@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminPanel = () => {
-    const { user } = useAuth();
+    const { user, activeRole } = useAuth();
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -17,7 +17,7 @@ const AdminPanel = () => {
             try {
                 setLoading(true);
                 // Assuming this endpoint fetches all classes for admin
-                const response = await fetch(`http://localhost:5000/api/classes?email=${encodeURIComponent(user.email)}&status=${encodeURIComponent(user.status)}`);
+                const response = await fetch(`http://localhost:5000/api/classes?email=${encodeURIComponent(user.email)}&roles=${encodeURIComponent(activeRole || '')}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch classes.');
                 }
@@ -31,7 +31,7 @@ const AdminPanel = () => {
         };
 
         fetchClasses();
-    }, [user]);
+    }, [user, activeRole]);
 
     return (
         <div className="w-screen flex">

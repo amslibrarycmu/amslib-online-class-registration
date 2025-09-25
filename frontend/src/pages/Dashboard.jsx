@@ -10,7 +10,7 @@ import CloseClassModal from "../components/CloseClassModal";
 import EvaluationResultsModal from "../components/EvaluationResultsModal";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ const Dashboard = () => {
       const response = await fetch(
         `http://localhost:5000/api/classes?email=${encodeURIComponent(
           user.email
-        )}&status=${encodeURIComponent(user.status)}&t=${new Date().getTime()}`
+        )}&roles=${encodeURIComponent(activeRole)}&t=${new Date().getTime()}`
       );
       const data = await response.json();
       setClasses(data); // Keep original fetched data if needed elsewhere
@@ -75,7 +75,7 @@ const Dashboard = () => {
     return () => {
       setClasses([]);
     };
-  }, [user]);
+  }, [user, activeRole]);
 
   const handleEditClick = (cls) => {
     setEditingClass(cls);

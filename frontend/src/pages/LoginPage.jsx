@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import amsliblogo from "../assets/amslib-logo.svg";
 
 const LoginPage = () => {
-  const { setUser } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   // Generic login handler
@@ -21,10 +21,11 @@ const LoginPage = () => {
       }
 
       const userData = await response.json();
-      setUser(userData);
+      login(userData);
       console.log("Login successful:", userData);
 
-      if (userData.status === "ผู้ดูแลระบบ") {
+      // Prioritize admin role for navigation
+      if (Array.isArray(userData.roles) && userData.roles.includes("ผู้ดูแลระบบ")) {
         navigate("/index");
       } else {
         navigate("/classes");

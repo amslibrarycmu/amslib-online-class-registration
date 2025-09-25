@@ -146,7 +146,7 @@ const RejectionReasonModal = ({ isOpen, onClose, onSubmit, reason, setReason, is
 };
 
 const AdminClassRequests = () => {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -167,13 +167,13 @@ const AdminClassRequests = () => {
       return;
     }
 
-    if (user.status !== "ผู้ดูแลระบบ") {
+    if (activeRole !== "ผู้ดูแลระบบ") {
       navigate("/"); // Redirect non-admins to home or another appropriate page
       return;
     }
 
     fetchRequests();
-  }, [user, navigate]);
+  }, [user, navigate, activeRole]);
 
   const fetchRequests = async () => {
     setLoading(true);

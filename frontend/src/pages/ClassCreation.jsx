@@ -5,7 +5,7 @@ import Sidebar from "../components/Sidebar";
 import ClassCreationModal from "../components/ClassCreationsModal";
 
 export default function ClassCreation() {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [classesList, setClassesList] = useState([]);
@@ -30,7 +30,7 @@ export default function ClassCreation() {
       const response = await fetch(
         `http://localhost:5000/api/classes?email=${encodeURIComponent(
           user.email
-        )}&status=${encodeURIComponent(user.status)}&t=${new Date().getTime()}`
+        )}&roles=${encodeURIComponent(activeRole || '')}&t=${new Date().getTime()}`
       );
       const data = await response.json();
       setClassesList(data);
@@ -43,7 +43,7 @@ export default function ClassCreation() {
   };
 
   const fetchApprovedRequests = async () => {
-    if (!user || user.status !== "ผู้ดูแลระบบ") return;
+    if (activeRole !== "ผู้ดูแลระบบ") return;
     try {
       setLoading(true);
       const response = await fetch(
@@ -64,7 +64,7 @@ export default function ClassCreation() {
       fetchClasses();
       fetchApprovedRequests();
     }
-  }, [showExistingList, user]);
+  }, [showExistingList, user, activeRole]);
 
   const handleCreateNewClick = () => {
     setSelectedClassToEdit(null);
