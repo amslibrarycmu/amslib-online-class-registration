@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 
 const speakerOptions = [
   "กันตภณ พรมคำ",
@@ -9,6 +9,82 @@ const speakerOptions = [
 
 const AUDIENCE_OPTIONS = ["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"];
 
+const initialFormState = {
+  title: "",
+  speaker: [],
+  start_date: "",
+  end_date: "",
+  start_time: "",
+  end_time: "",
+  description: "",
+  format: "ONLINE",
+  join_link: "https://cmu-th.zoom.us/my/amslibclass",
+  location: "ห้อง Group Study ห้องสมุดคณะเทคนิคการแพทย์",
+  target_groups: [...AUDIENCE_OPTIONS],
+  max_participants: "1",
+  files: [],
+  class_id: "",
+};
+
+function formReducer(state, action) {
+  switch (action.type) {
+    case "INITIALIZE_FORM":
+      return { ...initialFormState, ...action.payload };
+    case "SET_FIELD":
+      return { ...state, [action.payload.name]: action.payload.value };
+    case "ADD_SPEAKER":
+      if (action.payload && !state.speaker.includes(action.payload)) {
+        return { ...state, speaker: [...state.speaker, action.payload] };
+      }
+      return state;
+    case "REMOVE_SPEAKER":
+      return {
+        ...state,
+        speaker: state.speaker.filter((spk) => spk !== action.payload),
+      };
+    case "ADD_FILES":
+      return { ...state, files: [...state.files, ...action.payload] };
+    case "REMOVE_FILE":
+      return {
+        ...state,
+        files: state.files.filter((_, i) => i !== action.payload),
+      };
+    case "TOGGLE_AUDIENCE":
+      const exists = state.target_groups.includes(action.payload);
+      return {
+        ...state,
+        target_groups: exists
+          ? state.target_groups.filter((g) => g !== action.payload)
+          : [...state.target_groups, action.payload],
+      };
+    default:
+      return state;
+  }
+}
+
+const formatDate = (d) => {
+  if (!d) return "";
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return d;
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseJsonField = (field) => {
+  if (Array.isArray(field)) return field;
+  if (typeof field === "string") {
+    try {
+      const parsed = JSON.parse(field);
+      return Array.isArray(parsed) ? parsed : [field];
+    } catch (e) {
+      return field ? [field] : [];
+    }
+  }
+  return [];
+};
+
 const ClassCreationModal = ({
   onClose,
   initialData,
@@ -16,99 +92,44 @@ const ClassCreationModal = ({
   isEditing,
   isDuplicating,
 }) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    speaker: [],
-    start_date: "",
-    end_date: "",
-    start_time: "",
-    end_time: "",
-    description: "",
-    format: "ONLINE",
-    join_link: "",
-    location: "",
-    target_groups: [...AUDIENCE_OPTIONS],
-    max_participants: "1",
-    files: [],
-    class_id: "",
-  });
-
+  const [formData, dispatch] = useReducer(formReducer, initialFormState);
   const [speakerInput, setSpeakerInput] = useState("");
 
   useEffect(() => {
     const randomId = () => Math.floor(100000 + Math.random() * 900000);
+    let preparedData = {};
 
     if (initialData) {
-      const formatDate = (d) => {
-        if (!d) return "";
-        const date = new Date(d);
-        if (isNaN(date.getTime())) return d;
-        const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, "0");
-        const day = date.getDate().toString().padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      };
-
-      const parseJsonField = (field) => {
-        if (Array.isArray(field)) return field;
-        if (typeof field === "string") {
-          try {
-            const parsed = JSON.parse(field);
-            return Array.isArray(parsed) ? parsed : [field];
-          } catch (e) {
-            return field ? [field] : [];
-          }
-        }
-        return [];
-      };
-
       const speakers = parseJsonField(initialData.speaker);
       const groups = parseJsonField(initialData.target_groups);
       const files = parseJsonField(initialData.files);
 
-      setFormData({
+      preparedData = {
         ...initialData,
         class_id: isDuplicating ? randomId() : initialData.class_id,
         speaker: speakers,
         start_date: formatDate(initialData.start_date),
         end_date: formatDate(initialData.end_date),
-        join_link: initialData.join_link || "https://cmu-th.zoom.us/my/amslibclass",
-        location: initialData.location || "ห้อง Group Study ห้องสมุดคณะเทคนิคการแพทย์",
+        join_link: initialData.join_link || initialFormState.join_link,
+        location: initialData.location || initialFormState.location,
         target_groups: groups.length > 0 ? groups : [...AUDIENCE_OPTIONS],
-        max_participants: initialData.max_participants || "1",
+        max_participants: initialData.max_participants || initialFormState.max_participants,
         files: files.map((f) => (typeof f === "string" ? { name: f } : f)),
-      });
+      };
     } else {
-      setFormData({
-        title: "",
-        speaker: [],
-        start_date: "",
-        end_date: "",
-        start_time: "",
-        end_time: "",
-        description: "",
-        format: "ONLINE",
-        join_link: "https://cmu-th.zoom.us/my/amslibclass",
-        location: "ห้อง Group Study ห้องสมุดคณะเทคนิคการแพทย์",
-        target_groups: [...AUDIENCE_OPTIONS],
-        max_participants: "1",
-        files: [],
-        class_id: randomId(),
-      });
+      preparedData = { class_id: randomId() };
     }
+    dispatch({ type: "INITIALIZE_FORM", payload: preparedData });
   }, [initialData, isEditing, isDuplicating]);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
     if (type === "file") {
-      setFormData((prev) => ({
-        ...prev,
-        files: [...prev.files, ...Array.from(files)],
-      }));
+      dispatch({ type: "ADD_FILES", payload: Array.from(files) });
     } else if (name === "speaker") {
       setSpeakerInput(value);
     } else {
-      setFormData({ ...formData, [name]: value });
+      dispatch({ type: "SET_FIELD", payload: { name, value } });
     }
   };
 
@@ -116,36 +137,22 @@ const ClassCreationModal = ({
     if (speakerInput && !formData.speaker.includes(speakerInput)) {
       setFormData((prev) => ({
         ...prev,
-        speaker: [...prev.speaker, speakerInput],
+        speaker: dispatch({ type: "ADD_SPEAKER", payload: speakerInput }),
       }));
       setSpeakerInput("");
     }
   };
 
   const handleRemoveSpeaker = (speakerToRemove) => {
-    setFormData((prev) => ({
-      ...prev,
-      speaker: prev.speaker.filter((spk) => spk !== speakerToRemove),
-    }));
+    dispatch({ type: "REMOVE_SPEAKER", payload: speakerToRemove });
   };
 
   const handleRemoveFile = (indexToRemove) => {
-    setFormData((prev) => ({
-      ...prev,
-      files: prev.files.filter((_, i) => i !== indexToRemove),
-    }));
+    dispatch({ type: "REMOVE_FILE", payload: indexToRemove });
   };
 
   const handleAudienceChange = (value) => {
-    setFormData((prev) => {
-      const exists = prev.target_groups.includes(value);
-      return {
-        ...prev,
-        target_groups: exists
-          ? prev.target_groups.filter((g) => g !== value)
-          : [...prev.target_groups, value],
-      };
-    });
+    dispatch({ type: "TOGGLE_AUDIENCE", payload: value });
   };
 
   const handleSubmit = (e) => {

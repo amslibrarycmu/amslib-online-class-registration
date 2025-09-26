@@ -7,13 +7,11 @@ import ClassCreationModal from "../components/ClassCreationsModal";
 export default function ClassCreation() {
   const { user, activeRole } = useAuth();
   const navigate = useNavigate();
-  const [showForm, setShowForm] = useState(false);
+  const [mode, setMode] = useState("initial"); // 'initial', 'selection', 'new', 'duplicate', 'fromRequest'
   const [classesList, setClassesList] = useState([]);
   const [approvedRequests, setApprovedRequests] = useState([]);
-  const [showExistingList, setShowExistingList] = useState(false);
   const [selectedClassToEdit, setSelectedClassToEdit] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isDuplicating, setIsDuplicating] = useState(false);
   const [classSearchTerm, setClassSearchTerm] = useState("");
   const [requestSearchTerm, setRequestSearchTerm] = useState("");
   const [isClassListExpanded, setIsClassListExpanded] = useState(true);
@@ -60,24 +58,20 @@ export default function ClassCreation() {
   };
 
   useEffect(() => {
-    if (showExistingList) {
+    if (mode === "selection") {
       fetchClasses();
       fetchApprovedRequests();
     }
-  }, [showExistingList, user, activeRole]);
+  }, [mode, user, activeRole]);
 
   const handleCreateNewClick = () => {
     setSelectedClassToEdit(null);
-    setShowExistingList(false);
-    setIsDuplicating(false);
-    setShowForm(true);
+    setMode("new");
   };
 
   const handleEditExistingClick = (cls) => {
     setSelectedClassToEdit(cls);
-    setShowExistingList(false);
-    setIsDuplicating(true);
-    setShowForm(true);
+    setMode("duplicate");
   };
 
   const handleCreateFromRequestClick = (request) => {
@@ -92,8 +86,7 @@ export default function ClassCreation() {
       format: request.format,
     };
     setSelectedClassToEdit(requestAsClassData);
-    setIsDuplicating(true); // Treat it like duplicating to pre-fill the form
-    setShowForm(true);
+    setMode("fromRequest");
   };
 
   const handleModalSubmit = async (formData) => {
@@ -146,9 +139,8 @@ export default function ClassCreation() {
   };
 
   const handleCloseModal = () => {
-    setShowForm(false);
+    setMode("initial"); // Return to the very first screen
     setSelectedClassToEdit(null);
-    setIsDuplicating(false);
   };
 
   return (
@@ -189,8 +181,7 @@ export default function ClassCreation() {
           {/* Card for creating from existing */}
           <div
             onClick={() => {
-              setShowExistingList(true);
-              setShowForm(false);
+              setMode("selection"); // Change mode to show the lists
             }}
             className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl border-transparent hover:border-purple-500 transition-all duration-300 ease-in-out transform hover:-translate-y-1 cursor-pointer flex flex-col items-center text-center w-full md:w-80"
             role="button"
@@ -219,7 +210,7 @@ export default function ClassCreation() {
           </div>
         </div>
 
-        {showExistingList && (
+        {mode === "selection" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-7xl mx-auto">
             <div className="bg-white text-black p-6 rounded-md shadow">
               <div
@@ -236,6 +227,7 @@ export default function ClassCreation() {
                     onClick={(e) => e.stopPropagation()}
                     className="w-full sm:w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
                   />
+
                   <span className="transition-transform duration-300">
                     {isClassListExpanded ? (
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
@@ -306,6 +298,7 @@ export default function ClassCreation() {
                     onClick={(e) => e.stopPropagation()}
                     className="w-full sm:w-64 p-2 border border-gray-300 rounded-md focus:outline-none focus:border-black"
                   />
+
                   <span className="transition-transform duration-300">
                     {isRequestListExpanded ? (
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
@@ -361,13 +354,13 @@ export default function ClassCreation() {
         )}
       </div>
 
-      {showForm && (
+      {["new", "duplicate", "fromRequest"].includes(mode) && (
         <ClassCreationModal
           onClose={handleCloseModal}
           initialData={selectedClassToEdit}
           onSubmit={handleModalSubmit}
-          isEditing={false}
-          isDuplicating={isDuplicating}
+          isEditing={false} // This component is only for creation
+          isDuplicating={mode === "duplicate" || mode === "fromRequest"}
         />
       )}
     </div>

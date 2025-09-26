@@ -1,5 +1,3 @@
-// Dashboard.jsx
-
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -9,7 +7,7 @@ import RegistrantsModal from "../components/RegistrantsModal";
 import CloseClassModal from "../components/CloseClassModal";
 import EvaluationResultsModal from "../components/EvaluationResultsModal";
 
-const Dashboard = () => {
+const ClassIndex = () => {
   const { user, activeRole } = useAuth();
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
@@ -30,6 +28,9 @@ const Dashboard = () => {
   // State for the close class modal
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [selectedClassToClose, setSelectedClassToClose] = useState(null);
+  const [closedClassSortKey, setClosedClassSortKey] = useState("start_date");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [closedClassSearchTerm, setClosedClassSearchTerm] = useState("");
 
   const sortedClasses = useMemo(() => {
     return [...classes].sort(
@@ -44,6 +45,67 @@ const Dashboard = () => {
   const closedClasses = useMemo(() => {
     return sortedClasses.filter((cls) => cls.status === "closed");
   }, [sortedClasses]);
+
+  const filteredClosedClasses = useMemo(() => {
+    let filtered = [...closedClasses];
+
+    if (closedClassSearchTerm) {
+      filtered = filtered.filter(
+        (cls) =>
+          cls.title
+            .toLowerCase()
+            .includes(closedClassSearchTerm.toLowerCase()) ||
+          cls.class_id.toString().includes(closedClassSearchTerm.toLowerCase())
+      );
+    }
+
+    const parseSpeaker = (speakerField) => {
+      if (!speakerField) return "";
+      if (Array.isArray(speakerField)) return speakerField[0] || "";
+      try {
+        const parsed = JSON.parse(speakerField);
+        return Array.isArray(parsed) ? parsed[0] || "" : "";
+      } catch {
+        return "";
+      }
+    };
+
+    filtered.sort((a, b) => {
+      let valA, valB;
+      switch (closedClassSortKey) {
+        case "title":
+          valA = a.title;
+          valB = b.title;
+          return sortOrder === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        case "class_id":
+          valA = a.class_id;
+          valB = b.class_id;
+          break;
+        case "speaker":
+          valA = parseSpeaker(a.speaker);
+          valB = parseSpeaker(b.speaker);
+          return sortOrder === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        case "format":
+          valA = a.format;
+          valB = b.format;
+          return sortOrder === "asc"
+            ? valA.localeCompare(valB)
+            : valB.localeCompare(valA);
+        case "created_at":
+        case "start_date":
+        default: // Default to start_date
+          valA = new Date(a[closedClassSortKey] || a.start_date);
+          valB = new Date(b[closedClassSortKey] || b.start_date);
+      }
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    });
+
+    return filtered;
+  }, [closedClasses, closedClassSearchTerm, closedClassSortKey, sortOrder]);
 
   // ฟังก์ชันสำหรับเรียกข้อมูล
   const fetchClasses = async () => {
@@ -331,70 +393,32 @@ const Dashboard = () => {
                         {"  "} {cls.title}
                       </h3>
                     </div>
-
-                    <div className="text-md text-gray-700 mt-2 flex flex-wrap gap-x-10 gap-y-2">
-                      <p>
-                        <strong>วิทยากร:</strong>{" "}
-                        {cls.speaker &&
-                        typeof cls.speaker === "string" &&
-                        cls.speaker.length > 4
-                          ? cls.speaker.slice(2, -2).replace(/\",\"/g, ", ")
-                          : String(cls.speaker || "ยังไม่ระบุ")}
-                      </p>
-                      <p>
-                        <strong>วันที่:</strong>{" "}
-                        {cls.start_date
-                          ? new Date(cls.start_date).toLocaleString("th-TH", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                          : "N/A"}{" "}
-                        -{" "}
-                        {cls.end_date
-                          ? new Date(cls.end_date).toLocaleDateString("th-TH", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                          : "N/A"}
-                      </p>
-                      <p>
-                        <strong>เวลา:</strong>{" "}
-                        {cls.start_time
-                          ? cls.start_time.substring(0, 5)
-                          : "N/A"}{" "}
-                        - {cls.end_time ? cls.end_time.substring(0, 5) : "N/A"}
-                      </p>
-                      <p>
-                        <strong>รูปแบบ:</strong> {cls.format}
-                      </p>
-                      <p>
-                        <strong>ผู้ลงทะเบียน:</strong>{" "}
-                        {
-                          (typeof cls.registered_users === "string"
-                            ? JSON.parse(cls.registered_users || "[]")
-                            : cls.registered_users || []
-                          ).length
-                        }{" "}
-                        /{" "}
-                        {cls.max_participants === 999
-                          ? "ไม่จำกัด"
-                          : cls.max_participants}
-                      </p>
-                      <p className="sm:col-span-2 md:col-span-3">
-                        <strong>สร้างเมื่อ:</strong>{" "}
-                        {cls.created_at
-                          ? new Date(cls.created_at).toLocaleString("th-TH", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "N/A"}{" "}
-                        น.
-                      </p>
+                    
+                    <div className="text-sm text-gray-700 mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+                        <span><strong>วิทยากร:</strong> {cls.speaker && typeof cls.speaker === "string" && cls.speaker.length > 4 ? cls.speaker.slice(2, -2).replace(/\\"/g, '"').replace(/","/g, ", ") : String(cls.speaker || "ยังไม่ระบุ")}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
+                        <span><strong>วันที่:</strong> {cls.start_date ? new Date(cls.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "N/A"}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+                        <span><strong>เวลา:</strong> {cls.start_time ? cls.start_time.substring(0, 5) : "N/A"} - {cls.end_time ? cls.end_time.substring(0, 5) : "N/A"} น.</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                        <span><strong>รูปแบบ:</strong> {cls.format}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
+                        <span><strong>ผู้ลงทะเบียน:</strong> {(typeof cls.registered_users === "string" ? JSON.parse(cls.registered_users || "[]") : cls.registered_users || []).length} / {cls.max_participants === 999 ? "ไม่จำกัด" : cls.max_participants}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+                        <span><strong>สร้างเมื่อ:</strong> {cls.created_at ? new Date(cls.created_at).toLocaleString("th-TH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"} น.</span>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-200">
@@ -498,12 +522,57 @@ const Dashboard = () => {
             <h2 className="font-bold mb-[10px] text-[1.25rem] mt-10">
               รายการห้องเรียนที่จบการสอนแล้ว
             </h2>
-            {closedClasses.length > 0 ? (
+            <div className="mb-4 flex flex-wrap justify-between items-center gap-4">
+              <div className="flex items-center gap-2 w-full sm:w-auto flex-grow">
+                <input
+                  type="text"
+                  placeholder="ค้นหา Class ID หรือชื่อห้องเรียน"
+                  value={closedClassSearchTerm}
+                  onChange={(e) => setClosedClassSearchTerm(e.target.value)}
+                  className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="sort-closed-by"
+                  className="text-sm font-medium text-gray-700 whitespace-nowrap"
+                >
+                  เรียงโดย:
+                </label>
+                <select
+                  id="sort-closed-by"
+                  value={closedClassSortKey}
+                  onChange={(e) => setClosedClassSortKey(e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                >
+                  <option value="class_id">Class ID</option>
+                  <option value="title">ชื่อห้องเรียน</option>
+                  <option value="speaker">วิทยากร</option>
+                  <option value="start_date">วันที่เริ่ม</option>
+                  <option value="created_at">วันที่สร้าง</option>
+                  <option value="format">รูปแบบ</option>
+                </select>
+                <button
+                  onClick={() =>
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                  }
+                  className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                  title="สลับทิศทางการเรียง"
+                >
+                  {sortOrder === "asc" ? "▲" : "▼"}
+                </button>
+              </div>
+            </div>
+            {closedClasses.length === 0 ? (
+              <p className="text-center text-gray-500 py-4">
+                ยังไม่มีห้องเรียนที่จบการสอนแล้ว
+              </p>
+            ) : filteredClosedClasses.length > 0 ? (
               <ul className="space-y-4">
-                {closedClasses.map((cls) => (
+                {filteredClosedClasses.map((cls) => (
                   <li
                     key={cls.class_id || cls.id}
-                    className="bg-white p-4 rounded-lg shadow-md"
+                    className="bg-gray-50 p-4 rounded-lg shadow-md"
                   >
                     <div className="flex justify-between items-start">
                       <h3 className="font-semibold text-lg text-gray-600 justify-center">
@@ -516,70 +585,32 @@ const Dashboard = () => {
                         </strong>
                       </h3>
                     </div>
-
-                    <div className="text-md text-gray-700 mt-2 flex flex-wrap gap-x-10 gap-y-2">
-                      <p>
-                        <strong>วิทยากร:</strong>{" "}
-                        {cls.speaker &&
-                        typeof cls.speaker === "string" &&
-                        cls.speaker.length > 4
-                          ? cls.speaker.slice(2, -2).replace(/\",\"/g, ", ")
-                          : String(cls.speaker || "ยังไม่ระบุ")}
-                      </p>
-                      <p>
-                        <strong>วันที่:</strong>{" "}
-                        {cls.start_date
-                          ? new Date(cls.start_date).toLocaleString("th-TH", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                          : "N/A"}{" "}
-                        -{" "}
-                        {cls.end_date
-                          ? new Date(cls.end_date).toLocaleDateString("th-TH", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })
-                          : "N/A"}
-                      </p>
-                      <p>
-                        <strong>เวลา:</strong>{" "}
-                        {cls.start_time
-                          ? cls.start_time.substring(0, 5)
-                          : "N/A"}{" "}
-                        - {cls.end_time ? cls.end_time.substring(0, 5) : "N/A"}
-                      </p>
-                      <p>
-                        <strong>รูปแบบ:</strong> {cls.format}
-                      </p>
-                      <p>
-                        <strong>ผู้ลงทะเบียน:</strong>{" "}
-                        {
-                          (typeof cls.registered_users === "string"
-                            ? JSON.parse(cls.registered_users || "[]")
-                            : cls.registered_users || []
-                          ).length
-                        }{" "}
-                        /{" "}
-                        {cls.max_participants === 999
-                          ? "ไม่จำกัด"
-                          : cls.max_participants}
-                      </p>
-                      <p className="sm:col-span-2 md:col-span-3">
-                        <strong>สร้างเมื่อ:</strong>{" "}
-                        {cls.created_at
-                          ? new Date(cls.created_at).toLocaleString("th-TH", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "N/A"}{" "}
-                        น.
-                      </p>
+                    
+                    <div className="text-sm text-gray-700 mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+                        <span><strong>วิทยากร:</strong> {cls.speaker && typeof cls.speaker === "string" && cls.speaker.length > 4 ? cls.speaker.slice(2, -2).replace(/\\"/g, '"').replace(/","/g, ", ") : String(cls.speaker || "ยังไม่ระบุ")}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>
+                        <span><strong>วันที่:</strong> {cls.start_date ? new Date(cls.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "N/A"}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+                        <span><strong>เวลา:</strong> {cls.start_time ? cls.start_time.substring(0, 5) : "N/A"} - {cls.end_time ? cls.end_time.substring(0, 5) : "N/A"} น.</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                        <span><strong>รูปแบบ:</strong> {cls.format}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
+                        <span><strong>ผู้ลงทะเบียน:</strong> {(typeof cls.registered_users === "string" ? JSON.parse(cls.registered_users || "[]") : cls.registered_users || []).length} / {cls.max_participants === 999 ? "ไม่จำกัด" : cls.max_participants}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+                        <span><strong>สร้างเมื่อ:</strong> {cls.created_at ? new Date(cls.created_at).toLocaleString("th-TH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"} น.</span>
+                      </div>
                     </div>
 
                     <div className="flex items-center mt-4 pt-4 border-t border-gray-200">
@@ -643,7 +674,7 @@ const Dashboard = () => {
               </ul>
             ) : (
               <p className="text-center text-gray-500 py-4">
-                ยังไม่มีห้องเรียนที่จบการสอนแล้ว
+                ไม่พบห้องเรียนที่ตรงกับการค้นหา
               </p>
             )}
           </>
@@ -686,4 +717,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default ClassIndex;

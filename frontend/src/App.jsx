@@ -7,7 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard";
+import ClassIndex from "./pages/ClassIndex";
 import ClassCreation from "./pages/ClassCreation";
 import ClassCatalog from "./pages/ClassCatalog"; // Import the new component
 import Statistics from "./pages/Statistics";
@@ -32,7 +32,7 @@ function App() {
             path="/index"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <ClassIndex />
               </ProtectedRoute>
             }
           />
