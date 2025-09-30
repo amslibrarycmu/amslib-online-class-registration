@@ -5,8 +5,25 @@ const multer = require("multer");
 const path = require("path");
 const fs = require('fs');
 require('dotenv').config();
+const cron = require('node-cron');
+const axios = require('axios'); 
 
-const { sendRegistrationConfirmation, sendAdminNotification, sendAdminCancellationNotification, sendNewClassRequestAdminNotification, sendRequestApprovedNotification, sendRequestRejectedNotification } = require('./email.js');
+const { sendRegistrationConfirmation, sendAdminNotification, sendAdminCancellationNotification, sendNewClassRequestAdminNotification, sendRequestApprovedNotification, sendRequestRejectedNotification, sendReminderEmail } = require('./email.js');
+
+const MS_ENTRA_CONFIG = {
+  // *** แทนที่ค่า 'YOUR_...' เมื่อได้รับข้อมูลจากหน่วยงาน ***
+  CLIENT_ID: process.env.ENTRA_CLIENT_ID || 'YOUR_APPLICATION_CLIENT_ID', 
+  CLIENT_SECRET: process.env.ENTRA_CLIENT_SECRET || 'YOUR_CLIENT_SECRET_VALUE', 
+  // มักใช้ 'common' หรือ Directory (Tenant) ID เฉพาะของ มช.
+  TENANT_ID: process.env.ENTRA_TENANT_ID || 'common', 
+  // ต้องเป็น URL เดียวกันกับที่ลงทะเบียนใน Entra ID (Redirect URI)
+  REDIRECT_URI: process.env.ENTRA_REDIRECT_URI || 'http://localhost:5000/api/auth/callback',
+  SCOPES: 'openid profile email', // สิทธิ์พื้นฐานที่ร้องขอ
+};
+
+const AUTHORITY = `https://login.microsoftonline.com/${MS_ENTRA_CONFIG.TENANT_ID}/v2.0`;
+const AUTHORIZATION_ENDPOINT = `${AUTHORITY}/authorize`;
+const TOKEN_ENDPOINT = `${AUTHORITY}/token`;
 
 const uploadsDir = path.join(__dirname, 'uploads');
 const materialsDir = path.join(__dirname, 'uploads/materials');
@@ -307,27 +324,34 @@ app.post("/api/requests", (req, res) => {
     res.status(201).json({ message: "Class request submitted successfully!" });
 
     // --- Email Notification for Admins ---
-    const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
-    db.query(adminQuery, (err, adminResults) => {
-      if (err) {
-        console.error("Error fetching admin emails for request notification:", err);
+    const userQuery = 'SELECT name FROM users WHERE email = ?';
+    db.query(userQuery, [requestedBy], (userErr, userResults) => {
+      if (userErr || userResults.length === 0) {
+        console.error("Error fetching user name for request notification:", userErr);
+        // Fallback to email if name not found
+        const requestDetails = { title, reason, requestedBy: { name: requestedBy, email: requestedBy } };
+        sendNewClassRequestAdminNotification([], requestDetails); // Send with what we have
         return;
       }
-      const adminEmails = adminResults.map(admin => admin.email);
-      if (adminEmails.length > 0) {
-        const requestDetails = {
-          title,
-          reason,
-          startDate,
-          endDate,
-          startTime,
-          endTime,
-          format,
-          speaker,
-          requestedBy,
-        };
-        sendNewClassRequestAdminNotification(adminEmails, requestDetails);
-      }
+
+      const requesterName = userResults[0].name;
+
+      const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
+      db.query(adminQuery, (err, adminResults) => {
+        if (err) {
+          console.error("Error fetching admin emails for request notification:", err);
+          return;
+        }
+        const adminEmails = adminResults.map(admin => admin.email);
+        if (adminEmails.length > 0) {
+          const requestDetails = {
+            title,
+            reason,
+            requestedBy: { name: requesterName, email: requestedBy }, // Pass an object with name and email
+          };
+          sendNewClassRequestAdminNotification(adminEmails, requestDetails);
+        }
+      });
     });
   });
 });
@@ -435,7 +459,12 @@ app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
 
     if (action === 'approve') {
       // Fetch request details to send approval email to requester
-      const getRequestSql = 'SELECT * FROM requests WHERE request_id = ?';
+      const getRequestSql = `
+        SELECT r.*, u.name as requested_by_name 
+        FROM requests r 
+        JOIN users u ON r.user_email = u.email 
+        WHERE r.request_id = ?
+      `;
       const requestDetails = await new Promise((resolve, reject) => {
         db.query(getRequestSql, [requestId], (err, results) => {
           if (err) reject(err);
@@ -443,13 +472,18 @@ app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
           else resolve(results[0]);
         });
       });
-      sendRequestApprovedNotification(requestDetails.user_email, requestDetails);
+      sendRequestApprovedNotification(requestDetails);
     }
 
     // If action is reject, send rejection email to requester
     if (action === 'reject') {
       // Fetch request details to send rejection email
-      const getRequestSql = 'SELECT * FROM requests WHERE request_id = ?';
+      const getRequestSql = `
+        SELECT r.*, u.name as requested_by_name 
+        FROM requests r 
+        JOIN users u ON r.user_email = u.email 
+        WHERE r.request_id = ?
+      `;
       const requestDetails = await new Promise((resolve, reject) => {
         db.query(getRequestSql, [requestId], (err, results) => {
           if (err) reject(err);
@@ -457,7 +491,7 @@ app.post('/api/admin/class-requests/:requestId/:action', async (req, res) => {
           else resolve(results[0]);
         });
       });
-      sendRequestRejectedNotification(requestDetails.user_email, requestDetails, reason);
+      sendRequestRejectedNotification(requestDetails, reason);
     }
 
     // Commit transaction
@@ -698,16 +732,26 @@ app.post("/api/classes/:classId/register", (req, res) => {
       sendRegistrationConfirmation(email, emailClassDetails, name);
 
       // 2. Send notification to all admins
-      const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
-      db.query(adminQuery, (err, adminResults) => {
-        if (err) {
-          console.error("Error fetching admin emails:", err);
+      // Fetch full user details for all registered users to include names in the admin email
+      const userDetailsQuery = 'SELECT name, email FROM users WHERE email IN (?)';
+      db.query(userDetailsQuery, [registeredUsers], (userErr, userResults) => {
+        if (userErr) {
+          console.error("Error fetching user details for admin notification:", userErr);
+          // Don't block the main response, just log the error
           return;
         }
-        const adminEmails = adminResults.map(admin => admin.email);
-        if (adminEmails.length > 0) {
-          sendAdminNotification(adminEmails, emailClassDetails, registeredUsers.map(e => ({ email: e })));
-        }
+
+        const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
+        db.query(adminQuery, (adminErr, adminResults) => {
+          if (adminErr) {
+            console.error("Error fetching admin emails:", adminErr);
+            return;
+          }
+          const adminEmails = adminResults.map(admin => admin.email);
+          if (adminEmails.length > 0) {
+            sendAdminNotification(adminEmails, emailClassDetails, userResults);
+          }
+        });
       });
     });
   });
@@ -765,15 +809,28 @@ app.post("/api/classes/:classId/cancel", (req, res) => {
         } catch (e) { /* Ignore parsing errors */ }
 
         const adminQuery = "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')";
-        db.query(adminQuery, (err, adminResults) => {
-            if (err) {
-            console.error("Error fetching admin emails for cancellation:", err);
-            return;
-            }
-            const adminEmails = adminResults.map(admin => admin.email);
-            if (adminEmails.length > 0) {
-            sendAdminCancellationNotification(adminEmails, cancelingUserName, email, emailClassDetails, updatedUsers.map(e => ({email: e})));
-            }
+        db.query(adminQuery, (adminErr, adminResults) => {
+          if (adminErr) {
+              console.error("Error fetching admin emails for cancellation:", adminErr);
+              return;
+          }
+          const adminEmails = adminResults.map(admin => admin.email);
+          if (adminEmails.length > 0) {
+              if (updatedUsers.length > 0) {
+                  const remainingUsersQuery = 'SELECT name, email FROM users WHERE email IN (?)';
+                  db.query(remainingUsersQuery, [updatedUsers], (remainingErr, remainingUserResults) => {
+                      if (remainingErr) {
+                          console.error("Error fetching remaining users for cancellation email:", remainingErr);
+                          // Send with what we have, even if names are missing
+                          sendAdminCancellationNotification(adminEmails, cancelingUserName, email, emailClassDetails, []);
+                          return;
+                      }
+                      sendAdminCancellationNotification(adminEmails, cancelingUserName, email, emailClassDetails, remainingUserResults);
+                  });
+              } else {
+                  sendAdminCancellationNotification(adminEmails, cancelingUserName, email, emailClassDetails, []);
+              }
+          }
         });
       });
     });
@@ -1064,7 +1121,76 @@ app.post('/api/evaluations', (req, res) => {
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+/**
+ * Schedules a daily task to send reminders for classes occurring the next day.
+ * This cron job runs every day at 12:00 PM (noon).
+ */
+function scheduleDailyReminders() {
+  // Cron pattern for 'at 12:00 on every day-of-week'
+  cron.schedule('00 12 * * *', () => {
+    console.log(`[${new Date().toLocaleString('th-TH')}] Scheduled job running: Checking for tomorrow's classes...`);
+
+    // Use a timezone-aware way to get tomorrow's date
+    const nowInBKK = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+    const tomorrowInBKK = new Date(nowInBKK);
+    tomorrowInBKK.setDate(nowInBKK.getDate() + 1);
+    const year = tomorrowInBKK.getFullYear();
+    const month = (tomorrowInBKK.getMonth() + 1).toString().padStart(2, '0');
+    const day = tomorrowInBKK.getDate().toString().padStart(2, '0');
+    const tomorrowDateString = `${year}-${month}-${day}`;
+
+    const sql = `
+      SELECT * FROM classes 
+      WHERE status != 'closed' 
+      AND reminder_sent = 0
+      AND start_date = ?
+    `;
+
+    db.query(sql, [tomorrowDateString], (err, classes) => {
+      if (err) {
+        console.error('❌ Error fetching classes for daily reminders:', err);
+        return;
+      }
+
+      if (classes.length === 0) {
+        console.log(`No classes found for tomorrow (${tomorrowDateString}). No reminders sent.`);
+        return;
+      }
+
+      console.log(`Found ${classes.length} class(es) for tomorrow. Sending reminders...`);
+      for (const cls of classes) {
+        const registeredUsers = JSON.parse(cls.registered_users || '[]');
+        if (registeredUsers.length > 0) {
+          const userQuery = 'SELECT name, email FROM users WHERE email IN (?)';
+          db.query(userQuery, [registeredUsers], (userErr, users) => {
+            if (userErr) {
+              console.error(`❌ Error fetching users for class ${cls.class_id}:`, userErr);
+              return; // Continue to the next class
+            }
+            
+            let classDetails = { ...cls };
+            try { classDetails.speaker = JSON.parse(classDetails.speaker).join(', '); } catch (e) {}
+
+            for (const user of users) {
+              sendReminderEmail(user.email, classDetails, user.name);
+            }
+
+            // Mark as sent to prevent duplicate emails
+            db.query('UPDATE classes SET reminder_sent = 1 WHERE class_id = ?', [cls.class_id]);
+          });
+        }
+      }
+    });
+  }, {
+    scheduled: true,
+    timezone: "Asia/Bangkok" // Ensure the job runs based on Thai time
+  });
+}
+
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  // Schedule the daily reminder job
+  scheduleDailyReminders();
+  console.log('✅ Daily reminder job scheduled to run at 12:00 PM (Asia/Bangkok).');
 });

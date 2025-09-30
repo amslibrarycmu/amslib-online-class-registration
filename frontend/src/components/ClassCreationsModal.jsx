@@ -135,10 +135,7 @@ const ClassCreationModal = ({
 
   const handleAddSpeaker = () => {
     if (speakerInput && !formData.speaker.includes(speakerInput)) {
-      setFormData((prev) => ({
-        ...prev,
-        speaker: dispatch({ type: "ADD_SPEAKER", payload: speakerInput }),
-      }));
+      dispatch({ type: "ADD_SPEAKER", payload: speakerInput });
       setSpeakerInput("");
     }
   };

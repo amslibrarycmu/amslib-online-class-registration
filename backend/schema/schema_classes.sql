@@ -34,3 +34,5 @@ CREATE TABLE IF NOT EXISTS classes (
 DESCRIBE classes;
 
 SELECT * FROM classes;
+
+ALTER TABLE `classes` ADD `reminder_sent` BOOLEAN NOT NULL DEFAULT FALSE AFTER `status`;
