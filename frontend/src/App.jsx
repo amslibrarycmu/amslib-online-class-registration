@@ -14,6 +14,8 @@ import Statistics from "./pages/Statistics";
 import PastClassesHistory from "./pages/PastClassesHistory";
 import ClassRequest from "./pages/ClassRequest";
 import AdminClassRequests from "./pages/AdminClassRequests";
+import UserManagement from "./pages/UserManagement";
+import ActivityLogs from "./pages/ActivityLogs";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -81,6 +83,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminClassRequests />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-management"
+            element={
+              <ProtectedRoute>
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity-logs"
+            element={
+              <ProtectedRoute>
+                <ActivityLogs />
               </ProtectedRoute>
             }
           />

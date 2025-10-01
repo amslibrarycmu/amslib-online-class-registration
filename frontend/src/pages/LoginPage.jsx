@@ -2,37 +2,86 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import amsliblogo from "../assets/amslib-logo.svg";
+import cmuLogo from "../assets/cmu-logo.svg";
+import CompleteProfileModal from "../components/CompleteProfileModal";
 
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [profileData, setProfileData] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Generic login handler
   const performLogin = async (email) => {
     try {
-      const response = await fetch("http://localhost:5000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/auth/check-or-create-user",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Login failed for ${email}`);
       }
 
-      const userData = await response.json();
-      login(userData);
-      console.log("Login successful:", userData);
+      const result = await response.json();
 
-      // Prioritize admin role for navigation
-      if (Array.isArray(userData.roles) && userData.roles.includes("ผู้ดูแลระบบ")) {
+      if (result.status === "profile_incomplete") {
+        setProfileData(result.user);
+        setIsModalOpen(true);
+      } else {
+        login(result.user);
+        if (
+          Array.isArray(result.user.roles) &&
+          result.user.roles.includes("ผู้ดูแลระบบ")
+        ) {
+          navigate("/index");
+        } else {
+          navigate("/classes");
+        }
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("ไม่สามารถเข้าสู่ระบบได้");
+    }
+  };
+
+  const handleProfileSubmit = async (formData) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/users/update-profile`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      const updatedUser = await response.json();
+      setIsModalOpen(false);
+      login(updatedUser);
+
+      if (
+        Array.isArray(updatedUser.roles) &&
+        updatedUser.roles.includes("ผู้ดูแลระบบ")
+      ) {
         navigate("/index");
       } else {
         navigate("/classes");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      alert("ไม่สามารถเข้าสู่ระบบได้");
+      console.error("Profile update error:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -50,8 +99,18 @@ const LoginPage = () => {
     performLogin("usernormal@email.com");
   };
 
+  const handleCmuLogin = () => {
+    window.location.href = "http://localhost:5000/api/auth/login";
+  };
+
   return (
     <div className="flex items-center justify-center w-screen h-screen bg-white">
+      <CompleteProfileModal
+        isOpen={isModalOpen}
+        user={profileData}
+        onSubmit={handleProfileSubmit}
+        isSubmitting={isSubmitting}
+      />
       <div className="text-center">
         <img
           src={amsliblogo}
@@ -64,6 +123,19 @@ const LoginPage = () => {
           <br />
           (HSL KM)
         </p>
+        <div className="flex flex-col items-center gap- w-80 mx-auto mb-4">
+          <button
+            onClick={handleCmuLogin}
+            className="bg-[#9f75b4] w-full text-white font-bold py-2 px-4 rounded-md shadow-md hover:bg-[#8e68a4] transition-colors flex items-center justify-center gap-2"
+          >
+            <img src={cmuLogo} alt="CMU Logo" className="h-6 w-7" />
+            <span>เข้าสู่ระบบด้วย</span>
+            <span> CMU Account</span>
+          </button>
+        </div>
+        <div className="relative flex py-5 items-center w-80 mx-auto">
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
         <form
           onSubmit={handleLogin}
           className="flex flex-col items-center gap-4 w-80 mx-auto"

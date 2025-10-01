@@ -36,7 +36,6 @@ export default function Sidebar() {
   };
 
   const handleOverviewClick = () => {
-    // When switching roles, navigate to the appropriate dashboard
     if (activeRole === "ผู้ดูแลระบบ") {
       navigate("/index");
     } else {
@@ -47,7 +46,6 @@ export default function Sidebar() {
   const handleProfileClick = async () => {
     if (user?.photo) {
       if (window.confirm('คุณมีรูปโปรไฟล์อยู่แล้ว ต้องการลบรูปเก่าก่อนอัปโหลดรูปใหม่หรือไม่?')) {
-        // User wants to delete first
         try {
           const response = await fetch('http://localhost:5000/api/users/profile-picture', {
             method: 'DELETE',
@@ -57,18 +55,16 @@ export default function Sidebar() {
           if (!response.ok) throw new Error('ลบรูปโปรไฟล์เดิมไม่สำเร็จ');
           
           const updatedUser = await response.json();
-          login(updatedUser); // Update context to show default pic
+          login(updatedUser);
           alert('ลบรูปโปรไฟล์เดิมสำเร็จแล้ว กรุณาเลือกรูปใหม่');
-          fileInputRef.current.click(); // Then open file dialog
+          fileInputRef.current.click();
         } catch (error) {
           alert(error.message);
         }
       } else {
-        // User wants to just replace it
         fileInputRef.current.click();
       }
     } else {
-      // No photo, just upload
       fileInputRef.current.click();
     }
   };
@@ -92,8 +88,8 @@ export default function Sidebar() {
       }
 
       const updatedUser = await response.json();
-      login(updatedUser); // Update user context with new data
-      alert('อัปเดตโปรไฟล์สำเร็จ!');
+      login(updatedUser);
+      alert('อัปเดตโปรไฟล์สำเร็จ');
     } catch (error) {
       console.error('Upload error:', error);
       alert(error.message);
@@ -102,7 +98,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Hamburger Menu Button for mobile */}
       <input
         type="file"
         ref={fileInputRef}
@@ -131,7 +126,6 @@ export default function Sidebar() {
         </svg>
       </button>
 
-      {/* Overlay for mobile */}
       {isSidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-white/90 z-40"
@@ -139,7 +133,6 @@ export default function Sidebar() {
         ></div>
       )}
 
-      {/* Sidebar */}
       <div
         className={`w-[325px] flex-shrink-0 min-h-screen text-center bg-[#f0f0f0] flex flex-col gap-[10px] p-[1rem] transition-transform duration-300 ease-in-out
                     lg:translate-x-0 lg:relative lg:z-auto
@@ -149,7 +142,6 @@ export default function Sidebar() {
                         : "-translate-x-full fixed"
                     }`}
       >
-        {/* Main Content */}
         <div className="flex-grow">
           <div className="flex justify-between items-center">
             <img src={amsliblogo} width={200} className="mx-auto" alt="logo" />
@@ -164,7 +156,7 @@ export default function Sidebar() {
               height={75}
               className="w-[100px] h-[100px] object-cover rounded-full my-auto cursor-pointer"
               alt="profile"
-              onClick={handleProfileClick} // Changed from handleOverviewClick
+              onClick={handleProfileClick}
               title="เปลี่ยนรูปโปรไฟล์"
             />
             <div className="flex flex-col text-start px-0 grow text-black">
@@ -246,6 +238,20 @@ export default function Sidebar() {
                 >
                   จัดการคำขอ
                 </span>
+
+                <span
+                  onClick={() => navigate("/user-management")}
+                  className="text-black cursor-pointer hover:underline text-[1.25rem]"
+                >
+                  สิทธิ์
+                </span>
+
+                <span
+                  onClick={() => navigate("/activity-logs")}
+                  className="text-black cursor-pointer hover:underline text-[1.25rem]"
+                >
+                  ประวัติการใช้งาน
+                </span>
               </>
             ) : (
               <>
@@ -271,8 +277,6 @@ export default function Sidebar() {
             )}
           </div>
         </div>
-
-        {/* Collapse Button at the bottom for mobile */}
         <div className="mt-auto lg:hidden">
           <button
             className="w-full flex items-center justify-center p-3 rounded-lg text-black hover:bg-gray-200 transition-colors"

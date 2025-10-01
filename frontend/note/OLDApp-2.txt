@@ -12,6 +12,7 @@ import AdminPanel from "./pages/AdminPanel";
 import ClassCreation from "./pages/ClassCreation";
 import ClassList from "./components/ClassList";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import UserManagement from "./pages/UserManagement";
 
 import "./App.css";
 
@@ -80,6 +81,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClassCreation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-management"
+            element={
+              <ProtectedRoute>
+                <UserManagement />
               </ProtectedRoute>
             }
           />

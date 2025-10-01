@@ -48,6 +48,8 @@ const ClassCatalog = () => {
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const [selectedClassForDescription, setSelectedClassForDescription] =
     useState(null);
+  const [selectedClasses, setSelectedClasses] = useState([]);
+  const [isBulkRegistering, setIsBulkRegistering] = useState(false);
 
   const fetchPromotedClasses = async () => {
     try {
@@ -153,6 +155,60 @@ const ClassCatalog = () => {
     }
   };
 
+  const handleSelectClass = (classId) => {
+    setSelectedClasses((prevSelected) =>
+      prevSelected.includes(classId)
+        ? prevSelected.filter((id) => id !== classId)
+        : [...prevSelected, classId]
+    );
+  };
+
+  const handleBulkRegister = async () => {
+    if (!user) {
+      alert("กรุณาเข้าสู่ระบบเพื่อลงทะเบียน");
+      return;
+    }
+    if (selectedClasses.length === 0) {
+      return;
+    }
+
+    if (!window.confirm(`คุณต้องการลงทะเบียน ${selectedClasses.length} คลาสที่เลือกใช่หรือไม่?`)) {
+      return;
+    }
+
+    setIsBulkRegistering(true);
+    const results = { success: [], failed: [] };
+
+    for (const classId of selectedClasses) {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/classes/${classId}/register`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: user.name, email: user.email }),
+          }
+        );
+        const data = await response.json();
+        if (response.ok) {
+          results.success.push(classId);
+        } else {
+          results.failed.push({ classId, message: data.message });
+        }
+      } catch (err) {
+        results.failed.push({ classId, message: "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้" });
+      }
+    }
+
+    setIsBulkRegistering(false);
+    alert(
+      `ลงทะเบียนแล้ว\nสำเร็จ: ${results.success.length} ห้องเรียน\nล้มเหลว: ${results.failed.length} ห้องเรียน`
+    );
+
+    await fetchPromotedClasses(); // Refresh data from server
+    setSelectedClasses([]);
+  };
+
   const parseAndJoin = (speakerData) => {
     if (!speakerData) return "N/A";
     if (typeof speakerData !== "string") return String(speakerData);
@@ -186,6 +242,11 @@ const ClassCatalog = () => {
     return classes; // 'all'
   };
 
+  const classMap = classes.reduce((acc, cls) => {
+    acc[cls.class_id] = cls;
+    return acc;
+  }, {});
+
   const handleOpenDescriptionModal = (cls) => {
     setSelectedClassForDescription(cls);
     setIsDescriptionModalOpen(true);
@@ -216,15 +277,48 @@ const ClassCatalog = () => {
         title={selectedClassForDescription?.title}
         description={selectedClassForDescription?.description}
       />
+      {/* Floating Action Button for Mobile */}
+      {selectedClasses.length > 0 && (
+        <div className="fixed bottom-8 right-8 z-20 lg:hidden">
+          <button
+            onClick={handleBulkRegister}
+            disabled={isBulkRegistering}
+            className="bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait"
+          >
+            {isBulkRegistering
+              ? "..."
+              : `ลงทะเบียน (${selectedClasses.length})`}
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 p-8 bg-gray-100 min-h-screen">
         <h1 className="text-3xl font-bold mb-4 text-gray-800 text-center">
           ห้องเรียน
         </h1>
 
-        <div className="mb-6 p-2 bg-gray-200 rounded-lg inline-flex space-x-2">
-          {renderNavButton("all", "ทั้งหมด")}
-          {renderNavButton("available", "ลงทะเบียนได้")}
-          {renderNavButton("registered", "ลงทะเบียนแล้ว")}
+        <div className="mb-6 flex justify-between items-center gap-4">
+          {/* Filter Buttons */}
+          <div className="p-2 bg-gray-200 rounded-lg inline-flex space-x-2 flex-shrink-0">
+            {renderNavButton("all", "ทั้งหมด")}
+            {renderNavButton("available", "ลงทะเบียนได้")}
+            {renderNavButton("registered", "ลงทะเบียนแล้ว")}
+          </div>
+
+          {/* Bulk Register Button for Desktop */}
+          {selectedClasses.length > 0 && (
+            <div className="hidden lg:block">
+              <button
+                onClick={handleBulkRegister}
+                disabled={isBulkRegistering}
+                className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait"
+              >
+                {isBulkRegistering
+                  ? "กำลังลงทะเบียน..."
+                  : `ลงทะเบียน ${selectedClasses.length} ห้องเรียนที่เลือก`}
+              </button>
+            </div>
+          )}
         </div>
 
         {loading && <p>Loading classes...</p>}
@@ -239,6 +333,7 @@ const ClassCatalog = () => {
                     cls.max_participants !== 999 &&
                     cls.registered_users.length >= cls.max_participants;
                   const isRegistered = isUserRegistered(cls);
+                  const isRegisterable = !isFull && !isRegistered && cls.status !== "closed";
 
                   const StatusBadge = () => {
                     if (isRegistered) {
@@ -261,9 +356,20 @@ const ClassCatalog = () => {
                   return (
                     <div
                       key={cls.class_id}
-                      className="bg-white rounded-xl shadow-lg flex flex-col hover:shadow-xl transition-shadow duration-300 relative overflow-hidden"
+                      className="bg-white rounded-xl shadow-lg flex flex-col hover:shadow-xl transition-shadow duration-300 relative overflow-hidden cursor-pointer"
                     >
                       <StatusBadge />
+                      {isRegisterable && (
+                        <div className="absolute top-2 right-2 z-10 m-4">
+                          <input
+                            type="checkbox"
+                            className="h-6 w-6 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                            checked={selectedClasses.includes(cls.class_id)}
+                            onChange={() => handleSelectClass(cls.class_id)}
+                            onClick={(e) => e.stopPropagation()} // Prevent card click
+                          />
+                        </div>
+                      )}
                       <div className="p-6 flex-grow flex flex-col">
                         <h2 className="text-xl font-bold text-purple-800 mb-2">
                           {cls.title}
