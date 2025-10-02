@@ -242,7 +242,7 @@ const ClassIndex = () => {
         updateForm.append(key, updatedData[key]);
       }
     }
-    updateForm.append("created_by_email", user.email);
+    updateForm.append("user_email", user.email);
 
     try {
       const response = await fetch(

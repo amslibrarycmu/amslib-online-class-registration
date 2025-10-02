@@ -109,8 +109,17 @@ db.connect((err) => {
 });
 
 // --- Activity Logging ---
-function logActivity(req, userId, userName, userEmail, actionType, targetType, targetId, details) {
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+function logActivity(
+  req,
+  userId,
+  userName,
+  userEmail,
+  actionType,
+  targetType,
+  targetId,
+  details
+) {
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   const log = {
     user_id: userId,
     user_name: userName,
@@ -119,7 +128,7 @@ function logActivity(req, userId, userName, userEmail, actionType, targetType, t
     target_type: targetType,
     target_id: targetId,
     details: details ? JSON.stringify(details) : null,
-    ip_address: ip
+    ip_address: ip,
   };
   const sql = "INSERT INTO activity_logs SET ?";
   db.query(sql, log, (err) => {
@@ -128,6 +137,35 @@ function logActivity(req, userId, userName, userEmail, actionType, targetType, t
     }
   });
 }
+
+// API สำหรับบันทึก Activity จาก Frontend โดยเฉพาะ
+app.post("/api/log-activity", (req, res) => {
+  const {
+    user_id,
+    user_name,
+    user_email,
+    action_type,
+    target_type,
+    target_id,
+    details,
+  } = req.body;
+
+  // ในระบบจริง ควรมีการตรวจสอบสิทธิ์ผู้ใช้ที่นี่ก่อนทำการบันทึก
+  // แต่สำหรับตอนนี้ เราจะเชื่อข้อมูลที่ส่งมาจาก Frontend ไปก่อน
+  logActivity(
+    req,
+    user_id,
+    user_name,
+    user_email,
+    action_type,
+    target_type,
+    target_id,
+    details
+  );
+
+  res.status(200).json({ message: "Activity logged" });
+});
+
 // --- End Activity Logging ---
 
 app.post("/api/login", (req, res) => {
@@ -140,7 +178,16 @@ app.post("/api/login", (req, res) => {
       return res.status(401).json({ error: "Invalid email or user not found" });
     }
     const user = results[0];
-    logActivity(req, user.id, user.name, user.email, 'LOGIN_SUCCESS', 'SESSION', null, null);
+    logActivity(
+      req,
+      user.id,
+      user.name,
+      user.email,
+      "LOGIN_SUCCESS",
+      "SESSION",
+      null,
+      null
+    );
     res.json({
       id: user.id,
       name: user.name,
@@ -193,17 +240,29 @@ app.put("/api/users/:id/roles", (req, res) => {
 
     // Log this activity
     // This assumes you have a middleware that puts the logged-in user on req.user
-    const adminUser = req.user || { id: null, name: 'System', email: 'system' };
-    db.query("SELECT name, email FROM users WHERE id = ?", [id], (fetchErr, targetUsers) => {
-      if (!fetchErr && targetUsers.length > 0) {
-        const targetUser = targetUsers[0];
-        logActivity(req, adminUser.id, adminUser.name, adminUser.email, 'UPDATE_ROLE', 'USER', id, {
-          target_user: `${targetUser.name} (${targetUser.email})`,
-          new_roles: roles
-        });
+    const adminUser = req.user || { id: null, name: "System", email: "system" };
+    db.query(
+      "SELECT name, email FROM users WHERE id = ?",
+      [id],
+      (fetchErr, targetUsers) => {
+        if (!fetchErr && targetUsers.length > 0) {
+          const targetUser = targetUsers[0];
+          logActivity(
+            req,
+            adminUser.id,
+            adminUser.name,
+            adminUser.email,
+            "UPDATE_ROLE",
+            "USER",
+            id,
+            {
+              target_user: `${targetUser.name} (${targetUser.email})`,
+              new_roles: roles,
+            }
+          );
+        }
       }
-    });
-
+    );
 
     // Fetch the updated user to return
     db.query(
@@ -228,31 +287,46 @@ app.put("/api/users/:id/status", (req, res) => {
   const { id } = req.params;
   const { is_active } = req.body;
 
-  if (typeof is_active !== 'boolean') {
+  if (typeof is_active !== "boolean") {
     return res.status(400).json({ error: "is_active must be a boolean" });
   }
 
   // Prevent deactivating the last active admin
   if (is_active === false) {
-    db.query("SELECT roles, is_active FROM users WHERE id = ?", [id], (err, users) => {
-      if (err || users.length === 0) return res.status(500).json({ error: "User not found or database error" });
+    db.query(
+      "SELECT roles, is_active FROM users WHERE id = ?",
+      [id],
+      (err, users) => {
+        if (err || users.length === 0)
+          return res
+            .status(500)
+            .json({ error: "User not found or database error" });
 
-      const userToDeactivate = users[0];
-      const userRoles = JSON.parse(userToDeactivate.roles || "[]");
+        const userToDeactivate = users[0];
+        const userRoles = JSON.parse(userToDeactivate.roles || "[]");
 
-      if (userRoles.includes("ผู้ดูแลระบบ")) {
-        db.query("SELECT COUNT(*) as activeAdminCount FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"') AND is_active = 1", (countErr, countResults) => {
-          if (countErr) return res.status(500).json({ error: "Database error on admin count" });
+        if (userRoles.includes("ผู้ดูแลระบบ")) {
+          db.query(
+            "SELECT COUNT(*) as activeAdminCount FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"') AND is_active = 1",
+            (countErr, countResults) => {
+              if (countErr)
+                return res
+                  .status(500)
+                  .json({ error: "Database error on admin count" });
 
-          if (countResults[0].activeAdminCount <= 1) {
-            return res.status(400).json({ error: "Cannot deactivate the last active admin" });
-          }
+              if (countResults[0].activeAdminCount <= 1) {
+                return res
+                  .status(400)
+                  .json({ error: "Cannot deactivate the last active admin" });
+              }
+              updateStatus();
+            }
+          );
+        } else {
           updateStatus();
-        });
-      } else {
-        updateStatus();
+        }
       }
-    });
+    );
   } else {
     updateStatus();
   }
@@ -261,20 +335,38 @@ app.put("/api/users/:id/status", (req, res) => {
     const sql = "UPDATE users SET is_active = ? WHERE id = ?";
     db.query(sql, [is_active, id], (err, result) => {
       if (err) return res.status(500).json({ error: "Database error" });
-      if (result.affectedRows === 0) return res.status(404).json({ error: "User not found" });
+      if (result.affectedRows === 0)
+        return res.status(404).json({ error: "User not found" });
 
       // Log this activity
       // This assumes you have a middleware that puts the logged-in user on req.user
-      const adminUser = req.user || { id: null, name: 'System', email: 'system' };
-      db.query("SELECT name, email FROM users WHERE id = ?", [id], (fetchErr, targetUsers) => {
-        if (!fetchErr && targetUsers.length > 0) {
-          const targetUser = targetUsers[0];
-          logActivity(req, adminUser.id, adminUser.name, adminUser.email, 'UPDATE_STATUS', 'USER', id, {
-            target_user: `${targetUser.name} (${targetUser.email})`,
-            new_status: is_active ? 'active' : 'inactive'
-          });
+      const adminUser = req.user || {
+        id: null,
+        name: "System",
+        email: "system",
+      };
+      db.query(
+        "SELECT name, email FROM users WHERE id = ?",
+        [id],
+        (fetchErr, targetUsers) => {
+          if (!fetchErr && targetUsers.length > 0) {
+            const targetUser = targetUsers[0];
+            logActivity(
+              req,
+              adminUser.id,
+              adminUser.name,
+              adminUser.email,
+              "UPDATE_STATUS",
+              "USER",
+              id,
+              {
+                target_user: `${targetUser.name} (${targetUser.email})`,
+                new_status: is_active ? "active" : "inactive",
+              }
+            );
+          }
         }
-      });
+      );
       res.status(200).json({ message: "User status updated successfully" });
     });
   }
@@ -284,51 +376,93 @@ app.delete("/api/users/:id", (req, res) => {
   const { id } = req.params;
 
   // First, get user details to check for admin status and photo
-  db.query("SELECT id, name, email, roles, photo FROM users WHERE id = ?", [id], (err, users) => {
-    if (err) return res.status(500).json({ error: "Database error on find" });
-    if (users.length === 0) return res.status(404).json({ error: "User not found" });
+  db.query(
+    "SELECT id, name, email, roles, photo FROM users WHERE id = ?",
+    [id],
+    (err, users) => {
+      if (err) return res.status(500).json({ error: "Database error on find" });
+      if (users.length === 0)
+        return res.status(404).json({ error: "User not found" });
 
-    const userToDelete = users[0];
-    const userRoles = Array.isArray(userToDelete.roles) ? userToDelete.roles : JSON.parse(userToDelete.roles || "[]");
+      const userToDelete = users[0];
+      const userRoles = Array.isArray(userToDelete.roles)
+        ? userToDelete.roles
+        : JSON.parse(userToDelete.roles || "[]");
 
-    // Check if the user is the last admin
-    if (userRoles.includes("ผู้ดูแลระบบ")) {
-      db.query("SELECT COUNT(*) as adminCount FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')", (countErr, countResults) => {
-        if (countErr) return res.status(500).json({ error: "Database error on count" });
+      // Check if the user is the last admin
+      if (userRoles.includes("ผู้ดูแลระบบ")) {
+        db.query(
+          "SELECT COUNT(*) as adminCount FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')",
+          (countErr, countResults) => {
+            if (countErr)
+              return res.status(500).json({ error: "Database error on count" });
 
-        if (countResults[0].adminCount <= 1) {
-          return res.status(400).json({ error: "Cannot delete the last admin" });
-        }
-        // If not the last admin, proceed to delete
+            if (countResults[0].adminCount <= 1) {
+              return res
+                .status(400)
+                .json({ error: "Cannot delete the last admin" });
+            }
+            // If not the last admin, proceed to delete
+            deleteUser();
+          }
+        );
+      } else {
+        // If not an admin, proceed to delete
         deleteUser();
-      });
-    } else {
-      // If not an admin, proceed to delete
-      deleteUser();
+      }
+
+      function deleteUser() {
+        db.query(
+          "DELETE FROM users WHERE id = ?",
+          [id],
+          (deleteErr, result) => {
+            if (deleteErr)
+              return res
+                .status(500)
+                .json({ error: "Database error on delete" });
+
+            // Log this activity
+            // This assumes you have a middleware that puts the logged-in user on req.user
+            const adminUser = req.user || {
+              id: null,
+              name: "System",
+              email: "system",
+            };
+            logActivity(
+              req,
+              adminUser.id,
+              adminUser.name,
+              adminUser.email,
+              "DELETE_USER",
+              "USER",
+              id,
+              {
+                deleted_user_details: {
+                  id: userToDelete.id,
+                  name: userToDelete.name,
+                  email: userToDelete.email,
+                },
+              }
+            );
+
+            // If user had a photo, delete it from the filesystem
+            if (userToDelete.photo) {
+              const filePath = path.join(
+                __dirname,
+                "uploads",
+                userToDelete.photo
+              );
+              fs.unlink(filePath, (unlinkErr) => {
+                if (unlinkErr)
+                  console.error("Error deleting photo file:", unlinkErr);
+              });
+            }
+            res.status(200).json({ message: "User deleted successfully" });
+          }
+        );
+      }
     }
-
-    function deleteUser() {
-      db.query("DELETE FROM users WHERE id = ?", [id], (deleteErr, result) => {
-        if (deleteErr) return res.status(500).json({ error: "Database error on delete" });
-
-        // Log this activity
-        // This assumes you have a middleware that puts the logged-in user on req.user
-        const adminUser = req.user || { id: null, name: 'System', email: 'system' };
-        logActivity(req, adminUser.id, adminUser.name, adminUser.email, 'DELETE_USER', 'USER', id, {
-          deleted_user_details: { id: userToDelete.id, name: userToDelete.name, email: userToDelete.email }
-        });
-
-        // If user had a photo, delete it from the filesystem
-        if (userToDelete.photo) {
-          const filePath = path.join(__dirname, "uploads", userToDelete.photo);
-          fs.unlink(filePath, (unlinkErr) => {
-            if (unlinkErr) console.error("Error deleting photo file:", unlinkErr);
-          });
-        }
-        res.status(200).json({ message: "User deleted successfully" });
-      });
-    }
-  });
+  );
 });
 
 app.post("/api/auth/check-or-create-user", (req, res) => {
@@ -351,6 +485,16 @@ app.post("/api/auth/check-or-create-user", (req, res) => {
       const user = results[0];
       if (user.pdpa === 1 && user.is_active === 1) {
         // Profile is complete and active, proceed to login
+        logActivity(
+          req,
+          user.id,
+          user.name,
+          user.email,
+          "LOGIN_SUCCESS",
+          "SESSION",
+          null,
+          null
+        );
         res.json({ status: "ok", user: formatUser(user) });
       } else {
         // Profile is incomplete, prompt user to complete it
@@ -380,7 +524,16 @@ app.post("/api/auth/check-or-create-user", (req, res) => {
           if (insertErr)
             return res.status(500).json({ error: "Database error on create" });
 
-          logActivity(req, insertResult.insertId, newUser.name, newUser.email, 'CREATE_USER', 'USER', insertResult.insertId, null);
+          logActivity(
+            req,
+            insertResult.insertId,
+            newUser.name,
+            newUser.email,
+            "CREATE_USER",
+            "USER",
+            insertResult.insertId,
+            null
+          );
 
           const createdUser = { id: insertResult.insertId, ...newUser };
           res.json({
@@ -406,8 +559,8 @@ app.put("/api/users/update-profile", (req, res) => {
       return res.status(404).json({ error: "User not found" });
 
     // Log this activity
-    logActivity(req, null, name, email, 'UPDATE_PROFILE', 'USER', email, {
-      updated_fields: { name, roles, phone, pdpa }
+    logActivity(req, null, name, email, "UPDATE_PROFILE", "USER", email, {
+      updated_fields: { name, roles, phone, pdpa },
     });
 
     // Fetch the updated user to return
@@ -447,8 +600,8 @@ app.put("/api/users/profile-picture", upload.single("photo"), (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    logActivity(req, null, 'User', email, 'UPDATE_PHOTO', 'USER', email, {
-      new_photo: photo
+    logActivity(req, null, "User", email, "UPDATE_PHOTO", "USER", email, {
+      new_photo: photo,
     });
 
     // Fetch the updated user data to send back to the client
@@ -493,7 +646,9 @@ app.delete("/api/users/profile-picture", (req, res) => {
         return res.status(500).json({ message: "Database error on update." });
       }
 
-      logActivity(req, null, 'User', email, 'DELETE_PHOTO', 'USER', email, { old_photo: oldPhoto });
+      logActivity(req, null, "User", email, "DELETE_PHOTO", "USER", email, {
+        old_photo: oldPhoto,
+      });
 
       // Delete the old file from the filesystem if it exists
       if (oldPhoto) {
@@ -524,16 +679,47 @@ app.delete("/api/users/profile-picture", (req, res) => {
 // API to fetch activity logs
 app.get("/api/activity-logs", (req, res) => {
   // In a real app, add middleware to ensure only admins can access this
-  const { page = 1, limit = 25 } = req.query;
+  const { page = 1, limit = 25, search = '', actionType = '' } = req.query;
   const offset = (page - 1) * limit;
 
-  const sql = "SELECT * FROM activity_logs ORDER BY timestamp DESC LIMIT ? OFFSET ?";
-  db.query(sql, [parseInt(limit), parseInt(offset)], (err, results) => {
+  let sql = "SELECT SQL_CALC_FOUND_ROWS * FROM activity_logs";
+  const whereClauses = [];
+  const params = [];
+
+  if (search) {
+    whereClauses.push("(user_name LIKE ? OR user_email LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (actionType) {
+    whereClauses.push("action_type = ?");
+    params.push(actionType);
+  }
+
+  if (whereClauses.length > 0) {
+    sql += " WHERE " + whereClauses.join(" AND ");
+  }
+
+  sql += " ORDER BY timestamp DESC LIMIT ? OFFSET ?";
+  params.push(parseInt(limit), parseInt(offset));
+
+  const countSql = "SELECT FOUND_ROWS() as total";
+
+  db.query(sql, params, (err, results) => {
     if (err) {
       console.error("Error fetching activity logs:", err);
       return res.status(500).json({ error: "Database error" });
     }
-    res.json(results);
+    db.query(countSql, (countErr, countResults) => {
+      if (countErr) {
+        console.error("Error fetching activity logs count:", countErr);
+        return res.status(500).json({ error: "Database error" });
+      }
+      res.json({
+        logs: results,
+        total: countResults[0].total,
+      });
+    });
   });
 });
 
@@ -654,6 +840,24 @@ app.post("/api/classes", upload.array("files"), (req, res) => {
           .json({ message: "เซิร์ฟเวอร์ผิดพลาด", error: err });
       }
       console.log("✅ บันทึกข้อมูลสำเร็จ:", result);
+      // Log this activity
+      const adminUser = req.user || {
+        id: null,
+        name: "System",
+        email: created_by_email || "system",
+      };
+      logActivity(
+        req,
+        adminUser.id,
+        adminUser.name,
+        adminUser.email,
+        "CREATE_CLASS",
+        "CLASS",
+        class_id,
+        {
+          class_title: title,
+        }
+      );
       res.status(201).json({ message: "Class created successfully" });
     }
   );
@@ -703,6 +907,19 @@ app.post("/api/requests", (req, res) => {
         .json({ message: "Database server error.", error: err });
     }
     console.log("✅ Class request submitted successfully:", result);
+    // Log this activity
+    logActivity(
+      req,
+      null,
+      "User",
+      requestedBy,
+      "SUBMIT_CLASS_REQUEST",
+      "REQUEST",
+      result.insertId,
+      {
+        request_title: title,
+      }
+    );
     res.status(201).json({ message: "Class request submitted successfully!" });
 
     // --- Email Notification for Admins ---
@@ -969,6 +1186,19 @@ app.put("/api/requests/:requestId", (req, res) => {
         .status(500)
         .json({ message: "Database server error.", error: err });
     }
+    // Log this activity
+    logActivity(
+      req,
+      null,
+      "User",
+      "user",
+      "UPDATE_CLASS_REQUEST",
+      "REQUEST",
+      requestId,
+      {
+        request_title: title,
+      }
+    );
     console.log(`✅ Class request ${requestId} updated successfully.`);
     res.status(200).json({ message: "Class request updated successfully!" });
   });
@@ -985,6 +1215,20 @@ app.delete("/api/requests/:requestId", (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Class request not found." });
     }
+    // Log this activity
+    const adminUser = req.user || { id: null, name: "System", email: "system" };
+    logActivity(
+      req,
+      adminUser.id,
+      adminUser.name,
+      adminUser.email,
+      "DELETE_CLASS_REQUEST",
+      "REQUEST",
+      requestId,
+      {
+        deleted_request_id: requestId,
+      }
+    );
     console.log(`✅ Class request ${requestId} deleted successfully.`);
     res.status(200).json({ message: "Class request deleted successfully!" });
   });
@@ -992,17 +1236,45 @@ app.delete("/api/requests/:requestId", (req, res) => {
 
 app.delete("/api/classes/:classId", (req, res) => {
   const { classId } = req.params;
-  const sql = "DELETE FROM classes WHERE class_id = ?";
-  db.query(sql, [classId], (err, result) => {
-    if (err) {
-      console.error("Error deleting class:", err);
-      return res.status(500).json({ error: "Database error" });
+  // First, get class details for logging
+  db.query(
+    "SELECT title FROM classes WHERE class_id = ?",
+    [classId],
+    (findErr, findResults) => {
+      if (findErr || findResults.length === 0) {
+        // Still try to delete, but logging might fail
+      }
+      const classTitle =
+        findResults.length > 0 ? findResults[0].title : classId;
+
+      const sql = "DELETE FROM classes WHERE class_id = ?";
+      db.query(sql, [classId], (err, result) => {
+        if (err) {
+          console.error("Error deleting class:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ error: "Class not found" });
+        }
+        const adminUser = req.user || {
+          id: null,
+          name: "System",
+          email: "system",
+        };
+        logActivity(
+          req,
+          adminUser.id,
+          adminUser.name,
+          adminUser.email,
+          "DELETE_CLASS",
+          "CLASS",
+          classId,
+          { class_title: classTitle }
+        );
+        res.status(200).json({ message: "Class deleted successfully" });
+      });
     }
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Class not found" });
-    }
-    res.status(200).json({ message: "Class deleted successfully" });
-  });
+  );
 });
 
 app.put("/api/classes/:classId", upload.array("files"), (req, res) => {
@@ -1062,6 +1334,25 @@ app.put("/api/classes/:classId", upload.array("files"), (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Class not found" });
     }
+    // created_by_email is not available in the update context.
+    // We should get the user email from the request body or session.
+    // Log this activity
+    const adminUser = req.user || {
+      id: null,
+      name: "System",
+      email: req.body.user_email || "system",
+    };
+    logActivity(
+      req,
+      adminUser.id,
+      adminUser.name,
+      adminUser.email,
+      "UPDATE_CLASS",
+      "CLASS",
+      classId,
+      { class_title: title }
+    );
+
     console.log("✅ Class updated successfully:", result);
     res.status(200).json({ message: "Class updated successfully" });
   });
@@ -1082,6 +1373,7 @@ app.post(
   (req, res) => {
     const { classId } = req.params;
     const { video_link, existing_materials } = req.body;
+    const isEditing = req.body.is_editing === "true"; // Check if this is an edit operation
 
     // Get the filenames of newly uploaded files
     const newMaterialFiles = req.files
@@ -1115,6 +1407,26 @@ app.post(
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Class not found" });
       }
+      // Log this activity
+      const adminUser = req.user || {
+        id: null,
+        name: "System",
+        email: "system",
+      };
+      const actionType = isEditing ? "UPDATE_CLOSED_CLASS" : "CLOSE_CLASS";
+      logActivity(
+        req,
+        adminUser.id,
+        adminUser.name,
+        adminUser.email,
+        actionType,
+        "CLASS",
+        classId,
+        {
+          class_id: classId,
+        }
+      );
+
       console.log("✅ Class closed successfully:", result);
       res
         .status(200)
@@ -1138,6 +1450,20 @@ app.put("/api/classes/:classId/promote", (req, res) => {
         .status(404)
         .json({ error: "Class not found or no changes made" });
     }
+    // Log this activity
+    const adminUser = req.user || { id: null, name: "System", email: "system" };
+    logActivity(
+      req,
+      adminUser.id,
+      adminUser.name,
+      adminUser.email,
+      promoted ? "PROMOTE_CLASS" : "UNPROMOTE_CLASS",
+      "CLASS",
+      classId,
+      {
+        class_id: classId,
+      }
+    );
     res.status(200).json({ message: "Promotion status updated successfully" });
   });
 });
@@ -1197,6 +1523,20 @@ app.post("/api/classes/:classId/register", (req, res) => {
         }
 
         console.log(`✅ User ${email} registered for class ${classId}`);
+        // Log this activity
+        logActivity(
+          req,
+          null,
+          name,
+          email,
+          "REGISTER_CLASS",
+          "CLASS",
+          classId,
+          {
+            class_title: course.title,
+          }
+        );
+
         res
           .status(200)
           .json({ message: "Successfully registered for the class!" });
@@ -1304,6 +1644,20 @@ app.post("/api/classes/:classId/cancel", (req, res) => {
         console.log(
           `✅ User ${email} canceled registration for class ${classId}`
         );
+        // Log this activity
+        logActivity(
+          req,
+          null,
+          "User",
+          email,
+          "CANCEL_CLASS_REGISTRATION",
+          "CLASS",
+          classId,
+          {
+            class_title: course.title,
+          }
+        );
+
         res
           .status(200)
           .json({ message: "Successfully canceled your registration." });
@@ -1685,6 +2039,19 @@ app.post("/api/evaluations", (req, res) => {
         console.error("Error submitting evaluation:", insertErr);
         return res.status(500).json({ error: "Failed to submit evaluation." });
       }
+      // Log this activity
+      logActivity(
+        req,
+        null,
+        "User",
+        user_email,
+        "SUBMIT_EVALUATION",
+        "CLASS",
+        class_id,
+        {
+          class_id: class_id,
+        }
+      );
       res.status(201).json({ message: "Evaluation submitted successfully." });
     });
   });

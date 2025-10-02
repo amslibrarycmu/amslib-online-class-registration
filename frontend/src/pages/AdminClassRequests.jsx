@@ -204,7 +204,7 @@ const RejectionReasonModal = ({
 };
 
 const AdminClassRequests = () => {
-  const { user, activeRole } = useAuth();
+  const { user, activeRole, isSwitchingRole } = useAuth();
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -219,31 +219,23 @@ const AdminClassRequests = () => {
   const [isViewReasonModalOpen, setIsViewReasonModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
+    // Redirect non-admins, but not during a role switch.
+    if (user && activeRole && activeRole !== "ผู้ดูแลระบบ" && !isSwitchingRole) {
+      alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+      navigate("/");
     }
+  }, [user, activeRole, navigate, isSwitchingRole]);
 
-    if (activeRole !== "ผู้ดูแลระบบ") {
-      navigate("/"); // Redirect non-admins to home or another appropriate page
-      return;
-    }
-
+  useEffect(() => {
     fetchRequests();
-  }, [user, navigate, activeRole]);
+  }, []); // Run once on component mount
+
 
   const fetchRequests = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/admin/class-requests",
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
+      const response = await fetch("http://localhost:5000/api/admin/class-requests");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

@@ -1,12 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth, logFrontendActivity } from "../contexts/AuthContext";
 import amsliblogo from "../assets/amslib-logo.svg";
 import profile from "../assets/abstract-user.png";
 
 export default function Sidebar() {
-  const navigate = useNavigate();
-  const { user, login, logout, activeRole, switchRole } = useAuth();
+  const navigate = useNavigate();  
+  const { user, login, logout, activeRole, switchRole, isSwitchingRole } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -27,11 +27,14 @@ export default function Sidebar() {
     const nextIndex = (currentIndex + 1) % user.roles.length;
     const newRole = user.roles[nextIndex];
 
-    switchRole(newRole);
-    if (newRole === "ผู้ดูแลระบบ") {
-      navigate("/index");
-    } else {
-      navigate("/classes");
+    if (!isSwitchingRole) {
+      logFrontendActivity(user, 'SWITCH_ROLE', { from_role: activeRole, to_role: newRole });
+      switchRole(newRole);
+      if (newRole === "ผู้ดูแลระบบ") {
+        navigate("/index");
+      } else {
+        navigate("/classes");
+      }
     }
   };
 
@@ -195,19 +198,20 @@ export default function Sidebar() {
                 <span className="text-xs text-black py-1">({activeRole})</span>
               </div>
               <span
-                className="font-semibold cursor-pointer hover:underline"
-                style={{ color: "black" }}
-                onClick={() => {
-                  logout();
-                  alert("ออกจากระบบสำเร็จ");
-                  navigate("/login");
-                }}
-              >
-                <span className="font-semibold"> ออกจากระบบ </span>
-              </span>
+              className="font-semibold mt-1 cursor-pointer hover:underline"
+              style={{ color: "black" }}
+              onClick={() => {
+                logFrontendActivity(user, 'LOGOUT');
+                logout();
+                alert("ออกจากระบบสำเร็จ");
+                navigate("/login");
+              }}
+            >
+              <span className="font-semibold"> ออกจากระบบ </span>
+            </span>
             </div>
           </div>
-          <div className="flex flex-col items-center gap-5">
+          <div className="flex flex-col items-center gap-5 mt-4">
             {isAdmin ? (
               <>
                 <span

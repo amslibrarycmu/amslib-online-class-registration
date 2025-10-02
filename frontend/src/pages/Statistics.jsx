@@ -7,7 +7,7 @@ import CategoryBarChart from "../components/CategoryBarChart";
 import { useStatisticsData } from "../components/๊UseStatisticsData";
 
 const Statistics = () => {
-  const { user, activeRole } = useAuth();
+  const { user, activeRole, isSwitchingRole } = useAuth();
   const navigate = useNavigate();
 
   const [selectedYear, setSelectedYear] = useState("all");
@@ -49,11 +49,12 @@ const Statistics = () => {
   ];
 
   useEffect(() => {
-    // Redirect if user is not an admin
-    if (user && activeRole !== "ผู้ดูแลระบบ") {
-      navigate("/login");
+    // Redirect non-admins, but not during a role switch.
+    if (user && activeRole && activeRole !== "ผู้ดูแลระบบ" && !isSwitchingRole) {
+      alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
+      navigate("/");
     }
-  }, [user, activeRole, navigate]);
+  }, [user, activeRole, navigate, isSwitchingRole]);
 
   const handleSearch = () => {
     setTriggerSearchTerm(searchTerm);
@@ -359,7 +360,7 @@ const Statistics = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
-                จำนวนผู้เข้าร่วมทั้งหมด
+                จำนวนผู้เข้าเรียนทั้งหมด
               </h3>
               {loading ? (
                 <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
@@ -389,7 +390,7 @@ const Statistics = () => {
 
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
-                ห้องเรียนที่จบแล้ว
+                จบการสอนแล้ว
               </h3>
               {loading ? (
                 <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
@@ -462,10 +463,10 @@ const Statistics = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="text-lg font-bold text-purple-800">
-                          <span className="text-red-500">
+                          <span className="text-red-500 pr-1">
                             {classStat.class_id}
-                          </span>{" "}
-                          - {classStat.title}
+                          </span> {" "}
+                           {classStat.title}
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
                           เปิดเมื่อ{" "}

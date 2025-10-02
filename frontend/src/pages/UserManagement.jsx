@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import UserDetailsModal from "../components/UserDetailsModal";
 
 const UserManagement = () => {
-  const { user, activeRole, logout } = useAuth();
+  const { user, activeRole, logout, isSwitchingRole } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,9 +16,10 @@ const UserManagement = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   useEffect(() => {
-    if (activeRole !== "ผู้ดูแลระบบ") {
+    // Redirect non-admins, but not during a role switch.
+    if (user && activeRole && activeRole !== "ผู้ดูแลระบบ" && !isSwitchingRole) {
+      alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
       navigate("/");
-      return;
     }
 
     const fetchUsers = async () => {
@@ -26,7 +27,7 @@ const UserManagement = () => {
         setLoading(true);
         const response = await fetch("http://localhost:5000/api/users");
         if (!response.ok) {
-          throw new Error("Failed to fetch users.");
+          throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
         }
         const data = await response.json();
         setUsers(data);
@@ -39,7 +40,7 @@ const UserManagement = () => {
     };
 
     fetchUsers();
-  }, [user, activeRole, navigate]);
+  }, [user, activeRole, navigate, isSwitchingRole]);
 
   const handleToggleAdmin = async (targetUser) => {
     const isAdmin = targetUser.roles.includes("ผู้ดูแลระบบ");
