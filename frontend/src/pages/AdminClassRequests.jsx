@@ -235,7 +235,8 @@ const AdminClassRequests = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:5000/api/admin/class-requests");
+      const rolesQuery = `roles=${encodeURIComponent(user.roles.join(','))}`;
+      const response = await fetch(`http://localhost:5000/api/admin/class-requests?${rolesQuery}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -252,6 +253,7 @@ const AdminClassRequests = () => {
   const handleAction = async (requestId, action) => {
     if (action === "reject") {
       setRequestToReject(requestId);
+      setRejectionReason(""); // Clear previous reason
       setIsRejectionModalOpen(true);
       return;
     }
@@ -259,13 +261,13 @@ const AdminClassRequests = () => {
     // Handle approval directly
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/class-requests/${requestId}/${action}`,
+        `http://localhost:5000/api/admin/class-requests/${requestId}/${action}?roles=${encodeURIComponent(user.roles.join(','))}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
           },
+          body: JSON.stringify({ admin_email: user.email }),
         }
       );
       if (!response.ok) {
@@ -284,14 +286,13 @@ const AdminClassRequests = () => {
     setIsSubmitting(true);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/admin/class-requests/${requestToReject}/reject`,
+        `http://localhost:5000/api/admin/class-requests/${requestToReject}/reject?roles=${encodeURIComponent(user.roles.join(','))}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
           },
-          body: JSON.stringify({ reason: rejectionReason }),
+          body: JSON.stringify({ reason: rejectionReason, admin_email: user.email }),
         }
       );
       if (!response.ok) {

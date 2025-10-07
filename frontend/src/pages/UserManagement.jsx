@@ -25,7 +25,8 @@ const UserManagement = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:5000/api/users");
+        const rolesQuery = `roles=${encodeURIComponent(user.roles.join(','))}`;
+        const response = await fetch(`http://localhost:5000/api/users?${rolesQuery}`);
         if (!response.ok) {
           throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
         }
@@ -76,7 +77,7 @@ const UserManagement = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/users/${targetUser.id}/roles`,
+        `http://localhost:5000/api/users/${targetUser.id}/roles?roles=${encodeURIComponent(user.roles.join(','))}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -127,7 +128,7 @@ const UserManagement = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userToToggle.id}/status`, {
+      const response = await fetch(`http://localhost:5000/api/users/${userToToggle.id}/status?roles=${encodeURIComponent(user.roles.join(','))}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: newStatus }),
@@ -163,7 +164,7 @@ const UserManagement = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userToDelete.id}`, {
+      const response = await fetch(`http://localhost:5000/api/users/${userToDelete.id}?roles=${encodeURIComponent(user.roles.join(','))}`, {
         method: 'DELETE',
       });
 

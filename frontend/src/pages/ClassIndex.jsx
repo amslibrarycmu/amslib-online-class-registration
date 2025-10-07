@@ -317,7 +317,7 @@ const ClassIndex = () => {
   const handlePromoteToggle = async (classId, isPromoted) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/classes/${classId}/promote`,
+        `http://localhost:5000/api/classes/${classId}/promote?roles=${encodeURIComponent(user.roles.join(','))}`,
         {
           method: "PUT",
           headers: {

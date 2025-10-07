@@ -18,14 +18,12 @@ export const useStatisticsData = (user, activeRole, selectedYear, selectedMonth)
       return;
     }
 
-    const fetchData = async () => {
+    const fetchData = async () => {      
       setLoading(true);
       setError(null);
       try {
-        const url = new URL("http://localhost:5000/api/statistics/class-demographics");
-        url.searchParams.append("year", selectedYear);
-        url.searchParams.append("month", selectedMonth);
-        const response = await fetch(url);
+        const params = new URLSearchParams({ year: selectedYear, month: selectedMonth, roles: user.roles.join(',') });
+        const response = await fetch(`http://localhost:5000/api/admin/statistics/class-demographics?${params}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         setStats(data);

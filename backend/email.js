@@ -39,6 +39,24 @@ async function createTransporter() {
   return nodemailer.createTransport(transportOptions);
 }
 
+async function sendEmail(mailOptions) {
+  try {
+    const transporter = await createTransporter();
+    const info = await transporter.sendMail({
+      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+      ...mailOptions,
+    });
+
+    console.log(`✅ Email sent for subject "${mailOptions.subject}": ${info.messageId}`);
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log(`Preview URL: ${previewUrl}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error sending email for subject "${mailOptions.subject}":`, error);
+  }
+}
+
 async function sendRegistrationConfirmation(
   recipientEmail,
   classDetails,
@@ -46,8 +64,7 @@ async function sendRegistrationConfirmation(
 ) {
   try {
     const transporter = await createTransporter();
-    const mailOptions = {
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    await sendEmail({
       to: recipientEmail,
       subject: `ยืนยันการลงทะเบียน ${classDetails.title}`,
       html: `
@@ -86,14 +103,7 @@ async function sendRegistrationConfirmation(
                 <p>จึงเรียนมาเพื่อโปรดทราบ</p>
                 <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
                 <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>
-            `,
-    };
-    let info = await transporter.sendMail(mailOptions);
-    console.log("Message sent to user: %s", info.messageId);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log("User Email Preview URL: %s", previewUrl);
-    }
+            `});
   } catch (error) {
     console.error("Error sending registration confirmation email:", error);
   }
@@ -115,8 +125,7 @@ async function sendAdminNotification(
 
   try {
     const transporter = await createTransporter();
-    const mailOptions = {
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    await sendEmail({
       to: adminEmails.join(", "),
       subject: `[ระบบแจ้งเตือน] มีผู้ลงทะเบียนใหม่ในห้องเรียน ชื่อ ${classDetails.title}`,
       html: `
@@ -136,16 +145,8 @@ async function sendAdminNotification(
                 <ul>
                     ${userListHtml}
                 </ul>
-                <hr>
-            `,
-    };
-
-    let info = await transporter.sendMail(mailOptions);
-    console.log("Admin notification sent: %s", info.messageId);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log("Admin Notification Preview URL: %s", previewUrl);
-    }
+                <hr>`
+    });
   } catch (error) {
     console.error("Error sending admin notification email:", error);
   }
@@ -169,8 +170,7 @@ async function sendAdminCancellationNotification(
 
   try {
     const transporter = await createTransporter();
-    const mailOptions = {
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    await sendEmail({
       to: adminEmails.join(", "),
       subject: `[ระบบแจ้งเตือน] มีผู้ยกเลิกลงทะเบียนจากห้องเรียน ชื่อ ${classDetails.title}`,
       html: `
@@ -182,19 +182,8 @@ async function sendAdminCancellationNotification(
                 <ul>
                     ${userListHtml}
                 </ul>
-                <hr>
-            `,
-    };
-
-    let info = await transporter.sendMail(mailOptions);
-    console.log("Admin cancellation notification sent: %s", info.messageId);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(
-        "Admin Cancellation Notification Preview URL: %s",
-        previewUrl
-      );
-    }
+                <hr>`
+    });
   } catch (error) {
     console.error(
       "Error sending admin cancellation notification email:",
@@ -217,8 +206,7 @@ async function sendNewClassRequestAdminNotification(
 
   try {
     const transporter = await createTransporter();
-    const mailOptions = {
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    await sendEmail({
       to: adminEmails.join(", "),
       subject: `[ระบบแจ้งเตือน] มีคำขอเปิดห้องเรียนใหม่ ชื่อ "${requestDetails.title}"`,
       html: `
@@ -231,21 +219,8 @@ async function sendNewClassRequestAdminNotification(
                 <p>วันที่เสนอ: ${new Date().toLocaleDateString("th-TH")}</p>
                 <hr>
                 <p>โปรดเข้าสู่ระบบเพื่อตรวจสอบและดำเนินการต่อ</p>
-            `,
-    };
-
-    let info = await transporter.sendMail(mailOptions);
-    console.log(
-      "New class request admin notification sent: %s",
-      info.messageId
-    );
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(
-        "New Class Request Admin Notification Preview URL: %s",
-        previewUrl
-      );
-    }
+            `
+    });
   } catch (error) {
     console.error(
       "Error sending new class request admin notification email:",
@@ -257,9 +232,7 @@ async function sendNewClassRequestAdminNotification(
 // เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการอนุมัติ
 async function sendRequestApprovedNotification(requestDetails) {
   try {
-    const transporter = await createTransporter();
-    const mailOptions = {
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    await sendEmail({
       to: requestDetails.user_email,
       subject: `แจ้งผลการพิจารณาคำขอหลักสูตร ${requestDetails.title} "ได้รับการอนุมัติแล้ว"`,
       html: `
@@ -270,15 +243,8 @@ async function sendRequestApprovedNotification(requestDetails) {
                 <p>ท่านสามารถติดตามความคืบหน้าของหลักสูตรนี้ได้ในระบบต่อไป</p>
                 <hr>
                 <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
-                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>
-            `,
-    };
-    let info = await transporter.sendMail(mailOptions);
-    console.log("Request approved email sent: %s", info.messageId);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log("Request Approved Email Preview URL: %s", previewUrl);
-    }
+                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>`
+    });
   } catch (error) {
     console.error("Error sending request approved email:", error);
   }
@@ -290,9 +256,7 @@ async function sendRequestRejectedNotification(
   rejectionReason
 ) {
   try {
-    const transporter = await createTransporter();
-    const mailOptions = {
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    await sendEmail({
       to: requestDetails.user_email,
       subject: `แจ้งผลการพิจารณาคำขอหลักสูตร: ${requestDetails.title} "ไม่ได้รับการอนุมัติ"`,
       html: `
@@ -309,25 +273,15 @@ async function sendRequestRejectedNotification(
                 }
                 <hr>
                 <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
-                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>
-            `,
-    };
-    let info = await transporter.sendMail(mailOptions);
-    console.log("Request rejected email sent: %s", info.messageId);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log("Request Rejected Email Preview URL: %s", previewUrl);
-    }
+                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>`
+    });
   } catch (error) {
     console.error("Error sending request rejected email:", error);
   }
 }
 
 async function sendReminderEmail(recipientEmail, classDetails, studentName) {
-  try {
-    const transporter = await createTransporter();
-    const mailOptions = {
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    await sendEmail({
       to: recipientEmail,
       subject: `[แจ้งเตือน] ห้องเรียน "${classDetails.title}" จะเริ่มใน 24 ชั่วโมง`,
       html: `
@@ -365,17 +319,8 @@ async function sendReminderEmail(recipientEmail, classDetails, studentName) {
                 <p>โปรดเตรียมตัวให้พร้อมสำหรับการเข้าร่วม</p>
                 <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
                 <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>
-            `,
-    };
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Reminder email sent to ${recipientEmail} for class ${classDetails.class_id}`);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`Reminder Email Preview URL: ${previewUrl}`);
-    }
-  } catch (error) {
-    console.error(`❌ Error sending reminder email to ${recipientEmail}:`, error);
-  }
+            `
+    });
 }
 
 module.exports = {

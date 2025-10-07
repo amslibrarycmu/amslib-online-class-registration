@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import DemographicsPieChart from "../components/DemographicsPieChart";
 import CategoryBarChart from "../components/CategoryBarChart";
-import { useStatisticsData } from "../components/๊UseStatisticsData";
+import { useStatisticsData } from "../components/UseStatisticsData";
 
 const Statistics = () => {
   const { user, activeRole, isSwitchingRole } = useAuth();

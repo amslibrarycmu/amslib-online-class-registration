@@ -65,9 +65,10 @@ const ActivityLogs = () => {
         limit,
         search: currentSearch,
         actionType: currentActionType,
+        roles: user?.roles?.join(','), // Pass roles for backend authorization
       }).toString();
 
-      const response = await fetch(`http://localhost:5000/api/activity-logs?${query}`);
+      const response = await fetch(`http://localhost:5000/api/admin/activity-logs?${query}`);
       if (!response.ok) {
         throw new Error('ไม่สามารถดึงข้อมูลประวัติการใช้งานได้');
       }
@@ -152,6 +153,54 @@ const ActivityLogs = () => {
     }
   };
 
+  /*
+  // Function to handle CSV export
+  const handleExportCSV = async () => {
+    alert("กำลังเตรียมข้อมูลสำหรับ Export...");
+    try {
+      const query = new URLSearchParams({
+        search: searchTerm,
+        actionType: actionTypeFilter,
+        roles: user?.roles?.join(','), // Pass roles for backend authorization
+      }).toString();
+
+      const response = await fetch(`http://localhost:5000/api/activity-logs/all?${query}`);
+      if (!response.ok) {
+        throw new Error('ไม่สามารถดึงข้อมูลสำหรับ Export ได้');
+      }
+      const allLogs = await response.json();
+
+      if (allLogs.length === 0) {
+        alert("ไม่พบข้อมูลสำหรับ Export");
+        return;
+      }
+
+      const headers = ["เวลา", "ผู้กระทำ", "อีเมล", "การกระทำ", "รายละเอียด", "IP Address"];
+      const rows = allLogs.map(log => [
+        `"${new Date(log.timestamp).toLocaleString('th-TH')}"`,
+        `"${log.user_name || ''}"`,
+        `"${log.user_email || ''}"`,
+        `"${ACTION_TYPE_LABELS[log.action_type] || log.action_type}"`,
+        `"${getActionText(log).replace(/"/g, '""')}"`, // Escape double quotes
+        `"${log.ip_address || ''}"`
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "activity_logs_export.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert(error.message);
+    }
+  };
+  */
+
   return (
     <div className="flex h-screen w-screen">
       <Sidebar />
@@ -159,6 +208,21 @@ const ActivityLogs = () => {
         <h1 className="text-3xl font-bold text-gray-800 text-center mb-6">
           ประวัติการใช้งาน
         </h1>
+
+        {/*
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export to CSV
+          </button>
+        </div>
+        */}
+
         <div className="bg-white p-4 rounded-lg shadow-md mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
