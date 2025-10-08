@@ -230,10 +230,10 @@ async function sendNewClassRequestAdminNotification(
 }
 
 // เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการอนุมัติ
-async function sendRequestApprovedNotification(requestDetails) {
+async function sendRequestApprovedNotification(recipientEmail, requestDetails) {
   try {
     await sendEmail({
-      to: requestDetails.user_email,
+      to: recipientEmail,
       subject: `แจ้งผลการพิจารณาคำขอหลักสูตร ${requestDetails.title} "ได้รับการอนุมัติแล้ว"`,
       html: `
                 <p>เรียน คุณ ${
@@ -251,13 +251,14 @@ async function sendRequestApprovedNotification(requestDetails) {
 }
 
 // เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการปฏิเสธ
-async function sendRequestRejectedNotification(
+async function sendRequestRejectedNotification( // Make this async as well for consistency
+  recipientEmail,
   requestDetails,
   rejectionReason
 ) {
   try {
     await sendEmail({
-      to: requestDetails.user_email,
+      to: recipientEmail,
       subject: `แจ้งผลการพิจารณาคำขอหลักสูตร: ${requestDetails.title} "ไม่ได้รับการอนุมัติ"`,
       html: `
                 <p>เรียน คุณ ${

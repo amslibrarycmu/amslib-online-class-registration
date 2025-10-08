@@ -197,7 +197,13 @@ app.use("/api/evaluations", verifyToken, evaluationRoutes(db, logActivity, ));
 app.use(
   "/api/admin",
   verifyToken, adminOnly,
-  adminRoutes(db, logActivity)
+  adminRoutes(
+    db,
+    logActivity,
+    adminOnly, // Pass the middleware function itself
+    sendRequestApprovedNotification,
+    sendRequestRejectedNotification
+  )
 );
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -207,86 +213,73 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
  * This cron job runs every day at 12:00 PM (noon).
  */
 function scheduleDailyReminders() {
-  // Cron pattern for 'at 12:00 on every day-of-week'
-  cron.schedule(
-    "00 12 * * *",
-    () => {
-      console.log(
-        `[${new Date().toLocaleString(
-          "th-TH"
-        )}] Scheduled job running: Checking for tomorrow's classes...`
-      );
+  cron.schedule("00 12 * * *", async () => {
+    console.log(`[${new Date().toLocaleString("th-TH")}] Scheduled job running: Checking for tomorrow's classes...`);
 
-      // Use a timezone-aware way to get tomorrow's date
-      const nowInBKK = new Date(
-        new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" })
-      );
-      const tomorrowInBKK = new Date(nowInBKK);
-      tomorrowInBKK.setDate(nowInBKK.getDate() + 1);
-      const year = tomorrowInBKK.getFullYear();
-      const month = (tomorrowInBKK.getMonth() + 1).toString().padStart(2, "0");
-      const day = tomorrowInBKK.getDate().toString().padStart(2, "0");
-      const tomorrowDateString = `${year}-${month}-${day}`;
+    const nowInBKK = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Bangkok" }));
+    const tomorrowInBKK = new Date(nowInBKK);
+    tomorrowInBKK.setDate(nowInBKK.getDate() + 1);
+    const year = tomorrowInBKK.getFullYear();
+    const month = (tomorrowInBKK.getMonth() + 1).toString().padStart(2, "0");
+    const day = tomorrowInBKK.getDate().toString().padStart(2, "0");
+    const tomorrowDateString = `${year}-${month}-${day}`;
 
-      const sql = `
+    try {
+      const classesSql = `
       SELECT * FROM classes 
       WHERE status != 'closed' 
       AND reminder_sent = 0
       AND start_date = ?
     `;
+      const [classes] = await db.query(classesSql, [tomorrowDateString]);
 
-      db.query(sql, [tomorrowDateString], (err, classes) => {
-        if (err) {
-          console.error("❌ Error fetching classes for daily reminders:", err);
-          return;
-        }
+      if (classes.length === 0) {
+        console.log(`No classes found for tomorrow (${tomorrowDateString}). No reminders sent.`);
+        return;
+      }
 
-        if (classes.length === 0) {
-          console.log(
-            `No classes found for tomorrow (${tomorrowDateString}). No reminders sent.`
-          );
-          return;
-        }
+      console.log(`Found ${classes.length} class(es) for tomorrow. Preparing to send reminders...`);
 
-        console.log(
-          `Found ${classes.length} class(es) for tomorrow. Sending reminders...`
-        );
-        for (const cls of classes) {
-          const registeredUsers = JSON.parse(cls.registered_users || "[]");
-          if (registeredUsers.length > 0) {
-            const userQuery =
-              "SELECT name, email FROM users WHERE email IN (?)";
-            db.query(userQuery, [registeredUsers], (userErr, users) => {
-              if (userErr) {
-                console.error(
-                  `❌ Error fetching users for class ${cls.class_id}:`,
-                  userErr
-                );
-                return; // Continue to the next class
-              }
-
-              let classDetails = { ...cls };
-              try {
-                classDetails.speaker = JSON.parse(classDetails.speaker).join(
-                  ", "
-                );
-              } catch (e) {}
-
-              for (const user of users) {
-                sendReminderEmail(user.email, classDetails, user.name);
-              }
-
-              // Mark as sent to prevent duplicate emails
-              db.query(
-                "UPDATE classes SET reminder_sent = 1 WHERE class_id = ?",
-                [cls.class_id]
-              );
-            });
-          }
-        }
+      const allUserEmails = new Set();
+      classes.forEach(cls => {
+        const users = JSON.parse(cls.registered_users || "[]");
+        users.forEach(email => allUserEmails.add(email));
       });
-    },
-    {
+
+      if (allUserEmails.size === 0) {
+        console.log("No registered users in any of tomorrow's classes.");
+        return;
+      }
+
+      const [allUsers] = await db.query("SELECT name, email FROM users WHERE email IN (?)", [[...allUserEmails]]);
+      const userMap = new Map(allUsers.map(user => [user.email, user]));
+
+      const classIdsToUpdate = [];
+
+      for (const cls of classes) {
+        const registeredUsers = JSON.parse(cls.registered_users || "[]");
+        if (registeredUsers.length > 0) {
+          let classDetails = { ...cls };
+          try { classDetails.speaker = JSON.parse(classDetails.speaker).join(", "); } catch (e) {}
+
+          for (const email of registeredUsers) {
+            const user = userMap.get(email);
+            if (user) {
+              sendReminderEmail(user.email, classDetails, user.name);
+            }
+          }
+          classIdsToUpdate.push(cls.class_id);
+        }
+      }
+
+      if (classIdsToUpdate.length > 0) {
+        await db.query("UPDATE classes SET reminder_sent = 1 WHERE class_id IN (?)", [classIdsToUpdate]);
+        console.log(`✅ Marked ${classIdsToUpdate.length} class(es) as reminder-sent.`);
+      }
+    } catch (error) {
+      console.error("❌ Error in scheduled job for daily reminders:", error);
+    }
+  }, {
       scheduled: true,
       timezone: "Asia/Bangkok", // Ensure the job runs based on Thai time
     }

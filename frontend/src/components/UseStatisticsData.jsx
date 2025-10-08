@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 /**
  * Custom hook for fetching statistics data.
@@ -11,6 +12,7 @@ export const useStatisticsData = (user, activeRole, selectedYear, selectedMonth)
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { authFetch } = useAuth();
 
   useEffect(() => {
     if (!user || activeRole !== "ผู้ดูแลระบบ") {
@@ -23,7 +25,7 @@ export const useStatisticsData = (user, activeRole, selectedYear, selectedMonth)
       setError(null);
       try {
         const params = new URLSearchParams({ year: selectedYear, month: selectedMonth, roles: user.roles.join(',') });
-        const response = await fetch(`http://localhost:5000/api/admin/statistics/class-demographics?${params}`);
+        const response = await authFetch(`http://localhost:5000/api/admin/statistics/class-demographics?${params}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         setStats(data);
@@ -36,7 +38,7 @@ export const useStatisticsData = (user, activeRole, selectedYear, selectedMonth)
     };
 
     fetchData();
-  }, [user, activeRole, selectedYear, selectedMonth]);
+  }, [user, activeRole, selectedYear, selectedMonth, authFetch]);
 
   return { stats, loading, error };
 };

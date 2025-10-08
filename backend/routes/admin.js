@@ -169,9 +169,9 @@ module.exports = (
         const requestDetails = requestResults[0];
 
         if (action === "approve") {
-          await sendRequestApprovedNotification(requestDetails);
+          await sendRequestApprovedNotification(requestDetails.user_email, requestDetails);
         } else {
-          sendRequestRejectedNotification(requestDetails, reason);
+          await sendRequestRejectedNotification(requestDetails.user_email, requestDetails, reason);
         }
 
         await connection.commit();
@@ -253,13 +253,13 @@ module.exports = (
       const allEmails = new Set();
       rawClassStats.forEach(cls => {
         const registeredUsersEmails = JSON.parse(cls.registered_users || "[]");
-        registeredUsersEmails.forEach(email => allEmails.add(email));
+        registeredUsersEmails.forEach(allEmails.add, allEmails);
       });
 
       let userRoleMap = {};
       if (allEmails.size > 0) {
         const userRolesSql = "SELECT email, roles FROM users WHERE email IN (?)";
-        const [userRoles] = await db.query(userRolesSql, [[...allEmails]]);
+        const [userRoles] = await db.query(userRolesSql, [Array.from(allEmails)]);
         userRoles.forEach(user => {
           const roles = JSON.parse(user.roles || "[]");
           userRoleMap[user.email] = roles.length > 0 ? roles[0] : 'Unknown'; // ใช้ role แรก
