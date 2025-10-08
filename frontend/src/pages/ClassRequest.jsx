@@ -62,7 +62,7 @@ const ReasonModal = ({ isOpen, onClose, reason }) => {
 };
 
 const ClassRequest = () => {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const [topic, setTopic] = useState("");
   const [reason, setReason] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -86,9 +86,7 @@ const ClassRequest = () => {
     }
     setLoadingRequests(true);
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/requests?user_email=${user.email}`
-      );
+      const response = await authFetch(`http://localhost:5000/api/requests`);
       if (!response.ok) {
         throw new Error("Failed to fetch class requests.");
       }
@@ -103,7 +101,7 @@ const ClassRequest = () => {
   };
 
   useEffect(() => {
-    fetchRequests();
+    if (user) fetchRequests();
   }, [user]); // Refetch when user changes
 
   const resetForm = () => {
@@ -140,12 +138,9 @@ const ClassRequest = () => {
     const method = isEditing ? "PUT" : "POST";
 
     try {
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -175,12 +170,9 @@ const ClassRequest = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/requests/${request_id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await authFetch(`http://localhost:5000/api/requests/${request_id}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) {
         const errorData = await response.json();

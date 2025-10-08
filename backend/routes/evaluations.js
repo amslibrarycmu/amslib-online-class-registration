@@ -2,14 +2,14 @@ const express = require("express");
 const router = express.Router();
 
 module.exports = (db, logActivity) => {
-  // Get all class IDs a user has evaluated
-  router.get("/user/:email", async (req, res) => {
-    const { email } = req.params;
+  // Get all class IDs the currently logged-in user has evaluated
+  router.get("/user-status", async (req, res) => {
+    const { email } = req.user; // Get email from the JWT payload
     const sql = "SELECT DISTINCT class_id FROM evaluations WHERE user_email = ?";
     try {
       const [results] = await db.query(sql, [email]);
       const classIds = results.map((row) => row.class_id);
-      res.json(classIds);
+      return res.json(classIds);
     } catch (err) {
       console.error(`Error fetching evaluations for user ${email}:`, err);
       return res.status(500).json({ error: "Database error" });
@@ -19,11 +19,11 @@ module.exports = (db, logActivity) => {
   // Submit a new evaluation
   router.post("/", async (req, res) => {
     const {
-      class_id, user_email, score_content, score_material,
+      class_id, score_content, score_material,
       score_duration, score_format, score_speaker, comment,
     } = req.body;
-
-    if (!class_id || !user_email || score_content === undefined) {
+    const { email: user_email } = req.user; // Get email from JWT
+    if (!class_id || score_content === undefined) {
       return res.status(400).json({ error: "Missing required evaluation data." });
     }
 

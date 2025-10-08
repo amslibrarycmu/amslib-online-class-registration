@@ -6,9 +6,8 @@ import ClassCreationModal from "../components/ClassCreationsModal";
 import RegistrantsModal from "../components/RegistrantsModal";
 import CloseClassModal from "../components/CloseClassModal";
 import EvaluationResultsModal from "../components/EvaluationResultsModal";
-
 const ClassIndex = () => {
-  const { user, activeRole } = useAuth();
+  const { user, activeRole, authFetch } = useAuth();
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,11 +114,7 @@ const ClassIndex = () => {
     }
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:5000/api/classes?email=${encodeURIComponent(
-          user.email
-        )}&roles=${encodeURIComponent(activeRole)}&t=${new Date().getTime()}`
-      );
+      const response = await authFetch(`http://localhost:5000/api/classes`);
       const data = await response.json();
       setClasses(data); // Keep original fetched data if needed elsewhere
     } catch (error) {
@@ -152,9 +147,7 @@ const ClassIndex = () => {
   // Handlers for the registrants modal
   const handleOpenRegistrantsModal = async (cls) => {
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/classes/${cls.class_id}/registrants`
-      );
+      const response = await authFetch(`http://localhost:5000/api/classes/${cls.class_id}/registrants`);
       if (!response.ok) {
         throw new Error("Failed to fetch registrants");
       }
@@ -205,13 +198,10 @@ const ClassIndex = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/classes/${classId}/close`,
-        {
-          method: "POST",
-          body: closeForm,
-        }
-      );
+      const response = await authFetch(`http://localhost:5000/api/classes/${classId}/close`, {
+        method: "POST",
+        body: closeForm,
+      });
 
       if (response.ok) {
         alert("✅ ปิดห้องเรียนและบันทึกข้อมูลสำเร็จ");
@@ -234,7 +224,6 @@ const ClassIndex = () => {
   const handleUpdateClass = async (updatedData) => {
     const classId = updatedData.class_id;
     const updateForm = new FormData();
-
     for (const key in updatedData) {
       if (key === "speaker" || key === "target_groups") {
         updateForm.append(key, JSON.stringify(updatedData[key]));
@@ -243,16 +232,11 @@ const ClassIndex = () => {
       }
     }
     updateForm.append("user_email", user.email);
-
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/classes/${classId}`,
-        {
-          method: "PUT",
-          body: updateForm,
-        }
-      );
-
+      const response = await authFetch(`http://localhost:5000/api/classes/${classId}`, {
+        method: "PUT",
+        body: updateForm,
+      });
       if (response.ok) {
         alert("✅ อัปเดตข้อมูลสำเร็จ");
         handleCloseModal();
@@ -274,12 +258,9 @@ const ClassIndex = () => {
   const handleDeleteClick = async (classId) => {
     if (window.confirm("คุณต้องการลบห้องเรียนนี้หรือไม่?")) {
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/classes/${classId}`,
-          {
-            method: "DELETE",
-          }
-        );
+        const response = await authFetch(`http://localhost:5000/api/classes/${classId}`, {
+          method: "DELETE",
+        });
         if (response.ok) {
           alert("✅ ลบข้อมูลสำเร็จ");
           fetchClasses();
@@ -295,9 +276,7 @@ const ClassIndex = () => {
 
   const handleEvaluationResultsClick = async (cls) => {
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/classes/${cls.class_id}/evaluations`
-      );
+      const response = await authFetch(`http://localhost:5000/api/classes/${cls.class_id}/evaluations`);
       if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลผลการประเมินได้");
       const data = await response.json();
       setEvaluationData(data);
@@ -316,7 +295,7 @@ const ClassIndex = () => {
 
   const handlePromoteToggle = async (classId, isPromoted) => {
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/api/classes/${classId}/promote?roles=${encodeURIComponent(user.roles.join(','))}`,
         {
           method: "PUT",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import amsliblogo from "../assets/amslib-logo.svg";
@@ -6,58 +6,65 @@ import cmuLogo from "../assets/cmu-logo.svg";
 import CompleteProfileModal from "../components/CompleteProfileModal";
 
 const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, authFetch } = useAuth();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const performLogin = async (email) => {
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/auth/check-or-create-user",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        }
-      );
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const userParam = params.get("user");
 
-      if (!response.ok) {
-        throw new Error(`Login failed for ${email}`);
-      }
+    if (token && userParam) {
+      try {
+        const userData = JSON.parse(decodeURIComponent(userParam));
 
-      const result = await response.json();
-
-      if (result.status === "profile_incomplete") {
-        setProfileData(result.user);
-        setIsModalOpen(true);
-      } else {
-        login(result.user);
-        if (
-          Array.isArray(result.user.roles) &&
-          result.user.roles.includes("ผู้ดูแลระบบ")
-        ) {
-          navigate("/index");
+        // Check if the user needs to complete their profile
+        if (!userData.profile_completed) {
+          setProfileData(userData);
+          setIsModalOpen(true);
+          // We still log them in so authFetch works for the profile update
+          login(userData, token);
         } else {
-          navigate("/classes");
+          login(userData, token);
+          // Redirect based on role after successful login
+          if (Array.isArray(userData.roles) && userData.roles.includes("ผู้ดูแลระบบ")) {
+            navigate("/index", { replace: true });
+          } else {
+            navigate("/classes", { replace: true });
+          }
         }
+      } catch (error) {
+        console.error("Failed to parse user data from URL:", error);
+        alert("เกิดข้อผิดพลาดในการล็อกอินด้วย CMU Account");
+        navigate("/login", { replace: true });
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("ไม่สามารถเข้าสู่ระบบได้");
     }
+  }, [login, navigate]);
+
+  const performLogin = async (email) => {
+    // This function is for the old email login, which is currently disabled.
+    // It can be re-enabled if needed.
+    console.log(`Attempting to log in with ${email}`);
   };
 
   const handleProfileSubmit = async (formData) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(
+      // Assuming you have an `authFetch` in your useAuth context
+      // that handles authenticated requests.
+      const payload = {
+        ...formData,
+        original_name: profileData.name, // Add original name from initial data
+      };
+
+      const response = await authFetch(
         `http://localhost:5000/api/users/update-profile`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: payload,
         }
       );
 
@@ -67,7 +74,9 @@ const LoginPage = () => {
 
       const updatedUser = await response.json();
       setIsModalOpen(false);
-      login(updatedUser);
+      // Re-login with updated user data
+      const token = localStorage.getItem('token');
+      login(updatedUser, token);
 
       if (
         Array.isArray(updatedUser.roles) &&
@@ -89,14 +98,6 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     performLogin(email);
-  };
-
-  const handleAdminLogin = () => {
-    performLogin("useradmin@email.com");
-  };
-
-  const handleNormalUserLogin = () => {
-    performLogin("usernormal@email.com");
   };
 
   const handleCmuLogin = () => {
@@ -133,7 +134,7 @@ const LoginPage = () => {
             <span> CMU Account</span>
           </button>
         </div>
-        <div className="relative flex py-5 items-center w-80 mx-auto">
+        {/* <div className="relative flex py-5 items-center w-80 mx-auto">
           <div className="flex-grow border-t border-gray-300"></div>
         </div>
         <form
@@ -154,26 +155,7 @@ const LoginPage = () => {
           >
             เข้าสู่ระบบ
           </button>
-        </form>
-        <div className="relative flex py-5 items-center w-80 mx-auto">
-          <div className="flex-grow border-t border-gray-300"></div>
-          <span className="flex-shrink mx-4 text-gray-400">หรือ</span>
-          <div className="flex-grow border-t border-gray-300"></div>
-        </div>
-        <div className="flex flex-col items-center gap-4 w-80 mx-auto">
-          <button
-            onClick={handleAdminLogin}
-            className="bg-purple-700 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
-          >
-            ทดสอบในบทบาท "ผู้ดูแลระบบ"
-          </button>
-          <button
-            onClick={handleNormalUserLogin}
-            className="bg-gray-500 w-full text-white font-bold py-2 px-6 rounded-full shadow hover:shadow-md"
-          >
-            ทดสอบในบทบาท "ผู้ใช้ทั่วไป"
-          </button>
-        </div>
+        </form> */}
       </div>
     </div>
   );

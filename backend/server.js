@@ -5,12 +5,13 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const cron = require("node-cron");
 const axios = require("axios");
 
 // --- Import Route Files ---
 const userRoutes = require("./routes/users");
-const authRoutes = require("./routes/auth");
+// const authRoutes = require("./routes/auth"); // This will be added back
 const adminRoutes = require("./routes/admin");
 const classRoutes = require("./routes/classes");
 const requestRoutes = require("./routes/requests");
@@ -25,19 +26,6 @@ const {
   sendRequestRejectedNotification,
   sendReminderEmail,
 } = require("./email.js");
-
-const MS_ENTRA_CONFIG = {
-  CLIENT_ID: process.env.ENTRA_CLIENT_ID,
-  CLIENT_SECRET: process.env.ENTRA_CLIENT_SECRET,
-  TENANT_ID: process.env.ENTRA_TENANT_ID || "common",
-  REDIRECT_URI:
-    process.env.ENTRA_REDIRECT_URI || "http://localhost:5000/api/auth/callback",
-  SCOPES: "openid profile email", // สิทธิ์พื้นฐานที่ร้องขอ
-};
-
-const AUTHORITY = `https://login.microsoftonline.com/${MS_ENTRA_CONFIG.TENANT_ID}/v2.0`;
-const AUTHORIZATION_ENDPOINT = `${AUTHORITY}/authorize`;
-const TOKEN_ENDPOINT = `${AUTHORITY}/token`;
 
 const uploadsDir = path.join(__dirname, "uploads");
 const materialsDir = path.join(__dirname, "uploads/materials");
@@ -143,30 +131,53 @@ app.post("/api/log-activity", (req, res) => {
 
 // --- End Activity Logging ---
 
-// --- Middleware for Authorization ---
-const adminOnly = (req, res, next) => {
-  // In a real-world, production-ready application, this check should be based on
-  // a verified JWT (JSON Web Token) or a secure session cookie, not a query parameter.
-  // The token would be decoded, and the roles would be extracted from its payload.
-  //
-  // For the purpose of this project, we'll use a query parameter as a simplified
-  // mechanism to demonstrate the middleware concept. This is NOT secure for production.
-  const { roles } = req.query;
-  const userRoles = roles ? roles.split(',') : [];
+// --- Middleware for JWT Verification and Authorization ---
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
-  if (userRoles.includes('ผู้ดูแลระบบ')) {
-    next(); // User is an admin, proceed to the next function (the API handler).
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized: No token provided." });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Forbidden: Invalid token." });
+    }
+    req.user = user; // Attach user payload to the request object
+
+    // Enforce profile completion for all protected routes except the update-profile route itself
+    // and the logout route.
+    if (!user.profile_completed && req.originalUrl !== '/api/users/update-profile' && req.originalUrl !== '/api/auth/logout') {
+      return res.status(403).json({
+        message: "Forbidden: Profile not completed.",
+        code: "PROFILE_INCOMPLETE",
+      });
+    }
+
+    next();
+  });
+};
+
+const adminOnly = (req, res, next) => {
+  // This middleware now runs *after* verifyToken, so req.user is available.
+  if (req.user && req.user.roles && req.user.roles.includes('ผู้ดูแลระบบ')) {
+    next();
   } else {
-    // If the user is not an admin, block access immediately with a 403 Forbidden error.
     res.status(403).json({ message: "Forbidden: Administrator access required." });
   }
 };
 
 // --- Use Routes ---
+// The authRoutes for MS Entra ID login needs to be added here
+const authRoutes = require("./routes/auth");
 app.use("/api/auth", authRoutes(db, logActivity));
-app.use("/api/users", userRoutes(db, logActivity, adminOnly, upload));
+
+// app.use("/api/auth", authRoutes(db, logActivity));
+app.use("/api/users", verifyToken, userRoutes(db, logActivity, adminOnly, upload));
 app.use(
   "/api/classes",
+  verifyToken, // Add protection to all class routes
   classRoutes(
     db,
     logActivity,
@@ -179,12 +190,14 @@ app.use(
 );
 app.use(
   "/api/requests",
-  requestRoutes(db, logActivity, sendNewClassRequestAdminNotification)
+  verifyToken, // Add protection
+  requestRoutes(db, logActivity, sendNewClassRequestAdminNotification, )
 );
-app.use("/api/evaluations", evaluationRoutes(db, logActivity));
+app.use("/api/evaluations", verifyToken, evaluationRoutes(db, logActivity, ));
 app.use(
   "/api/admin",
-  adminRoutes(db, logActivity, adminOnly, sendRequestApprovedNotification, sendRequestRejectedNotification)
+  verifyToken, adminOnly,
+  adminRoutes(db, logActivity)
 );
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext"; // Ensure authFetch is exported
 
 const EvaluationModal = ({
   isOpen,
@@ -7,7 +7,7 @@ const EvaluationModal = ({
   classToEvaluate,
   onSubmitSuccess,
 }) => {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth(); // Get authFetch from context
   const [scores, setScores] = useState({
     score_content: 0,
     score_material: 0,
@@ -60,17 +60,13 @@ const EvaluationModal = ({
     setSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/evaluations", {
+      const response = await authFetch("http://localhost:5000/api/evaluations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        body: {
           ...scores,
           comment,
           class_id: classToEvaluate.class_id,
-          user_email: user.email,
-        }),
+        },
       });
 
       if (!response.ok) {

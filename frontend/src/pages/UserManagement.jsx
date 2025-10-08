@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext"; // Ensure authFetch is exported from AuthContext
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 import UserDetailsModal from "../components/UserDetailsModal";
 
 const UserManagement = () => {
-  const { user, activeRole, logout, isSwitchingRole } = useAuth();
+  const { user, activeRole, logout, isSwitchingRole, authFetch } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,8 +25,7 @@ const UserManagement = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const rolesQuery = `roles=${encodeURIComponent(user.roles.join(','))}`;
-        const response = await fetch(`http://localhost:5000/api/users?${rolesQuery}`);
+        const response = await authFetch(`http://localhost:5000/api/users`);
         if (!response.ok) {
           throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
         }
@@ -41,7 +40,7 @@ const UserManagement = () => {
     };
 
     fetchUsers();
-  }, [user, activeRole, navigate, isSwitchingRole]);
+  }, [user, activeRole, navigate, isSwitchingRole, authFetch]);
 
   const handleToggleAdmin = async (targetUser) => {
     const isAdmin = targetUser.roles.includes("ผู้ดูแลระบบ");
@@ -76,14 +75,10 @@ const UserManagement = () => {
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/users/${targetUser.id}/roles?roles=${encodeURIComponent(user.roles.join(','))}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roles: newRoles }),
-        }
-      );
+      const response = await authFetch(`http://localhost:5000/api/users/${targetUser.id}/roles`, {
+        method: "PUT",
+        body: { roles: newRoles },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to update roles.");
@@ -128,10 +123,9 @@ const UserManagement = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userToToggle.id}/status?roles=${encodeURIComponent(user.roles.join(','))}`, {
+      const response = await authFetch(`http://localhost:5000/api/users/${userToToggle.id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: newStatus }),
+        body: { is_active: newStatus },
       });
 
       if (!response.ok) throw new Error('Failed to update user status.');
@@ -164,7 +158,7 @@ const UserManagement = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userToDelete.id}?roles=${encodeURIComponent(user.roles.join(','))}`, {
+      const response = await authFetch(`http://localhost:5000/api/users/${userToDelete.id}`, {
         method: 'DELETE',
       });
 

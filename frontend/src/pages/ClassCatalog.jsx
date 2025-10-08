@@ -40,7 +40,7 @@ const DescriptionModal = ({ isOpen, onClose, title, description }) => {
 };
 
 const ClassCatalog = () => {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,9 +54,7 @@ const ClassCatalog = () => {
   const fetchPromotedClasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "http://localhost:5000/api/classes/promoted"
-      );
+      const response = await authFetch("http://localhost:5000/api/classes/promoted");
       if (!response.ok) {
         throw new Error("Failed to fetch classes.");
       }
@@ -77,9 +75,11 @@ const ClassCatalog = () => {
     }
   };
 
-  useEffect(() => {
-    fetchPromotedClasses();
-  }, []);
+  useEffect(() => { // Use authFetch in dependency array
+    if (user) { // Only fetch if user is loaded
+      fetchPromotedClasses();
+    }
+  }, [user, authFetch]);
 
   const handleRegister = async (classId) => {
     if (!user) {
@@ -87,14 +87,9 @@ const ClassCatalog = () => {
       return;
     }
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/classes/${classId}/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: user.name, email: user.email }),
-        }
-      );
+      const response = await authFetch(`http://localhost:5000/api/classes/${classId}/register`, {
+        method: "POST",
+      });
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
@@ -123,14 +118,9 @@ const ClassCatalog = () => {
       return;
     }
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/classes/${classId}/cancel`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: user.email }),
-        }
-      );
+      const response = await authFetch(`http://localhost:5000/api/classes/${classId}/cancel`, {
+        method: "POST",
+      });
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
@@ -181,14 +171,9 @@ const ClassCatalog = () => {
 
     for (const classId of selectedClasses) {
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/classes/${classId}/register`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: user.name, email: user.email }),
-          }
-        );
+        const response = await authFetch(`http://localhost:5000/api/classes/${classId}/register`, {
+          method: "POST",
+        });
         const data = await response.json();
         if (response.ok) {
           results.success.push(classId);

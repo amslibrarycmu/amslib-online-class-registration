@@ -23,13 +23,12 @@ module.exports = (
   sendAdminCancellationNotification
 ) => {
   router.get("/", async (req, res) => {
-    const { email, roles } = req.query;
+    const { email, roles } = req.user; // Get user info from JWT payload
     let sql;
     let params = [];
-    const userRoles = roles ? roles.split(",") : [];
 
-    if (userRoles.includes("ผู้ดูแลระบบ")) {
-      sql = "SELECT * FROM classes";
+    if (roles && roles.includes("ผู้ดูแลระบบ")) {
+      sql = "SELECT * FROM classes ORDER BY created_at DESC";
     } else {
       sql = "SELECT * FROM classes WHERE created_by_email = ?";
       params.push(email);
@@ -45,7 +44,7 @@ module.exports = (
   });
 
   router.get("/promoted", async (req, res) => {
-    const sql = "SELECT * FROM classes WHERE promoted = 1";
+    const sql = "SELECT * FROM classes WHERE promoted = 1 AND status != 'closed' ORDER BY start_date ASC";
     try {
       const [results] = await db.query(sql);
       res.json(results);
@@ -55,7 +54,7 @@ module.exports = (
     }
   });
 
-  router.get("/:classId/registrants", async (req, res) => {
+  router.get("/:classId/registrants", adminOnly, async (req, res) => {
     const { classId } = req.params;
     const findClassSql = "SELECT registered_users FROM classes WHERE class_id = ?";
 
@@ -70,7 +69,7 @@ module.exports = (
         return res.json([]);
       }
 
-      const getUsersSql = "SELECT name, email, roles FROM users WHERE email IN (?)";
+      const getUsersSql = "SELECT name, email, phone, roles FROM users WHERE email IN (?)";
       const [userResults] = await db.query(getUsersSql, [registeredEmails]);
       res.json(userResults);
     } catch (err) {
@@ -81,25 +80,25 @@ module.exports = (
 
   router.post("/", upload.array("files"), async (req, res) => {
     const {
-      class_id, title, speaker, start_date, end_date, start_time, end_time,
+      title, speaker, start_date, end_date, start_time, end_time,
       description, format, join_link, location, max_participants,
-      target_groups, created_by_email,
+      target_groups,
     } = req.body;
+    const created_by_email = req.user.email; // Get email from JWT
     const fileNames = req.files ? req.files.map((file) => file.filename) : [];
     const sql = `
-      INSERT INTO classes (class_id, title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location, max_participants, target_groups, files, created_by_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO classes (title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location, max_participants, target_groups, files, created_by_email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
-      class_id, title, speaker, start_date, end_date, start_time, end_time,
-      description, format, join_link, location || "", max_participants,
-      target_groups, JSON.stringify(fileNames), created_by_email || "",
+      title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location || "", max_participants, target_groups, JSON.stringify(fileNames), created_by_email,
     ];
 
     try {
-      await db.query(sql, params);
-      logActivity(req, null, "User", created_by_email, "CREATE_CLASS", "CLASS", class_id, { class_title: title });
-      res.status(201).json({ message: "Class created successfully" });
+      const [result] = await db.query(sql, params);
+      const newClassId = result.insertId;
+      logActivity(req, req.user.id, req.user.name, created_by_email, "CREATE_CLASS", "CLASS", newClassId, { class_title: title });
+      res.status(201).json({ message: "Class created successfully", classId: newClassId });
     } catch (err) {
       console.error("❌ Error creating class:", err);
       return res.status(500).json({ message: "เซิร์ฟเวอร์ผิดพลาด", error: err });
@@ -113,6 +112,7 @@ module.exports = (
       description, format, join_link, max_participants, target_groups, location,
     } = req.body;
     const fileNames = req.files ? req.files.map((file) => file.filename) : [];
+    const user_email = req.user.email; // Get email from JWT
 
     let sql = `
       UPDATE classes SET title = ?, speaker = ?, start_date = ?, end_date = ?,
@@ -137,7 +137,7 @@ module.exports = (
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Class not found" });
       }
-      logActivity(req, null, "User", req.body.user_email, "UPDATE_CLASS", "CLASS", classId, { class_title: title });
+      logActivity(req, req.user.id, req.user.name, user_email, "UPDATE_CLASS", "CLASS", classId, { class_title: title });
       res.status(200).json({ message: "Class updated successfully" });
     } catch (err) {
       console.error("❌ Error updating class:", err);
@@ -152,7 +152,7 @@ module.exports = (
       const classTitle = findResults.length > 0 ? findResults[0].title : classId;
 
       const [result] = await db.query("DELETE FROM classes WHERE class_id = ?", [classId]);
-      if (result.affectedRows === 0) {
+      if (result.affectedRows === 0) { 
         return res.status(404).json({ error: "Class not found" });
       }
 
@@ -166,11 +166,7 @@ module.exports = (
 
   router.post("/:classId/register", async (req, res) => {
     const { classId } = req.params;
-    const { name, email } = req.body;
-
-    if (!name || !email) {
-      return res.status(400).json({ message: "Name and email are required." });
-    }
+    const { name, email } = req.user; // Get user info from JWT
 
     const connection = await db.getConnection();
     try {
@@ -197,7 +193,7 @@ module.exports = (
 
       await connection.commit();
 
-      logActivity(req, null, name, email, "REGISTER_CLASS", "CLASS", classId, { class_title: course.title });
+      logActivity(req, req.user.id, name, email, "REGISTER_CLASS", "CLASS", classId, { class_title: course.title });
       res.status(200).json({ message: "Successfully registered for the class!" });
 
       // Email notifications can be sent here, outside the transaction
@@ -234,10 +230,7 @@ module.exports = (
 
   router.post("/:classId/cancel", async (req, res) => {
     const { classId } = req.params;
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ message: "Email is required." });
-    }
+    const { email } = req.user; // Get user info from JWT
 
     const connection = await db.getConnection();
     try {
@@ -260,7 +253,7 @@ module.exports = (
 
       await connection.commit();
 
-      logActivity(req, null, "User", email, "CANCEL_CLASS_REGISTRATION", "CLASS", classId, { class_title: course.title });
+      logActivity(req, req.user.id, req.user.name, email, "CANCEL_CLASS_REGISTRATION", "CLASS", classId, { class_title: course.title });
       res.status(200).json({ message: "Successfully canceled your registration." });
 
       // --- Email Notification for Admin ---
@@ -297,13 +290,10 @@ module.exports = (
   });
 
   router.get("/registered/closed", async (req, res) => {
-    const { email } = req.query;
-    if (!email) {
-      return res.status(400).json({ message: "Email query parameter is required." });
-    }
+    const { email } = req.user; // Get user info from JWT
     const sql = `
       SELECT * FROM classes
-      WHERE status = 'closed' AND JSON_CONTAINS(registered_users, ?, '$')
+      WHERE status = 'closed' AND JSON_CONTAINS(registered_users, ?)
     `;
     try {
       const [results] = await db.query(sql, [`"${email}"`]);
@@ -337,7 +327,7 @@ module.exports = (
         return res.status(404).json({ message: "Class not found" });
       }
       const actionType = isEditing ? "UPDATE_CLOSED_CLASS" : "CLOSE_CLASS";
-      logActivity(req, null, "Admin", "N/A", actionType, "CLASS", classId, { class_id: classId });
+      logActivity(req, req.user.id, req.user.name, req.user.email, actionType, "CLASS", classId, { class_id: classId });
       res.status(200).json({ message: "Class closed and materials uploaded successfully" });
     } catch (err) {
       console.error("❌ Error closing class:", err);
@@ -356,7 +346,7 @@ module.exports = (
       if (result.affectedRows === 0) {
         return res.status(404).json({ error: "Class not found or no changes made" });
       }
-      logActivity(req, null, "Admin", "N/A", promoted ? "PROMOTE_CLASS" : "UNPROMOTE_CLASS", "CLASS", classId, { class_id: classId });
+      logActivity(req, req.user.id, req.user.name, req.user.email, promoted ? "PROMOTE_CLASS" : "UNPROMOTE_CLASS", "CLASS", classId, { class_id: classId });
       res.status(200).json({ message: "Promotion status updated successfully" });
     } catch (err) {
       console.error("Error updating promotion status:", err);

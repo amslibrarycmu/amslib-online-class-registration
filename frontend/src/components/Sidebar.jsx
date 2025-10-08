@@ -1,12 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, logFrontendActivity } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import amsliblogo from "../assets/amslib-logo.svg";
 import profile from "../assets/abstract-user.png";
 
 export default function Sidebar() {
   const navigate = useNavigate();  
-  const { user, login, logout, activeRole, switchRole, isSwitchingRole } = useAuth();
+  const { user, login, logout, activeRole, switchRole, isSwitchingRole, authFetch } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -28,7 +28,17 @@ export default function Sidebar() {
     const newRole = user.roles[nextIndex];
 
     if (!isSwitchingRole) {
-      logFrontendActivity(user, 'SWITCH_ROLE', { from_role: activeRole, to_role: newRole });
+      // Log activity using authFetch
+      authFetch("http://localhost:5000/api/log-activity", {
+        method: "POST",
+        body: {
+          user_id: user.id,
+          user_name: user.name,
+          user_email: user.email,
+          action_type: 'SWITCH_ROLE',
+          details: { from_role: activeRole, to_role: newRole },
+        },
+      }).catch(err => console.error("Failed to log activity:", err));
       switchRole(newRole);
       if (newRole === "ผู้ดูแลระบบ") {
         navigate("/index");
@@ -50,15 +60,12 @@ export default function Sidebar() {
     if (user?.photo) {
       if (window.confirm('คุณมีรูปโปรไฟล์อยู่แล้ว ต้องการลบรูปเก่าก่อนอัปโหลดรูปใหม่หรือไม่?')) {
         try {
-          const response = await fetch('http://localhost:5000/api/users/profile-picture', {
+          const response = await authFetch('http://localhost:5000/api/users/profile-picture', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: user.email }),
           });
           if (!response.ok) throw new Error('ลบรูปโปรไฟล์เดิมไม่สำเร็จ');
           
           const updatedUser = await response.json();
-          login(updatedUser);
           alert('ลบรูปโปรไฟล์เดิมสำเร็จแล้ว กรุณาเลือกรูปใหม่');
           fileInputRef.current.click();
         } catch (error) {
@@ -81,7 +88,7 @@ export default function Sidebar() {
     formData.append('email', user.email);
 
     try {
-      const response = await fetch('http://localhost:5000/api/users/profile-picture', {
+      const response = await authFetch('http://localhost:5000/api/users/profile-picture', {
         method: 'PUT',
         body: formData,
       });
@@ -89,7 +96,6 @@ export default function Sidebar() {
       if (!response.ok) {
         throw new Error('อัปโหลดรูปภาพไม่สำเร็จ');
       }
-
       const updatedUser = await response.json();
       login(updatedUser);
       alert('อัปเดตโปรไฟล์สำเร็จ');
@@ -201,7 +207,16 @@ export default function Sidebar() {
               className="font-semibold mt-1 cursor-pointer hover:underline"
               style={{ color: "black" }}
               onClick={() => {
-                logFrontendActivity(user, 'LOGOUT');
+                // Log activity using authFetch
+                authFetch("http://localhost:5000/api/log-activity", {
+                  method: "POST",
+                  body: {
+                    user_id: user.id,
+                    user_name: user.name,
+                    user_email: user.email,
+                    action_type: 'LOGOUT',
+                  },
+                }).catch(err => console.error("Failed to log activity:", err));
                 logout();
                 alert("ออกจากระบบสำเร็จ");
                 navigate("/login");

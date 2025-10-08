@@ -5,7 +5,7 @@ import FileViewerModal from "../components/FileViewerModal";
 import EvaluationModal from "../components/EvaluationModal"; // 1. Import the new modal
 
 const PastClassesHistory = () => {
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth(); // Use authFetch
   const [pastClasses, setPastClasses] = useState([]);
   const [evaluatedClasses, setEvaluatedClasses] = useState(new Set()); // 3. State for evaluated classes
   const [loading, setLoading] = useState(true);
@@ -23,9 +23,9 @@ const PastClassesHistory = () => {
   const fetchPastClasses = useCallback(async () => {
     if (!user) return;
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/classes/registered/closed?email=${encodeURIComponent(user.email)}`
-      );
+      // Use authFetch and a more secure endpoint if available, but this one works for now
+      const response = await authFetch(`http://localhost:5000/api/classes/registered/closed`);
+
       if (!response.ok) throw new Error("Failed to fetch past classes.");
       const data = await response.json();
       const parsedAndSortedData = data
@@ -40,19 +40,20 @@ const PastClassesHistory = () => {
       setError(err.message);
       console.error("Error fetching past classes:", err);
     }
-  }, [user]);
+  }, [user, authFetch]);
 
   const fetchEvaluatedClasses = useCallback(async () => {
     if (!user) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/evaluations/user/${encodeURIComponent(user.email)}`);
+      // Use authFetch and the correct endpoint
+      const response = await authFetch(`http://localhost:5000/api/evaluations/user-status`);
       if (!response.ok) throw new Error("Failed to fetch evaluation status.");
       const data = await response.json();
       setEvaluatedClasses(new Set(data));
     } catch (err) {
       console.error("Error fetching evaluation status:", err);
     }
-  }, [user]);
+  }, [user, authFetch]);
 
   useEffect(() => {
     const loadData = async () => {

@@ -123,10 +123,18 @@ module.exports = (db, logActivity, adminOnly, upload) => {
 
   // PUT /api/users/update-profile - อัปเดตโปรไฟล์ส่วนตัว
   router.put("/update-profile", async (req, res) => {
-    const { name, email, roles, phone, pdpa } = req.body;
+    const { name, email, roles, phone, pdpa, original_name, name_updated_by_user } = req.body;
     const sql =
-      "UPDATE users SET name = ?, roles = ?, phone = ?, pdpa = ? WHERE email = ?";
-    const values = [name, JSON.stringify(roles), phone, pdpa ? 1 : 0, email];
+      "UPDATE users SET name = ?, roles = ?, phone = ?, pdpa = ?, original_name = ?, name_updated_by_user = ?, profile_completed = 1 WHERE email = ?";
+    const values = [
+      name,
+      JSON.stringify(roles),
+      phone,
+      pdpa ? 1 : 0,
+      original_name,
+      name_updated_by_user ? 1 : 0,
+      email,
+    ];
 
     try {
       const [result] = await db.query(sql, values);
@@ -134,8 +142,8 @@ module.exports = (db, logActivity, adminOnly, upload) => {
         return res.status(404).json({ error: "User not found" });
       }
 
-      logActivity(req, null, name, email, "UPDATE_PROFILE", "USER", email, {
-        updated_fields: { name, roles, phone, pdpa },
+      logActivity(req, req.user.id, name, email, "UPDATE_PROFILE", "USER", req.user.id, {
+        updated_fields: { name, roles, phone, pdpa, original_name, name_updated_by_user },
       });
 
       const [users] = await db.query("SELECT * FROM users WHERE email = ?", [

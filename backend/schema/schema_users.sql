@@ -24,3 +24,11 @@ WHERE email = 'useradmin@email.com';
 
 ALTER TABLE users ADD COLUMN photo VARCHAR(255) DEFAULT NULL;
 
+SHOW COLUMNS FROM users;
+
+ALTER TABLE `users`
+ADD COLUMN `original_name` VARCHAR(255) NULL DEFAULT NULL COMMENT 'ชื่อ-สกุลเดิมจาก CMU Account' AFTER `name`,
+ADD COLUMN `name_updated_by_user` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'สถานะการเปลี่ยนชื่อโดยผู้ใช้' AFTER `original_name`;
+
+ALTER TABLE `users`
+ADD COLUMN `profile_completed` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'สถานะการกรอกข้อมูลโปรไฟล์สมบูรณ์' AFTER `name_updated_by_user`;

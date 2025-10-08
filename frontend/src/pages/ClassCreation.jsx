@@ -5,7 +5,7 @@ import Sidebar from "../components/Sidebar";
 import ClassCreationModal from "../components/ClassCreationsModal";
 
 export default function ClassCreation() {
-  const { user, activeRole } = useAuth();
+  const { user, activeRole, authFetch } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState("initial"); // 'initial', 'selection', 'new', 'duplicate', 'fromRequest'
   const [classesList, setClassesList] = useState([]);
@@ -25,11 +25,7 @@ export default function ClassCreation() {
     }
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:5000/api/classes?email=${encodeURIComponent(
-          user.email
-        )}&roles=${encodeURIComponent(activeRole || '')}&t=${new Date().getTime()}`
-      );
+      const response = await authFetch(`http://localhost:5000/api/classes`);
       const data = await response.json();
       setClassesList(data);
     } catch (error) {
@@ -44,9 +40,7 @@ export default function ClassCreation() {
     if (activeRole !== "ผู้ดูแลระบบ") return;
     try {
       setLoading(true);
-      const response = await fetch(
-        "http://localhost:5000/api/admin/class-requests?status=approved"
-      );
+      const response = await authFetch("http://localhost:5000/api/admin/class-requests?status=approved");
       const data = await response.json();
       setApprovedRequests(data);
     } catch (error) {
@@ -93,7 +87,6 @@ export default function ClassCreation() {
     const newForm = new FormData();
 
     // Append fields in the correct order
-    newForm.append("class_id", formData.class_id);
     newForm.append("title", formData.title);
     newForm.append("speaker", JSON.stringify(formData.speaker));
     newForm.append("start_date", formData.start_date);
@@ -115,7 +108,7 @@ export default function ClassCreation() {
     });
 
     try {
-      const res = await fetch("http://localhost:5000/api/classes", {
+      const res = await authFetch("http://localhost:5000/api/classes", {
         method: "POST",
         body: newForm,
       });
