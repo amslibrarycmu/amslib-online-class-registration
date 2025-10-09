@@ -32,9 +32,12 @@ const ClassIndex = () => {
   const [closedClassSearchTerm, setClosedClassSearchTerm] = useState("");
 
   const sortedClasses = useMemo(() => {
-    return [...classes].sort(
-      (a, b) => new Date(b.start_date) - new Date(a.start_date)
-    );
+    // Ensure all class_id are numbers and sort by start_date
+    return classes
+      .map(cls => ({
+        ...cls,
+        class_id: parseInt(cls.class_id, 10)
+      })).sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
   }, [classes]);
 
   const activeClasses = useMemo(() => {
@@ -296,7 +299,7 @@ const ClassIndex = () => {
   const handlePromoteToggle = async (classId, isPromoted) => {
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/classes/${classId}/promote?roles=${encodeURIComponent(user.roles.join(','))}`,
+        `http://localhost:5000/api/classes/${classId}/promote`,
         {
           method: "PUT",
           headers: {
@@ -309,7 +312,7 @@ const ClassIndex = () => {
       if (response.ok) {
         setClasses((prevClasses) =>
           prevClasses.map((cls) =>
-            cls.class_id === classId
+            parseInt(cls.class_id, 10) === classId
               ? { ...cls, promoted: isPromoted ? 1 : 0 }
               : cls
           )
@@ -326,7 +329,7 @@ const ClassIndex = () => {
         );
         setClasses((prevClasses) =>
           prevClasses.map((cls) =>
-            cls.class_id === classId ? { ...cls, promoted: !isPromoted } : cls
+            parseInt(cls.class_id, 10) === classId ? { ...cls, promoted: !isPromoted } : cls
           )
         );
       }
@@ -335,7 +338,7 @@ const ClassIndex = () => {
       alert("⚠️ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์เพื่ออัปเดตสถานะโปรโมท");
       setClasses((prevClasses) =>
         prevClasses.map((cls) =>
-          cls.class_id === classId ? { ...cls, promoted: !isPromoted } : cls
+          parseInt(cls.class_id, 10) === classId ? { ...cls, promoted: !isPromoted } : cls
         )
       );
     }

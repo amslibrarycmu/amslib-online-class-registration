@@ -86,19 +86,20 @@ module.exports = (
     } = req.body;
     const created_by_email = req.user.email; // Get email from JWT
     const fileNames = req.files ? req.files.map((file) => file.filename) : [];
+    const classId = Math.floor(100000 + Math.random() * 900000).toString();
     const sql = `
-      INSERT INTO classes (title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location, max_participants, target_groups, files, created_by_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO classes (class_id, title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location, max_participants, target_groups, files, created_by_email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
-      title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location || "", max_participants, target_groups, JSON.stringify(fileNames), created_by_email,
+      classId, title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location || "", max_participants, target_groups, JSON.stringify(fileNames), created_by_email,
     ];
 
     try {
       const [result] = await db.query(sql, params);
       const newClassId = result.insertId;
       logActivity(req, req.user.id, req.user.name, created_by_email, "CREATE_CLASS", "CLASS", newClassId, { class_title: title });
-      res.status(201).json({ message: "Class created successfully", classId: newClassId });
+      res.status(201).json({ message: "Class created successfully", classId: classId, id: newClassId });
     } catch (err) {
       console.error("❌ Error creating class:", err);
       return res.status(500).json({ message: "เซิร์ฟเวอร์ผิดพลาด", error: err });

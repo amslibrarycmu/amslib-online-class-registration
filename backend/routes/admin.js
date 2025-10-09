@@ -9,7 +9,7 @@ module.exports = (
   sendRequestRejectedNotification
 ) => {
   // --- Activity Logs ---
-  router.get("/activity-logs", adminOnly, async (req, res) => {
+  router.get("/activity-logs", async (req, res) => {
     const { page = 1, limit = 25, search = "", actionType = "" } = req.query;
     const offset = (page - 1) * limit;
 
@@ -47,7 +47,7 @@ module.exports = (
     }
   });
 
-  router.get("/activity-logs/all", adminOnly, async (req, res) => {
+  router.get("/activity-logs/all", async (req, res) => {
     const { search = "", actionType = "" } = req.query;
 
     let sql = "SELECT * FROM activity_logs";
@@ -80,7 +80,7 @@ module.exports = (
   });
 
   // --- Class Requests (Admin) ---
-  router.get("/class-requests", adminOnly, async (req, res) => {
+  router.get("/class-requests", async (req, res) => {
     const { status, roles } = req.query;
 
     let sql = `
@@ -112,84 +112,89 @@ module.exports = (
     }
   });
 
-  router.post(
-    "/class-requests/:requestId",
-    adminOnly,
-    async (req, res) => {
-      const { requestId } = req.params;
-      const { action, reason, admin_email } = req.body; // รับ action จาก body
+  router.post("/class-requests/:requestId", async (req, res) => {
+    const { requestId } = req.params;
+    const { action, reason, admin_email } = req.body; // รับ action จาก body
 
-      if (!["approve", "reject"].includes(action)) {
-        return res.status(400).json({ message: "Invalid action." });
+    if (!["approve", "reject"].includes(action)) {
+      return res.status(400).json({ message: "Invalid action." });
+    }
+
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      let updateRequestSql;
+      let updateParams;
+      if (action === "reject") {
+        if (!reason || reason.trim() === "") {
+          await connection.rollback();
+          connection.release();
+          return res
+            .status(400)
+            .json({ message: "Rejection reason is required." });
+        }
+        updateRequestSql =
+          "UPDATE requests SET status = ?, rejection_reason = ?, approved_by = ?, approval_date = NOW() WHERE request_id = ?";
+        updateParams = ["rejected", reason, admin_email, requestId];
+      } else {
+        updateRequestSql =
+          "UPDATE requests SET status = ?, approved_by = ?, approval_date = NOW() WHERE request_id = ?";
+        updateParams = ["approved", admin_email, requestId];
       }
 
-      const connection = await db.getConnection();
-      try {
-        await connection.beginTransaction();
+      const [updateResult] = await connection.query(
+        updateRequestSql,
+        updateParams
+      );
+      if (updateResult.affectedRows === 0) {
+        throw new Error("Request not found.");
+      }
 
-        let updateRequestSql;
-        let updateParams;
-        if (action === "reject") {
-          if (!reason || reason.trim() === "") {
-            await connection.rollback();
-            connection.release();
-            return res
-              .status(400)
-              .json({ message: "Rejection reason is required." });
-          }
-          updateRequestSql =
-            "UPDATE requests SET status = ?, rejection_reason = ?, approved_by = ?, approval_date = NOW() WHERE request_id = ?";
-          updateParams = ["rejected", reason, admin_email, requestId];
-        } else {
-          updateRequestSql =
-            "UPDATE requests SET status = ?, approved_by = ?, approval_date = NOW() WHERE request_id = ?";
-          updateParams = ["approved", admin_email, requestId];
-        }
-
-        const [updateResult] = await connection.query(
-          updateRequestSql,
-          updateParams
-        );
-        if (updateResult.affectedRows === 0) {
-          throw new Error("Request not found.");
-        }
-
-        const getRequestSql = `
+      const getRequestSql = `
           SELECT r.*, u.name as requested_by_name 
           FROM requests r 
           JOIN users u ON r.user_email = u.email 
           WHERE r.request_id = ?
         `;
-        const [requestResults] = await connection.query(getRequestSql, [
-          requestId,
-        ]);
-        if (requestResults.length === 0) {
-          throw new Error("Request details not found.");
-        }
-        const requestDetails = requestResults[0];
-
-        if (action === "approve") {
-          await sendRequestApprovedNotification(requestDetails.user_email, requestDetails);
-        } else {
-          await sendRequestRejectedNotification(requestDetails.user_email, requestDetails, reason);
-        }
-
-        await connection.commit();
-        return res.status(200).json({ message: `Request ${action}ed successfully.` });
-      } catch (error) {
-        await connection.rollback();
-        console.error(`Error ${action}ing class request:`, error);
-        res
-          .status(500)
-          .json({ message: "Database server error.", error: error.message });
-      } finally {
-        connection.release();
+      const [requestResults] = await connection.query(getRequestSql, [
+        requestId,
+      ]);
+      if (requestResults.length === 0) {
+        throw new Error("Request details not found.");
       }
+      const requestDetails = requestResults[0];
+
+      if (action === "approve") {
+        await sendRequestApprovedNotification(
+          requestDetails.user_email,
+          requestDetails
+        );
+      } else {
+        await sendRequestRejectedNotification(
+          requestDetails.user_email,
+          requestDetails,
+          reason
+        );
+      }
+
+      await connection.commit();
+      return res
+        .status(200)
+        .json({ message: `Request ${action}ed successfully.` });
+    } catch (error) {
+      await connection.rollback();
+      console.error(`Error ${action}ing class request:`, error);
+      res
+        .status(500)
+        .json({ message: "Database server error.", error: error.message });
+    } finally {
+      connection.release();
     }
-  );
+  });
 
   // --- Statistics ---
-  router.get("/statistics/class-demographics", adminOnly, async (req, res) => {
+  router.get("/statistics/class-demographics", async (req, res) => {
     const { year, month } = req.query;
     const params = [];
     const dateWhereClauses = [];
@@ -251,23 +256,26 @@ module.exports = (
 
       // 2. ประมวลผล Demographics
       const allEmails = new Set();
-      rawClassStats.forEach(cls => {
+      rawClassStats.forEach((cls) => {
         const registeredUsersEmails = JSON.parse(cls.registered_users || "[]");
         registeredUsersEmails.forEach(allEmails.add, allEmails);
       });
 
       let userRoleMap = {};
       if (allEmails.size > 0) {
-        const userRolesSql = "SELECT email, roles FROM users WHERE email IN (?)";
-        const [userRoles] = await db.query(userRolesSql, [Array.from(allEmails)]);
-        userRoles.forEach(user => {
+        const userRolesSql =
+          "SELECT email, roles FROM users WHERE email IN (?)";
+        const [userRoles] = await db.query(userRolesSql, [
+          Array.from(allEmails),
+        ]);
+        userRoles.forEach((user) => {
           const roles = JSON.parse(user.roles || "[]");
-          userRoleMap[user.email] = roles.length > 0 ? roles[0] : 'Unknown'; // ใช้ role แรก
+          userRoleMap[user.email] = roles.length > 0 ? roles[0] : "Unknown"; // ใช้ role แรก
         });
       }
 
       // 3. รวมข้อมูล Demographics เข้ากับสถิติห้องเรียน
-      const classStatsWithDemographics = rawClassStats.map(cls => {
+      const classStatsWithDemographics = rawClassStats.map((cls) => {
         const demographics = {};
         const registeredUsersEmails = JSON.parse(cls.registered_users || "[]");
         for (const email of registeredUsersEmails) {

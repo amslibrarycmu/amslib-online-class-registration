@@ -24,7 +24,7 @@ export const useStatisticsData = (user, activeRole, selectedYear, selectedMonth)
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ year: selectedYear, month: selectedMonth, roles: user.roles.join(',') });
+        const params = new URLSearchParams({ year: selectedYear, month: selectedMonth });
         const response = await authFetch(`http://localhost:5000/api/admin/statistics/class-demographics?${params}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();

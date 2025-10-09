@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 
+import UserDetailsModal from "../components/UserDetailsModal";
 // Constants for action types
 const ACTION_TYPE_LABELS = {
   LOGIN_SUCCESS: "เข้าสู่ระบบ",
@@ -43,8 +44,12 @@ const ActivityLogs = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [actionTypeFilter, setActionTypeFilter] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
 
   useEffect(() => {
+    // This effect should only handle redirection, not fetching.
     // Redirect non-admins, but not during a role switch.
     if (
       user &&
@@ -58,63 +63,8 @@ const ActivityLogs = () => {
   }, [user, activeRole, navigate, isSwitchingRole]);
 
   useEffect(() => {
-    const logActivity = () => {
-      if (!user) return;
-      authFetch("http://localhost:5000/api/log-activity", {
-        method: "POST",
-        body: {
-          user_id: user.id,
-          user_name: user.name,
-          user_email: user.email,
-          action_type: "VIEW_ACTIVITY_LOGS",
-        },
-      }).catch((err) => console.error("Failed to log activity:", err));
-    };
-    // Log viewing this page once on mount
-    logActivity();
-  }, [user, authFetch]); // Empty dependency array ensures it runs only once
-
-  const fetchLogs = useCallback(
-    async (pageNum, currentSearch, currentActionType) => {
-      setLoading(true);
-      try {
-        const query = new URLSearchParams({
-          page: pageNum,
-          limit,
-          search: currentSearch,
-          actionType: currentActionType,
-        }).toString();
-
-        const response = await authFetch(
-          `http://localhost:5000/api/admin/activity-logs?${query}`
-        );
-        if (!response.ok) {
-          throw new Error("ไม่สามารถดึงข้อมูลประวัติการใช้งานได้");
-        }
-        const data = await response.json();
-        setTotalLogs(data.total);
-
-        if (pageNum === 1) {
-          setLogs(data.logs);
-        } else {
-          setLogs((prevLogs) => [...prevLogs, ...data.logs]);
-        }
-
-        if (data.logs.length < limit || pageNum * limit >= data.total) {
-          setHasMore(false);
-        }
-      } catch (error) {
-        console.error("Error fetching activity logs:", error);
-        alert(error.message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [limit, authFetch]
-  );
-
-  useEffect(() => {
     // Debounce search term
+    // This effect will now only trigger re-fetches when filters change, not on initial mount.
     const handler = setTimeout(() => {
       setPage(1); // Reset page to 1 when filters change
       setHasMore(true);
@@ -124,17 +74,75 @@ const ActivityLogs = () => {
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, actionTypeFilter, fetchLogs]);
+  }, [searchTerm, actionTypeFilter]);
 
   useEffect(() => {
     if (page > 1) {
-      fetchLogs(page, searchTerm, actionTypeFilter);
+      fetchLogs(page, searchTerm, actionTypeFilter); // This handles "Load More"
     }
-  }, [page, fetchLogs, searchTerm, actionTypeFilter]);
+  }, [page]);
+
+  const fetchLogs = useCallback(
+    async (pageNum, currentSearch, currentActionType) => {
+      setLoading(true);
+      try {
+        if (pageNum === 1) {
+          // Log only on the first page load of a filter/search
+          authFetch("http://localhost:5000/api/log-activity", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_id: user.id,
+              user_name: user.name,
+              user_email: user.email,
+              action_type: "VIEW_ACTIVITY_LOGS",
+            }),
+          }).catch((err) => console.error("Failed to log activity:", err));
+        }
+
+        const query = new URLSearchParams({
+          page: pageNum, limit, search: currentSearch, actionType: currentActionType,
+        }).toString();
+        const response = await authFetch(`http://localhost:5000/api/admin/activity-logs?${query}`);
+        if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลประวัติการใช้งานได้");
+        const data = await response.json();
+        setTotalLogs(data.total);
+        if (pageNum === 1) setLogs(data.logs);
+        else setLogs((prevLogs) => [...prevLogs, ...data.logs]);
+        if (data.logs.length < limit || pageNum * limit >= data.total) setHasMore(false);
+      } catch (error) {
+        console.error("Error fetching activity logs:", error);
+        alert(error.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [authFetch, user]
+  );
 
   const handleLoadMore = () => {
     if (!loading && hasMore) {
       setPage((prevPage) => prevPage + 1);
+    }
+  };
+
+  const handleViewUser = async (userId) => {
+    if (!userId) return;
+    try {
+      setLoading(true);
+      const response = await authFetch(`http://localhost:5000/api/users/${userId}`);
+      if (!response.ok) {
+        throw new Error("ไม่พบข้อมูลผู้ใช้");
+      }
+      const userData = await response.json();
+      setSelectedUser(userData);
+      setIsDetailModalOpen(true);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -239,6 +247,13 @@ const ActivityLogs = () => {
 
   return (
     <div className="flex h-screen w-screen">
+      {isDetailModalOpen && selectedUser && (
+        <UserDetailsModal
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          user={selectedUser}
+        />
+      )}
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
         <div className="flex justify-center items-center gap-x-4 mb-6">
@@ -312,8 +327,13 @@ const ActivityLogs = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(log.timestamp).toLocaleString("th-TH")}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {log.user_name} ({log.user_email})
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                      <span
+                        onClick={() => handleViewUser(log.user_id)}
+                        className="cursor-pointer hover:underline text-blue-600"
+                      >
+                        {log.user_name} ({log.user_email})
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {getActionText(log)}

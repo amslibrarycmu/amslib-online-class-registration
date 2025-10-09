@@ -204,7 +204,7 @@ const RejectionReasonModal = ({
 };
 
 const AdminClassRequests = () => {
-  const { user, activeRole, isSwitchingRole } = useAuth();
+  const { user, activeRole, isSwitchingRole, authFetch } = useAuth();
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -235,8 +235,7 @@ const AdminClassRequests = () => {
     setLoading(true);
     setError(null);
     try {
-      const rolesQuery = `roles=${encodeURIComponent(user.roles.join(','))}`;
-      const response = await fetch(`http://localhost:5000/api/admin/class-requests?${rolesQuery}`);
+      const response = await authFetch(`http://localhost:5000/api/admin/class-requests`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -260,14 +259,14 @@ const AdminClassRequests = () => {
 
     // Handle approval directly
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/admin/class-requests/${requestId}/${action}?roles=${encodeURIComponent(user.roles.join(','))}`,
+      const response = await authFetch(
+        `http://localhost:5000/api/admin/class-requests/${requestId}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ admin_email: user.email }),
+          body: JSON.stringify({ action: "approve", admin_email: user.email }),
         }
       );
       if (!response.ok) {
@@ -285,14 +284,18 @@ const AdminClassRequests = () => {
   const handleRejectSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/admin/class-requests/${requestToReject}/reject?roles=${encodeURIComponent(user.roles.join(','))}`,
+      const response = await authFetch(
+        `http://localhost:5000/api/admin/class-requests/${requestToReject}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ reason: rejectionReason, admin_email: user.email }),
+          body: JSON.stringify({
+            action: "reject",
+            reason: rejectionReason,
+            admin_email: user.email,
+          }),
         }
       );
       if (!response.ok) {

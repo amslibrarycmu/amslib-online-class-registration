@@ -104,6 +104,9 @@ module.exports = (db, logActivity) => {
       };
       const appToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
+      // Log the successful login activity
+      logActivity(req, user.id, user.name, user.email, "LOGIN_SUCCESS", "USER", user.id, null);
+
       const userParam = encodeURIComponent(JSON.stringify(user));
       const tokenParam = encodeURIComponent(appToken);
 

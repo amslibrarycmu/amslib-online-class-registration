@@ -21,6 +21,26 @@ module.exports = (db, logActivity, adminOnly, upload) => {
     }
   });
 
+  // GET /api/users/:id - ดึงข้อมูลผู้ใช้คนเดียว (สำหรับ Admin)
+  router.get("/:id", adminOnly, async (req, res) => {
+    const { id } = req.params;
+    const sql =
+      "SELECT id, name, email, roles, is_active, photo, phone, pdpa, created_at, updated_at FROM users WHERE id = ?";
+    try {
+      const [results] = await db.query(sql, [id]);
+      if (results.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      const user = {
+        ...results[0],
+        roles: JSON.parse(results[0].roles || "[]"),
+      };
+      res.json(user);
+    } catch (err) {
+      console.error(`Error fetching user with id ${id}:`, err);
+      return res.status(500).json({ error: "Database error" });
+    }
+  });
   // PUT /api/users/:id/roles - อัปเดตสิทธิ์ผู้ใช้ (สำหรับ Admin)
   router.put("/:id/roles", adminOnly, async (req, res) => {
     const { id } = req.params;
@@ -43,7 +63,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       );
       if (targetUsers.length > 0) {
         const targetUser = targetUsers[0];
-        logActivity(req, null, "Admin", "N/A", "UPDATE_ROLE", "USER", id, {
+        logActivity(req, req.user.id, req.user.name, req.user.email, "UPDATE_ROLE", "USER", id, {
           target_user: `${targetUser.name} (${targetUser.email})`,
           new_roles: roles,
         });
@@ -108,7 +128,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       );
       if (targetUsers.length > 0) {
         const targetUser = targetUsers[0];
-        logActivity(req, null, "Admin", "N/A", "UPDATE_STATUS", "USER", id, {
+        logActivity(req, req.user.id, req.user.name, req.user.email, "UPDATE_STATUS", "USER", id, {
           target_user: `${targetUser.name} (${targetUser.email})`,
           new_status: is_active ? "active" : "inactive",
         });
@@ -246,7 +266,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       }
 
       await db.query("DELETE FROM users WHERE id = ?", [id]);
-      logActivity(req, null, "Admin", "N/A", "DELETE_USER", "USER", id, { deleted_user_details: { id: userToDelete.id, name: userToDelete.name, email: userToDelete.email } });
+      logActivity(req, req.user.id, req.user.name, req.user.email, "DELETE_USER", "USER", id, { deleted_user_details: { id: userToDelete.id, name: userToDelete.name, email: userToDelete.email } });
 
       if (userToDelete.photo) {
         const filePath = path.join(__dirname, "..", "uploads", userToDelete.photo);

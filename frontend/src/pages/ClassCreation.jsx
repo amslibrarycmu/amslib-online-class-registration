@@ -64,7 +64,11 @@ export default function ClassCreation() {
   };
 
   const handleEditExistingClick = (cls) => {
-    setSelectedClassToEdit(cls);
+    // Create a copy of the class data and remove id/class_id to prevent issues on creation
+    const classToDuplicate = { ...cls };
+    delete classToDuplicate.id;
+    delete classToDuplicate.class_id;
+    setSelectedClassToEdit(classToDuplicate);
     setMode("duplicate");
   };
 

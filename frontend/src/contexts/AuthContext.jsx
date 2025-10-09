@@ -79,11 +79,12 @@ export const AuthProvider = ({ children }) => {
         ...options.headers,
       };
 
+      // Automatically add the Authorization header if a token exists
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      // Automatically set Content-Type for JSON if body is an object
+      // Automatically stringify the body and set Content-Type for JSON objects
       if (options.body && typeof options.body === "object" && !(options.body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
         options.body = JSON.stringify(options.body);
