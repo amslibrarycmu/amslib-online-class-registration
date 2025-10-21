@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
+import UserDetailsModal from "../components/UserDetailsModal";
+import ProcessingOverlay from "../components/ProcessingOverlay";
 
 const StatusBadge = ({ status }) => {
   let statusText;
@@ -217,6 +219,9 @@ const AdminClassRequests = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reasonToView, setReasonToView] = useState(null);
   const [isViewReasonModalOpen, setIsViewReasonModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [userToView, setUserToView] = useState(null);
+  const [isUserDetailModalOpen, setIsUserDetailModalOpen] = useState(false);
 
   useEffect(() => {
     // Redirect non-admins, but not during a role switch.
@@ -257,7 +262,12 @@ const AdminClassRequests = () => {
       return;
     }
 
+    if (action === "approve" && !window.confirm(`คุณต้องการอนุมัติคำขอ "${requests.find(r => r.request_id === requestId)?.title}" หรือไม่?`)) {
+      return;
+    }
+
     // Handle approval directly
+    setIsProcessing(true);
     try {
       const response = await authFetch(
         `http://localhost:5000/api/admin/class-requests/${requestId}`,
@@ -272,17 +282,21 @@ const AdminClassRequests = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      fetchRequests();
+      await fetchRequests();
+      alert("อนุมัติคำขอสำเร็จแล้ว");
     } catch (err) {
       console.error(`Error ${action}ing class request:`, err);
       setError(
         `ไม่สามารถ${action === "approve" ? "อนุมัติ" : "ปฏิเสธ"}คำขอได้`
       );
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleRejectSubmit = async () => {
     setIsSubmitting(true);
+    setIsProcessing(true);
     try {
       const response = await authFetch(
         `http://localhost:5000/api/admin/class-requests/${requestToReject}`,
@@ -301,7 +315,8 @@ const AdminClassRequests = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      fetchRequests(); // Refresh list
+      await fetchRequests(); // Refresh list
+      alert("ปฏิเสธคำขอสำเร็จแล้ว");
     } catch (err) {
       console.error(`Error rejecting class request:`, err);
       setError(`ไม่สามารถปฏิเสธคำขอได้`);
@@ -311,6 +326,7 @@ const AdminClassRequests = () => {
       setRejectionReason("");
       setRequestToReject(null);
     }
+    setIsProcessing(false);
   };
 
   const handleViewDetails = (request) => {
@@ -320,6 +336,24 @@ const AdminClassRequests = () => {
   const handleViewReason = (reason) => {
     setReasonToView(reason);
     setIsViewReasonModalOpen(true);
+  };
+
+  const handleViewUser = async (userId) => {
+    if (!userId) return;
+    try {
+      setLoading(true);
+      const response = await authFetch(`http://localhost:5000/api/users/${userId}`);
+      if (!response.ok) {
+        throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
+      }
+      const userData = await response.json();
+      setUserToView(userData);
+      setIsUserDetailModalOpen(true);
+    } catch (error) {
+      alert("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredRequests = useMemo(() => {
@@ -353,6 +387,7 @@ const AdminClassRequests = () => {
 
   return (
     <div className="flex h-screen w-screen flex-col lg:flex-row">
+      {isProcessing && <ProcessingOverlay />}
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
         <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
@@ -372,6 +407,13 @@ const AdminClassRequests = () => {
             onClose={() => setIsViewReasonModalOpen(false)}
             reason={reasonToView}
           />
+          {userToView && (
+            <UserDetailsModal
+              isOpen={isUserDetailModalOpen}
+              onClose={() => setIsUserDetailModalOpen(false)}
+              user={userToView}
+            />
+          )}
           <div className="flex justify-start md:justify-end items-center gap-2 mb-6">
             <button
               onClick={() => setFilterStatus("all")}
@@ -468,8 +510,12 @@ const AdminClassRequests = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-md text-black">
-                        {request.requested_by_name} (
-                        {request.requested_by_email})
+                        <span
+                          onClick={() => handleViewUser(request.requested_by_id)}
+                          className="cursor-pointer hover:underline text-blue-600"
+                        >
+                          {request.requested_by_name}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-md text-black">
                         {new Date(request.request_date).toLocaleDateString(
@@ -560,7 +606,16 @@ const AdminClassRequests = () => {
                           </div>
                         )}
                         {request.status !== "pending" && (
-                          <span className="text-gray-400">ดำเนินการแล้ว</span>
+                          <div className="text-xs text-gray-500">
+                            {request.action_by_name ? (
+                              <p>โดย: <span 
+                                  onClick={() => handleViewUser(request.action_by_id)}
+                                  className="cursor-pointer hover:underline text-blue-600"
+                                >
+                                  {request.action_by_name}
+                                </span></p>
+                            ) : <p>โดย: N/A</p>}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -683,9 +738,15 @@ const AdminClassRequests = () => {
                   )}
                   {request.status !== "pending" && (
                     <div className="text-right mt-4 pt-4 border-t">
-                      <span className="text-gray-500 italic">
-                        ดำเนินการแล้ว
-                      </span>
+                      {request.action_by_name ? (
+                        <p className="text-sm text-gray-500 italic">
+                          ดำเนินการโดย: <span
+                            onClick={() => handleViewUser(request.action_by_id)}
+                            className="cursor-pointer hover:underline text-blue-600 not-italic"
+                          >
+                            {request.action_by_name}
+                          </span></p>
+                      ) : <p className="text-sm text-gray-500 italic">ดำเนินการโดย: N/A</p>}
                     </div>
                   )}
                 </div>

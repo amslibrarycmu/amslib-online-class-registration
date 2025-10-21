@@ -217,7 +217,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
 
   // DELETE /api/users/profile-picture - ลบรูปโปรไฟล์
   router.delete("/profile-picture", async (req, res) => {
-    const { email } = req.body;
+    const { email } = req.query; // Changed from req.body to req.query
     if (!email) {
       return res.status(400).json({ message: "Email is required." });
     }

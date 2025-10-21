@@ -4,15 +4,15 @@ const { ConfidentialClientApplication } = require("@azure/msal-node");
 const jwt = require("jsonwebtoken");
 
 module.exports = (db, logActivity) => {
-  const msalConfig = {
+  // --- Initialize MSAL Client Application once ---
+  const pca = new ConfidentialClientApplication({
     auth: {
       clientId: process.env.MS_ENTRA_ID_CLIENT_ID,
       authority: `https://login.microsoftonline.com/${process.env.MS_ENTRA_ID_TENANT_ID}`,
       clientSecret: process.env.MS_ENTRA_ID_CLIENT_SECRET,
     },
-  };
+  });
 
-  const pca = new ConfidentialClientApplication(msalConfig);
   const redirectUri = process.env.MS_ENTRA_ID_REDIRECT_URI;
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 

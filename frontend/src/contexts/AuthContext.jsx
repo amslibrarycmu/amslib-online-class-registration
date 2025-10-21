@@ -39,17 +39,19 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = useCallback((userData, userToken) => {
+  const login = useCallback((userData, newUserToken) => {
     const roleToSet =
       userData.roles && userData.roles.length > 0 ? userData.roles[0] : null;
+    const tokenToSet = newUserToken || token; // Use new token if provided, otherwise keep the old one
+
     setUser(userData);
-    setToken(userToken);
+    setToken(tokenToSet);
     setActiveRole(roleToSet);
 
     localStorage.setItem("user", JSON.stringify(userData));
-    localStorage.setItem("token", userToken);
+    localStorage.setItem("token", tokenToSet);
     localStorage.setItem("activeRole", roleToSet);
-  }, []);
+  }, [token]); // Add token to dependency array
 
   const logout = useCallback(() => {
     setUser(null);
@@ -78,6 +80,14 @@ export const AuthProvider = ({ children }) => {
       const headers = {
         ...options.headers,
       };
+
+      // Handle query parameters for GET/DELETE requests
+      if (options.params && Object.keys(options.params).length > 0) {
+        const query = new URLSearchParams(options.params).toString();
+        // Check if URL already has query params
+        url += (url.includes('?') ? '&' : '?') + query;
+        delete options.params;
+      }
 
       // Automatically add the Authorization header if a token exists
       if (token) {

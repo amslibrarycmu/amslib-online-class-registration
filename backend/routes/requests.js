@@ -1,22 +1,18 @@
 const express = require("express");
 const router = express.Router();
 
-module.exports = (db, logActivity, sendNewClassRequestAdminNotification) => {
+module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendRequestSubmittedConfirmation) => {
+  // GET /api/requests - ดึงข้อมูลคำขอของผู้ใช้ที่ล็อกอินอยู่
   router.get("/", async (req, res) => {
-    const { user_email } = req.query;
-    let sql =
-      "SELECT request_id, title, request_date, status, start_date, end_date, start_time, end_time, rejection_reason FROM requests";
-    const params = [];
-
-    if (user_email) {
-      sql += " WHERE user_email = ?";
-      params.push(user_email);
-    }
-
-    sql += " ORDER BY request_date DESC";
+    const { email } = req.user; // ดึงอีเมลจาก JWT token ที่ผ่านการ verify แล้ว
+    const sql = `
+      SELECT request_id, title, request_date, status, start_date, end_date, start_time, end_time, rejection_reason, suggested_speaker, reason, format 
+      FROM requests 
+      WHERE user_email = ? 
+      ORDER BY request_date DESC`;
 
     try {
-      const [results] = await db.query(sql, params);
+      const [results] = await db.query(sql, [email]);
       res.json(results);
     } catch (err) {
       console.error("❌ Error fetching class requests:", err);
@@ -46,11 +42,19 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification) => {
 
     try {
       const [result] = await db.query(sql, values);
-      logActivity(req, null, "User", requestedBy, "SUBMIT_CLASS_REQUEST", "REQUEST", result.insertId, { request_title: title });
+      logActivity(req, req.user.id, req.user.name, req.user.email, "SUBMIT_CLASS_REQUEST", "REQUEST", result.insertId, { request_title: title });
 
       // --- Email Notification for Admins ---
       const [userResults] = await db.query("SELECT name FROM users WHERE email = ?", [requestedBy]);
       const requesterName = userResults.length > 0 ? userResults[0].name : requestedBy;
+
+      const requestDetailsForEmail = {
+        title,
+        reason,
+        requestedBy: { name: requesterName, email: requestedBy },
+      };
+      // 1. Send confirmation to the user who submitted the request
+      sendRequestSubmittedConfirmation(requestedBy, requestDetailsForEmail, requesterName);
 
       const [adminResults] = await db.query("SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')");
       const adminEmails = adminResults.map((admin) => admin.email);
@@ -61,7 +65,7 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification) => {
           reason,
           requestedBy: { name: requesterName, email: requestedBy },
         };
-        sendNewClassRequestAdminNotification(adminEmails, requestDetails);
+        sendNewClassRequestAdminNotification(adminEmails, requestDetailsForEmail);
       }
 
       res.status(201).json({ message: "Class request submitted successfully!" });
@@ -74,7 +78,7 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification) => {
   router.put("/:requestId", async (req, res) => {
     const { requestId } = req.params;
     const {
-      title, reason, startDate, endDate, startTime, endTime, format, speaker, user_email
+      title, reason, startDate, endDate, startTime, endTime, format, speaker
     } = req.body;
 
     if (!title) {
@@ -96,7 +100,7 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification) => {
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Request not found." });
       }
-      logActivity(req, null, "User", user_email, "UPDATE_CLASS_REQUEST", "REQUEST", requestId, { request_title: title });
+      logActivity(req, req.user.id, req.user.name, req.user.email, "UPDATE_CLASS_REQUEST", "REQUEST", requestId, { request_title: title });
       res.status(200).json({ message: "Class request updated successfully!" });
     } catch (err) {
       console.error("❌ Error updating class request:", err);
@@ -106,7 +110,6 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification) => {
 
   router.delete("/:requestId", async (req, res) => {
     const { requestId } = req.params;
-    const { user_email } = req.query; // Assuming email is passed for logging
     const sql = "DELETE FROM requests WHERE request_id = ?";
 
     try {
@@ -115,7 +118,7 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification) => {
         return res.status(404).json({ message: "Class request not found." });
       }
       logActivity(
-        req, null, "User", user_email, "DELETE_CLASS_REQUEST", "REQUEST", requestId,
+        req, req.user.id, req.user.name, req.user.email, "DELETE_CLASS_REQUEST", "REQUEST", requestId,
         { deleted_request_id: requestId }
       );
       res.status(200).json({ message: "Class request deleted successfully!" });

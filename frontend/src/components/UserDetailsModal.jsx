@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from "react";
 import profilePlaceholder from "../assets/abstract-user.png";
+import { useAuth } from "../contexts/AuthContext";
 
 const UserDetailsModal = ({ isOpen, onClose, user }) => {
   const [attendedClasses, setAttendedClasses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { authFetch } = useAuth();
 
   useEffect(() => {
     if (isOpen && user) {
       const fetchAttendedClasses = async () => {
         setLoading(true);
         try {
-          const response = await fetch(
+          const response = await authFetch(
             `http://localhost:5000/api/classes/registered/closed?email=${encodeURIComponent(
               user.email
             )}`

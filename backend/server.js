@@ -25,6 +25,7 @@ const {
   sendRequestApprovedNotification,
   sendRequestRejectedNotification,
   sendReminderEmail,
+  sendRequestSubmittedConfirmation,
 } = require("./email.js");
 
 const uploadsDir = path.join(__dirname, "uploads");
@@ -191,7 +192,7 @@ app.use(
 app.use(
   "/api/requests",
   verifyToken, // Add protection
-  requestRoutes(db, logActivity, sendNewClassRequestAdminNotification, )
+  requestRoutes(db, logActivity, sendNewClassRequestAdminNotification, sendRequestSubmittedConfirmation)
 );
 app.use("/api/evaluations", verifyToken, evaluationRoutes(db, logActivity, ));
 app.use(

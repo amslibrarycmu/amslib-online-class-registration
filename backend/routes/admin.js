@@ -87,8 +87,9 @@ module.exports = (
       SELECT
         r.request_id, r.title, r.reason, r.start_date, r.end_date, r.start_time,
         r.end_time, r.format, r.suggested_speaker, r.request_date, r.status,
-        r.rejection_reason, u_requester.name AS requested_by_name,
-        u_requester.email AS requested_by_email, u_admin.name as action_by_name
+        r.rejection_reason, r.approved_by, u_requester.id AS requested_by_id, 
+        u_requester.name AS requested_by_name, u_requester.email AS requested_by_email, 
+        u_admin.id as action_by_id, u_admin.name as action_by_name, u_admin.email as action_by_email
       FROM requests r
       JOIN users u_requester ON r.user_email = u_requester.email
       LEFT JOIN users u_admin ON r.approved_by = u_admin.email
@@ -170,11 +171,35 @@ module.exports = (
           requestDetails.user_email,
           requestDetails
         );
+        logActivity(
+          req,
+          req.user.id,
+          req.user.name,
+          req.user.email,
+          "APPROVE_CLASS_REQUEST",
+          "REQUEST",
+          requestId,
+          {
+            request_title: requestDetails.title,
+            approved_by: req.user.email,
+            approved_by_name: req.user.name,
+          }
+        );
       } else {
         await sendRequestRejectedNotification(
           requestDetails.user_email,
           requestDetails,
           reason
+        );
+        logActivity(
+          req,
+          req.user.id,
+          req.user.name,
+          req.user.email,
+          "REJECT_CLASS_REQUEST",
+          "REQUEST",
+          requestId,
+          { request_title: requestDetails.title, rejected_by: req.user.email, reason }
         );
       }
 

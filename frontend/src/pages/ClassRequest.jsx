@@ -181,6 +181,7 @@ const ClassRequest = () => {
 
       alert("ลบคำขอสำเร็จแล้ว");
       fetchRequests(); // Refetch requests to update the list
+      resetForm(); // Clear the form after deletion
     } catch (error) {
       console.error("Error deleting class request:", error);
       alert(`เกิดข้อผิดพลาดในการลบคำขอ: ${error.message}`);
@@ -490,7 +491,7 @@ const ClassRequest = () => {
                       <button
                         type="button"
                         onClick={resetForm}
-                        className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                        className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-gray-800 bg-gray-200 hover:bg-gray-300 focus:outline-none"
                       >
                         ยกเลิกการแก้ไข
                       </button>

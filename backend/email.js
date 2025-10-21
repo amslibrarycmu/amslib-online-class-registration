@@ -229,6 +229,30 @@ async function sendNewClassRequestAdminNotification(
   }
 }
 
+// เพิ่มฟังก์ชันสำหรับส่งอีเมลยืนยันการยื่นคำขอ
+async function sendRequestSubmittedConfirmation(recipientEmail, requestDetails, requesterName) {
+  try {
+    await sendEmail({
+      to: recipientEmail,
+      subject: `[AMSLIB] ได้รับคำขอเปิดห้องเรียนของคุณแล้ว: ${requestDetails.title}`,
+      html: `
+                <p>เรียน คุณ ${requesterName},</p>
+                <p>ระบบได้รับคำขอเปิดห้องเรียนหัวข้อ <strong>"${requestDetails.title}"</strong> ของท่านเรียบร้อยแล้ว</p>
+                <p>ขณะนี้คำขอของท่านอยู่ในระหว่างการพิจารณาจากผู้ดูแลระบบ และจะแจ้งผลให้ทราบอีกครั้งทางอีเมล</p>
+                <p>ท่านสามารถตรวจสอบสถานะคำขอของท่านได้ในหน้า "ยื่นคำขอเปิดห้องเรียน"</p>
+                <hr>
+                <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
+                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ</p>
+            `,
+    });
+  } catch (error) {
+    console.error(
+      "Error sending class request submission confirmation email:",
+      error
+    );
+  }
+}
+
 // เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการอนุมัติ
 async function sendRequestApprovedNotification(recipientEmail, requestDetails) {
   try {
@@ -332,4 +356,5 @@ module.exports = {
   sendRequestApprovedNotification,
   sendRequestRejectedNotification,
   sendReminderEmail,
+  sendRequestSubmittedConfirmation, // Export ฟังก์ชันใหม่
 };

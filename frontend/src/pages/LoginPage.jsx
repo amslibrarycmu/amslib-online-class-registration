@@ -30,7 +30,10 @@ const LoginPage = () => {
         } else {
           login(userData, token);
           // Redirect based on role after successful login
-          if (Array.isArray(userData.roles) && userData.roles.includes("ผู้ดูแลระบบ")) {
+          if (
+            Array.isArray(userData.roles) &&
+            userData.roles.includes("ผู้ดูแลระบบ")
+          ) {
             navigate("/index", { replace: true });
           } else {
             navigate("/classes", { replace: true });
@@ -75,7 +78,7 @@ const LoginPage = () => {
       const updatedUser = await response.json();
       setIsModalOpen(false);
       // Re-login with updated user data
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       login(updatedUser, token);
 
       if (

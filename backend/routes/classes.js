@@ -195,7 +195,7 @@ module.exports = (
       await connection.commit();
 
       logActivity(req, req.user.id, name, email, "REGISTER_CLASS", "CLASS", classId, { class_title: course.title });
-      res.status(200).json({ message: "Successfully registered for the class!" });
+      res.status(200).json({ message: "ลงทะเบียนสำเร็จแล้ว" });
 
       // Email notifications can be sent here, outside the transaction
       const emailClassDetails = { ...course };
@@ -255,7 +255,7 @@ module.exports = (
       await connection.commit();
 
       logActivity(req, req.user.id, req.user.name, email, "CANCEL_CLASS_REGISTRATION", "CLASS", classId, { class_title: course.title });
-      res.status(200).json({ message: "Successfully canceled your registration." });
+      res.status(200).json({ message: "ยกเลิกการลงทะเบียนสำเร็จแล้ว" });
 
       // --- Email Notification for Admin ---
       const [userResults] = await db.query("SELECT name FROM users WHERE email = ?", [email]);

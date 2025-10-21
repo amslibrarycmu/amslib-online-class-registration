@@ -30,6 +30,8 @@ const ACTION_TYPE_LABELS = {
   SUBMIT_CLASS_REQUEST: "ยื่นคำขอเปิดห้องเรียน",
   UPDATE_CLASS_REQUEST: "แก้ไขคำขอเปิดห้องเรียน",
   DELETE_CLASS_REQUEST: "ลบคำขอเปิดห้องเรียน",
+  APPROVE_CLASS_REQUEST: "อนุมัติคำขอเปิดห้องเรียน",
+  REJECT_CLASS_REQUEST: "ปฏิเสธคำขอเปิดห้องเรียน",
 };
 
 const ActivityLogs = () => {
@@ -153,34 +155,68 @@ const ActivityLogs = () => {
         return `เปลี่ยนสิทธิ์ของ ${details.target_user || "N/A"} เป็น ${
           details.new_roles?.join(", ") || "N/A"
         }`;
+        return (
+          <>
+            เปลี่ยนสิทธิ์ของ {details.target_user || "N/A"} เป็น{" "}
+            {details.new_roles?.join(", ") || "N/A"}
+          </>
+        );
       case "UPDATE_STATUS":
         return `เปลี่ยนสถานะของ ${details.target_user || "N/A"} เป็น ${
           details.new_status || "N/A"
         }`;
+        return (
+          <>
+            เปลี่ยนสถานะของ {details.target_user || "N/A"} เป็น{" "}
+            {details.new_status || "N/A"}
+          </>
+        );
       case "DELETE_USER":
         return `ลบบัญชีผู้ใช้ ${details.deleted_user_details?.name || "N/A"}`;
+        return <>ลบบัญชีผู้ใช้ {details.deleted_user_details?.name || "N/A"}</>;
       case "SWITCH_ROLE":
         return `สลับบทบาทจาก ${details.from_role} เป็น ${details.to_role}`;
+        return (
+          <>
+            สลับบทบาทจาก {details.from_role} เป็น {details.to_role}
+          </>
+        );
       case "UPDATE_CLASS":
         return `แก้ไขข้อมูลห้องเรียน ${details.class_title || "N/A"}`;
+        return <>แก้ไขข้อมูลห้องเรียน {details.class_title || "N/A"}</>;
       case "DELETE_CLASS":
         return `ลบห้องเรียน ${details.class_title || "N/A"}`;
+        return <>ลบห้องเรียน {details.class_title || "N/A"}</>;
       case "PROMOTE_CLASS":
         return `โปรโมทห้องเรียน ID: ${details.class_id}`;
+        return <>โปรโมทห้องเรียน ID: {details.class_id}</>;
       case "UNPROMOTE_CLASS":
         return `ยกเลิกโปรโมทห้องเรียน ID: ${details.class_id}`;
+        return <>ยกเลิกโปรโมทห้องเรียน ID: {details.class_id}</>;
       case "CLOSE_CLASS":
         return `จบการสอนและปิดห้องเรียน ID: ${details.class_id}`;
+        return <>จบการสอนและปิดห้องเรียน ID: {details.class_id}</>;
       case "CREATE_CLASS":
         return `สร้างห้องเรียนใหม่: ${details.class_title || "N/A"}`;
+        return <>สร้างห้องเรียนใหม่: {details.class_title || "N/A"}</>;
       case "REGISTER_CLASS":
         return `ลงทะเบียนเรียน: ${details.class_title || "N/A"}`;
+        return <>ลงทะเบียนเรียน: {details.class_title || "N/A"}</>;
       case "CANCEL_CLASS_REGISTRATION":
         return `ยกเลิกการลงทะเบียน: ${details.class_title || "N/A"}`;
+        return <>ยกเลิกการลงทะเบียน: {details.class_title || "N/A"}</>;
       case "SUBMIT_CLASS_REQUEST":
         return `ยื่นคำขอเปิดห้องเรียน: ${details.request_title || "N/A"}`;
+        return <>ยื่นคำขอเปิดห้องเรียน: {details.request_title || "N/A"}</>;
       case "UPDATE_CLASS_REQUEST":
         return `แก้ไขคำขอเปิดห้องเรียน: ${details.request_title || "N/A"}`;
+        return <>แก้ไขคำขอเปิดห้องเรียน: {details.request_title || "N/A"}</>;
+      case "APPROVE_CLASS_REQUEST":
+        return `อนุมัติคำขอเปิดห้องเรียน: ${details.request_title || "N/A"}`;
+        return <>อนุมัติคำขอเปิดห้องเรียน: {details.request_title || "N/A"}</>;
+      case "REJECT_CLASS_REQUEST":
+        return `ปฏิเสธคำขอเปิดห้องเรียน: ${details.request_title || "N/A"}`;
+        return <>ปฏิเสธคำขอเปิดห้องเรียน: {details.request_title || "N/A"}</>;
       default:
         return ACTION_TYPE_LABELS[log.action_type] || log.action_type;
     }
@@ -332,7 +368,7 @@ const ActivityLogs = () => {
                         onClick={() => handleViewUser(log.user_id)}
                         className="cursor-pointer hover:underline text-blue-600"
                       >
-                        {log.user_name} ({log.user_email})
+                        {log.user_name}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
