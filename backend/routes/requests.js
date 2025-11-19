@@ -6,10 +6,10 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
   router.get("/", async (req, res) => {
     const { email } = req.user; // ดึงอีเมลจาก JWT token ที่ผ่านการ verify แล้ว
     const sql = `
-      SELECT request_id, title, request_date, status, start_date, end_date, start_time, end_time, rejection_reason, suggested_speaker, reason, format 
-      FROM requests 
-      WHERE user_email = ? 
-      ORDER BY request_date DESC`;
+      SELECT request_id, title, created_at, updated_at, status, start_date, end_date, start_time, end_time, admin_comment, speaker, reason, format 
+      FROM class_requests 
+      WHERE requested_by_email = ?
+      ORDER BY created_at DESC`;
 
     try {
       const [results] = await db.query(sql, [email]);
@@ -22,22 +22,22 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
 
   router.post("/", async (req, res) => {
     const {
-      title, reason, startDate, endDate, startTime, endTime,
-      format, speaker, requestedBy,
+      title, reason, startDate, endDate, startTime, endTime, format, speaker
     } = req.body;
+    const { email: requested_by_email, name: requested_by_name } = req.user;
 
-    if (!title || !requestedBy) {
+    if (!title || !requested_by_email) {
       return res.status(400).json({ message: "Title and requestedBy email are required." });
     }
 
     const sql = `
-      INSERT INTO requests (title, reason, start_date, end_date, start_time, end_time, format, suggested_speaker, user_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO class_requests (title, reason, start_date, end_date, start_time, end_time, format, speaker, requested_by_email, requested_by_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       title, reason || null, startDate || null, endDate || null,
       startTime || null, endTime || null, format || "ONLINE",
-      speaker || null, requestedBy,
+      speaker || null, requested_by_email, requested_by_name
     ];
 
     try {
@@ -45,26 +45,21 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
       logActivity(req, req.user.id, req.user.name, req.user.email, "SUBMIT_CLASS_REQUEST", "REQUEST", result.insertId, { request_title: title });
 
       // --- Email Notification for Admins ---
-      const [userResults] = await db.query("SELECT name FROM users WHERE email = ?", [requestedBy]);
-      const requesterName = userResults.length > 0 ? userResults[0].name : requestedBy;
+      const [userResults] = await db.query("SELECT name FROM users WHERE email = ?", [requested_by_email]);
+      const requesterName = userResults.length > 0 ? userResults[0].name : requested_by_email;
 
       const requestDetailsForEmail = {
         title,
         reason,
-        requestedBy: { name: requesterName, email: requestedBy },
+        requestedBy: { name: requesterName, email: requested_by_email },
       };
       // 1. Send confirmation to the user who submitted the request
-      sendRequestSubmittedConfirmation(requestedBy, requestDetailsForEmail, requesterName);
+      sendRequestSubmittedConfirmation(requested_by_email, requestDetailsForEmail, requesterName);
 
       const [adminResults] = await db.query("SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')");
       const adminEmails = adminResults.map((admin) => admin.email);
 
       if (adminEmails.length > 0) {
-        const requestDetails = {
-          title,
-          reason,
-          requestedBy: { name: requesterName, email: requestedBy },
-        };
         sendNewClassRequestAdminNotification(adminEmails, requestDetailsForEmail);
       }
 
@@ -86,9 +81,9 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
     }
 
     const sql = `
-      UPDATE requests SET title = ?, reason = ?, start_date = ?, end_date = ?, 
-      start_time = ?, end_time = ?, format = ?, suggested_speaker = ?,
-      status = 'pending', rejection_reason = NULL
+      UPDATE class_requests SET title = ?, reason = ?, start_date = ?, end_date = ?, 
+      start_time = ?, end_time = ?, format = ?, speaker = ?,
+      status = 'pending', admin_comment = NULL
       WHERE request_id = ?
     `;
     const values = [
@@ -110,7 +105,7 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
 
   router.delete("/:requestId", async (req, res) => {
     const { requestId } = req.params;
-    const sql = "DELETE FROM requests WHERE request_id = ?";
+    const sql = "DELETE FROM class_requests WHERE request_id = ?";
 
     try {
       const [result] = await db.query(sql, [requestId]);

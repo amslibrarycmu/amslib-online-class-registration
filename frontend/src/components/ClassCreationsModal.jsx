@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useState, useEffect, useReducer, useRef } from "react";
 
 const speakerOptions = [
   "กันตภณ พรมคำ",
@@ -9,12 +9,27 @@ const speakerOptions = [
 
 const AUDIENCE_OPTIONS = ["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"];
 
+const getTodayString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = (today.getMonth() + 1).toString().padStart(2, "0");
+  const day = today.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getCurrentTimeString = () => {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2, "0");
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
 const initialFormState = {
   title: "",
   speaker: [],
-  start_date: "",
-  end_date: "",
+  start_date: getTodayString(),
   start_time: "",
+  end_date: getTodayString(),
   end_time: "",
   description: "",
   format: "ONLINE",
@@ -22,7 +37,7 @@ const initialFormState = {
   location: "ห้อง Group Study ห้องสมุดคณะเทคนิคการแพทย์",
   target_groups: [...AUDIENCE_OPTIONS],
   max_participants: "1",
-  files: [],
+  materials: [], // Changed from files to materials
   class_id: "",
 };
 
@@ -43,11 +58,11 @@ function formReducer(state, action) {
         speaker: state.speaker.filter((spk) => spk !== action.payload),
       };
     case "ADD_FILES":
-      return { ...state, files: [...state.files, ...action.payload] };
+      return { ...state, materials: [...state.materials, ...action.payload] }; // Changed to materials
     case "REMOVE_FILE":
       return {
         ...state,
-        files: state.files.filter((_, i) => i !== action.payload),
+        materials: state.materials.filter((_, i) => i !== action.payload), // Changed to materials
       };
     case "TOGGLE_AUDIENCE":
       const exists = state.target_groups.includes(action.payload);
@@ -88,39 +103,56 @@ const parseJsonField = (field) => {
 const ClassCreationModal = ({
   onClose,
   initialData,
-  onSubmit,
-  isEditing,
-  isDuplicating,
+  onSubmit, mode
 }) => {
   const [formData, dispatch] = useReducer(formReducer, initialFormState);
   const [speakerInput, setSpeakerInput] = useState("");
+  const startDateRef = useRef(null);
+  const endDateRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const endTimeRef = useRef(null);
 
   useEffect(() => {
-    const randomId = () => Math.floor(100000 + Math.random() * 900000);
+    const randomId = () => Math.floor(100000 + Math.random() * 900000).toString();
     let preparedData = {};
 
     if (initialData) {
       const speakers = parseJsonField(initialData.speaker);
       const groups = parseJsonField(initialData.target_groups);
-      const files = parseJsonField(initialData.files);
+      const files = parseJsonField(initialData.materials); // Read from materials
 
       preparedData = {
         ...initialData,
-        class_id: isDuplicating ? randomId() : initialData.class_id,
+        class_id: (mode === 'duplicate' || mode === 'fromRequest') ? randomId() : initialData.class_id,
         speaker: speakers,
         start_date: formatDate(initialData.start_date),
         end_date: formatDate(initialData.end_date),
         join_link: initialData.join_link || initialFormState.join_link,
         location: initialData.location || initialFormState.location,
         target_groups: groups.length > 0 ? groups : [...AUDIENCE_OPTIONS],
-        max_participants: initialData.max_participants || initialFormState.max_participants,
-        files: files.map((f) => (typeof f === "string" ? { name: f } : f)),
+        max_participants:
+          initialData.max_participants || initialFormState.max_participants,
+        materials: files.map((f) => (typeof f === "string" ? { name: f } : f)), // Set to materials
       };
     } else {
-      preparedData = { class_id: randomId() };
+      // For brand new classes, ensure end_date and end_time are cleared initially
+      preparedData = {
+        ...initialFormState,
+        class_id: randomId(), // Generate a random ID for display
+        end_date: getTodayString(), // Keep end_date same as start_date initially
+        end_time: "", // Clear end_time
+      };
+    }
+
+    if ((mode === 'duplicate' || mode === 'fromRequest') && preparedData.start_date < getTodayString()) {
+      alert("วันที่ของต้นฉบับอยู่ในอดีต กรุณากำหนดวันและเวลาใหม่");
+      preparedData.start_date = getTodayString();
+      preparedData.end_date = getTodayString();
+      preparedData.start_time = "";
+      preparedData.end_time = ""; 
     }
     dispatch({ type: "INITIALIZE_FORM", payload: preparedData });
-  }, [initialData, isEditing, isDuplicating]);
+  }, [initialData, mode]);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
@@ -128,6 +160,54 @@ const ClassCreationModal = ({
       dispatch({ type: "ADD_FILES", payload: Array.from(files) });
     } else if (name === "speaker") {
       setSpeakerInput(value);
+    } else if (name === "start_date") {
+      // If the new start_date is after the current end_date, update end_date as well.
+      if (value > formData.end_date) {
+        dispatch({ type: "SET_FIELD", payload: { name: "end_date", value } });
+      }
+      dispatch({ type: "SET_FIELD", payload: { name, value } });
+    } else if (name === "start_time") {
+      // Validation First: Prevent selecting a past time on the current day
+      if (formData.start_date === getTodayString() && value < getCurrentTimeString()) {
+        alert("ไม่สามารถเลือกเวลาในอดีตได้");
+        return;
+      }
+
+      // When start_time is first set, or changed, calculate the default end_time (+1 hour)
+      if (value) {
+        const [hours, minutes] = value.split(":").map(Number);
+        const startDate = new Date();
+        startDate.setHours(hours, minutes, 0);
+        startDate.setHours(startDate.getHours() + 1);
+
+        const endHours = startDate.getHours().toString().padStart(2, "0");
+        const endMinutes = startDate.getMinutes().toString().padStart(2, "0");
+        const newEndTime = `${endHours}:${endMinutes}`;
+
+        dispatch({ type: "SET_FIELD", payload: { name: "end_time", value: newEndTime } });
+        dispatch({ type: "SET_FIELD", payload: { name: "end_date", value: formData.start_date } });
+      }
+
+      // If start_date and end_date are the same, and the new start_time is after the current end_time,
+      // reset the end_time to match the new start_time to maintain validity.
+      if (formData.start_date === formData.end_date && value > formData.end_time) {
+        dispatch({ type: "SET_FIELD", payload: { name: "end_time", value } });
+      }
+      dispatch({ type: "SET_FIELD", payload: { name, value } });
+    } else if (name === "end_date") {
+      // If end_date is set to be the same as start_date, and end_time is before start_time, reset end_time.
+      if (value === formData.start_date && formData.end_time < formData.start_time) {
+        dispatch({ type: "SET_FIELD", payload: { name: "end_time", value: formData.start_time } });
+      }
+      dispatch({ type: "SET_FIELD", payload: { name, value } });
+    } else if (name === "end_time") {
+      if (formData.start_date === formData.end_date && value < formData.start_time) {
+        alert("เวลาสิ้นสุดต้องไม่น้อยกว่าเวลาเริ่มต้น");
+        // Do not update state if the time is invalid
+        return; // Stop the function here
+      }
+      // If the time is valid, proceed to update the state
+      dispatch({ type: "SET_FIELD", payload: { name, value } });
     } else {
       dispatch({ type: "SET_FIELD", payload: { name, value } });
     }
@@ -154,6 +234,10 @@ const ClassCreationModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (formData.speaker.length === 0) {
+      alert("กรุณาระบุวิทยากรอย่างน้อย 1 คน");
+      return;
+    }
     const dataToSend = { ...formData };
     if (dataToSend.format === "ONLINE") {
       dataToSend.max_participants = 999;
@@ -165,23 +249,25 @@ const ClassCreationModal = ({
     <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50">
       <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6 text-center">
-          {isEditing
+          {mode === 'edit'
             ? "แก้ไขห้องเรียน"
-            : isDuplicating
+            : (mode === 'duplicate' || mode === 'fromRequest')
             ? "สร้างโดยแก้ไขจากข้อมูลเดิม"
             : "สร้างห้องเรียนใหม่"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block font-medium mb-1">Class ID</label>
-            <input
-              name="class_id"
-              value={formData.class_id || ""}
-              placeholder="ID"
-              className="w-full border px-4 py-2 rounded bg-gray-100"
-              disabled
-            />
-          </div>
+          {/* Conditionally render Class ID for non-edit modes */}
+          {mode !== 'edit' && (
+            <div>
+              <label className="block font-medium mb-1">Class ID</label>
+              <input
+                name="class_id"
+                value={formData.class_id || ""}
+                className="w-full border px-4 py-2 rounded bg-gray-100 font-bold"
+                disabled
+              />
+            </div>
+          )}
 
           <div>
             <label className="block font-medium mb-1">ชื่อวิชา</label>
@@ -190,6 +276,7 @@ const ClassCreationModal = ({
               value={formData.title || ""}
               onChange={handleChange}
               className="w-full border px-4 py-2 rounded"
+              maxLength="255"
               required
             />
           </div>
@@ -255,8 +342,12 @@ const ClassCreationModal = ({
                 type="date"
                 name="start_date"
                 value={formData.start_date || ""}
+                ref={startDateRef}
                 onChange={handleChange}
                 className="w-full border px-4 py-2 rounded"
+                onClick={() => startDateRef.current?.showPicker?.()}
+                min={getTodayString()}
+                onKeyDown={(e) => e.preventDefault()}
                 required
               />
             </div>
@@ -266,8 +357,14 @@ const ClassCreationModal = ({
                 type="time"
                 name="start_time"
                 value={formData.start_time || ""}
+                ref={startTimeRef}
                 onChange={handleChange}
                 className="w-full border px-4 py-2 rounded"
+                onClick={() => startTimeRef.current?.showPicker?.()}
+                min={
+                  formData.start_date === getTodayString() ? getCurrentTimeString() : undefined
+                }
+                onKeyDown={(e) => e.preventDefault()}
                 required
               />
             </div>
@@ -279,8 +376,13 @@ const ClassCreationModal = ({
                 type="date"
                 name="end_date"
                 value={formData.end_date || ""}
+                ref={endDateRef}
                 onChange={handleChange}
-                className="w-full border px-4 py-2 rounded"
+                className="w-full border px-4 py-2 rounded disabled:bg-gray-100"
+                min={formData.start_date}
+                onClick={() => endDateRef.current?.showPicker?.()}
+                disabled={!formData.start_time}
+                onKeyDown={(e) => e.preventDefault()}
                 required
               />
             </div>
@@ -290,8 +392,17 @@ const ClassCreationModal = ({
                 type="time"
                 name="end_time"
                 value={formData.end_time || ""}
+                ref={endTimeRef}
                 onChange={handleChange}
-                className="w-full border px-4 py-2 rounded"
+                min={
+                  formData.start_date === formData.end_date
+                    ? formData.start_time
+                    : ""
+                }
+                className="w-full border px-4 py-2 rounded disabled:bg-gray-100"
+                disabled={!formData.start_time}
+                onClick={() => endTimeRef.current?.showPicker?.()}
+                onKeyDown={(e) => e.preventDefault()}
                 required
               />
             </div>
@@ -355,7 +466,10 @@ const ClassCreationModal = ({
 
           {formData.format === "ONSITE" && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              <label htmlFor="max_participants" className="block font-medium sm:my-auto w-fit flex-shrink-0">
+              <label
+                htmlFor="max_participants"
+                className="block font-medium sm:my-auto w-fit flex-shrink-0"
+              >
                 จำนวนผู้เข้าร่วมได้สูงสุด
               </label>
               <input
@@ -395,20 +509,18 @@ const ClassCreationModal = ({
             <label className="block font-medium">
               แนบไฟล์ประกอบการเรียนการสอน
             </label>
+            <input
+              type="file"
+              name="files"
+              id="files"
+              multiple
+              onChange={handleChange}
+              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+            />
 
-            <label className="inline-block w-fit bg-black text-white px-4 py-2 rounded cursor-pointer hover:bg-purple-800">
-              เพิ่มไฟล์เอกสาร
-              <input
-                type="file"
-                multiple
-                onChange={handleChange}
-                className="hidden"
-              />
-            </label>
-
-            {formData.files.length > 0 && (
+            {formData.materials.length > 0 && (
               <ul className="mt-2 space-y-1 text-sm text-gray-700">
-                {formData.files.map((file, index) => (
+                {formData.materials.map((file, index) => (
                   <li
                     key={index}
                     className="flex justify-between items-center bg-gray-100 px-3 py-1 rounded"
@@ -417,7 +529,7 @@ const ClassCreationModal = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveFile(index)}
-                      className="text-white hover:text-red-800 text-xs font-bold"
+                      className="text-pink-600 hover:text-red-800 text-xs font-bold"
                     >
                       ❌ ลบ
                     </button>
@@ -438,7 +550,7 @@ const ClassCreationModal = ({
               type="submit"
               className="bg-purple-700 text-white px-6 py-2 rounded hover:bg-purple-800 w-[150px]"
             >
-              {isEditing ? "เปลี่ยนแปลง" : "สร้าง"}
+              {mode === 'edit' ? "เปลี่ยนแปลง" : "สร้าง"}
             </button>
           </div>
         </form>

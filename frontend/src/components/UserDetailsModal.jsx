@@ -45,7 +45,7 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-x-10 gap-y-6 mb-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <img
-                src={user.photo ? `http://localhost:5000/uploads/${user.photo}` : profilePlaceholder}
+                src={user.photo ? `http://localhost:5000/api/users/photo/${user.photo}` : profilePlaceholder}
                 alt="Profile"
                 className="w-24 h-24 object-cover rounded-full border-4 border-gray-200 flex-shrink-0"
               />

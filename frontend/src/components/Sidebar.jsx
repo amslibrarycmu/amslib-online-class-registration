@@ -216,7 +216,7 @@ export default function Sidebar() {
           <div className="flex items-center justify-center gap-[15px] my-[10px]">
             <div className="relative group">
               <img
-                src={user?.photo ? `http://localhost:5000/uploads/${user.photo}` : profile}
+                src={user?.photo ? `http://localhost:5000/api/users/photo/${user.photo}` : profile}
                 width={100}
                 height={100}
                 className="w-[100px] h-[100px] object-cover rounded-full my-auto"

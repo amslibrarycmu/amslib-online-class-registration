@@ -122,6 +122,22 @@ const CompleteProfileModal = ({ isOpen, user, onSubmit, isSubmitting }) => {
                 </label>
               </div>
 
+              {isNameEditable && (
+                <div>
+                  <label className="block font-medium mb-1">
+                    ชื่อ-สกุลที่ถูกต้อง <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full border px-4 py-2 rounded"
+                    placeholder="กรอกชื่อ-สกุลที่ถูกต้อง"
+                  />
+                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                </div>
+              )}
+
               <div>
                 <label className="block font-medium">
                   บทบาท <span className="text-red-500">*</span>

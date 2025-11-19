@@ -1,0 +1,29 @@
+# --- General Settings ---
+# --- https://myaccount.google.com/apppasswords ---
+
+NODE_ENV=production
+
+# --- Database Settings (ตัวอย่าง) ---
+# --- DB_HOST=localhost ---
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=
+DB_NAME=amslib
+DB_PORT=3306
+
+# --- Email Settings for Gmail ---
+# go-to: https://myaccount.google.com/apppasswords
+EMAIL_SERVICE=gmail
+EMAIL_FROM_ADDRESS=amslibref@gmail.com
+# APP PASSWORD @amslibref
+EMAIL_AUTH_USER=amslibref@gmail.com
+EMAIL_AUTH_PASS=spyxaentzgheksqu
+
+# --- Microsoft Entra ID Settings ---
+MS_ENTRA_ID_CLIENT_ID=01f925c9-7b33-42e3-81fa-0374de0bf42a
+MS_ENTRA_ID_CLIENT_SECRET=o4L8Q~e85JyMjmrUya-kCBzyqKHr5nUaSpB_7aVd
+MS_ENTRA_ID_TENANT_ID=cf81f1df-de59-4c29-91da-a2dfd04aa751
+MS_ENTRA_ID_REDIRECT_URI=http://localhost:5000/api/auth/callback
+
+# --- JWT Settings ---
+JWT_SECRET=amscmu5071

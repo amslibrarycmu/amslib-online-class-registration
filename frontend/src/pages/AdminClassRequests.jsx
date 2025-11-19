@@ -70,7 +70,7 @@ const RequestDetailModal = ({ request, onClose }) => {
             )}
             {detailItem(
               "วันที่ขอ",
-              new Date(request.request_date).toLocaleDateString("th-TH", {
+              new Date(request.created_at).toLocaleDateString("th-TH", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
@@ -518,7 +518,7 @@ const AdminClassRequests = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-md text-black">
-                        {new Date(request.request_date).toLocaleDateString(
+                        {new Date(request.created_at).toLocaleDateString(
                           "th-TH",
                           {
                             year: "numeric",
@@ -676,7 +676,7 @@ const AdminClassRequests = () => {
                     </p>
                     <p>
                       <strong>วันที่ขอ:</strong>{" "}
-                      {new Date(request.request_date).toLocaleDateString(
+                      {new Date(request.created_at).toLocaleDateString(
                         "th-TH",
                         {
                           year: "numeric",

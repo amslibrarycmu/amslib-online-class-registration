@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [activeRole, setActiveRole] = useState(null);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [newUserTempData, setNewUserTempDataState] = useState(null); // For new user registration flow
 
   useEffect(() => {
     try {
@@ -53,6 +54,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("activeRole", roleToSet);
   }, [token]); // Add token to dependency array
 
+  const setNewUserTempData = useCallback((data, tempToken) => {
+    setNewUserTempDataState({ ...data, tempToken });
+  }, []);
+
+  const clearNewUserTempData = useCallback(() => {
+    setNewUserTempDataState(null);
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
@@ -60,6 +69,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("activeRole");
+    setNewUserTempDataState(null); // Also clear temp data on logout
   }, []);
 
   const switchRole = useCallback(
@@ -137,6 +147,9 @@ export const AuthProvider = ({ children }) => {
     isSwitchingRole,
     loading,
     authFetch,
+    newUserTempData,
+    setNewUserTempData,
+    clearNewUserTempData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

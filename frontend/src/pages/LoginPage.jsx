@@ -3,14 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import amsliblogo from "../assets/amslib-logo.svg";
 import cmuLogo from "../assets/cmu-logo.svg";
-import CompleteProfileModal from "../components/CompleteProfileModal";
 
 const LoginPage = () => {
-  const { login, authFetch } = useAuth();
+  const { login, user } = useAuth(); // Add user from useAuth
   const navigate = useNavigate();
-  const [profileData, setProfileData] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -20,88 +16,35 @@ const LoginPage = () => {
     if (token && userParam) {
       try {
         const userData = JSON.parse(decodeURIComponent(userParam));
-
-        // Check if the user needs to complete their profile
-        if (!userData.profile_completed) {
-          setProfileData(userData);
-          setIsModalOpen(true);
-          // We still log them in so authFetch works for the profile update
-          login(userData, token);
-        } else {
-          login(userData, token);
-          // Redirect based on role after successful login
-          if (
-            Array.isArray(userData.roles) &&
-            userData.roles.includes("ผู้ดูแลระบบ")
-          ) {
-            navigate("/index", { replace: true });
-          } else {
-            navigate("/classes", { replace: true });
-          }
-        }
+        login(userData, token); // Just log the user in
+        // The redirection logic will be handled by the effect below
       } catch (error) {
         console.error("Failed to parse user data from URL:", error);
         alert("เกิดข้อผิดพลาดในการล็อกอินด้วย CMU Account");
         navigate("/login", { replace: true });
       }
     }
-  }, [login, navigate]);
+  }, []); // Run only once on component mount
 
-  const performLogin = async (email) => {
-    // This function is for the old email login, which is currently disabled.
-    // It can be re-enabled if needed.
-    console.log(`Attempting to log in with ${email}`);
-  };
-
-  const handleProfileSubmit = async (formData) => {
-    setIsSubmitting(true);
-    try {
-      // Assuming you have an `authFetch` in your useAuth context
-      // that handles authenticated requests.
-      const payload = {
-        ...formData,
-        original_name: profileData.name, // Add original name from initial data
-      };
-
-      const response = await authFetch(
-        `http://localhost:5000/api/users/update-profile`,
-        {
-          method: "PUT",
-          body: payload,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update profile");
+  useEffect(() => {
+    // This effect runs when the user state changes after login
+    if (user) {
+      // If profile is not completed, App.jsx will show the modal.
+      // We just need to navigate to a protected route.
+      // The user will stay on the page with the modal.
+      if (!user.profile_completed) {
+        navigate("/index", { replace: true });
+        return;
       }
 
-      const updatedUser = await response.json();
-      setIsModalOpen(false);
-      // Re-login with updated user data
-      const token = localStorage.getItem("token");
-      login(updatedUser, token);
-
-      if (
-        Array.isArray(updatedUser.roles) &&
-        updatedUser.roles.includes("ผู้ดูแลระบบ")
-      ) {
-        navigate("/index");
+      // Redirect based on role for users with completed profiles
+      if (Array.isArray(user.roles) && user.roles.includes("ผู้ดูแลระบบ")) {
+        navigate("/index", { replace: true });
       } else {
-        navigate("/classes");
+        navigate("/classes", { replace: true });
       }
-    } catch (error) {
-      console.error("Profile update error:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-    } finally {
-      setIsSubmitting(false);
     }
-  };
-
-  const [email, setEmail] = useState("");
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    performLogin(email);
-  };
+  }, [user, navigate]);
 
   const handleCmuLogin = () => {
     window.location.href = "http://localhost:5000/api/auth/login";
@@ -109,12 +52,6 @@ const LoginPage = () => {
 
   return (
     <div className="flex items-center justify-center w-screen h-screen bg-white">
-      <CompleteProfileModal
-        isOpen={isModalOpen}
-        user={profileData}
-        onSubmit={handleProfileSubmit}
-        isSubmitting={isSubmitting}
-      />
       <div className="text-center">
         <img
           src={amsliblogo}

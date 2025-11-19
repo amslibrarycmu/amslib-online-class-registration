@@ -5,6 +5,7 @@ const connection = mysql.createConnection({
   user: 'root',
   password: '',          
   database: 'amslib', 
+  charset: 'utf8mb4'
 });
 
 connection.connect((err) => {

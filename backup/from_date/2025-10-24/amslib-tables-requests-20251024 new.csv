@@ -1,0 +1,2 @@
+request_id,title,speaker,format,start_date,end_date,start_time,end_time,reason,status,requested_by_email,requested_by_name,created_at,updated_at,admin_comment
+3,"ทดสอบการสร้างห้องเรียน 1 ",NULL,ONLINE,2025-10-24,2025-10-24,16:08:00,17:08:00,NULL,pending,kantaphon.promkam@cmu.ac.th,"KANTAPHON PROMKAM","2025-10-24 16:08:17","2025-10-24 16:08:17",NULL

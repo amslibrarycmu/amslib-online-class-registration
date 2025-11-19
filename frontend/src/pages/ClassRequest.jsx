@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -78,6 +78,18 @@ const ClassRequest = () => {
   const [editingRequestId, setEditingRequestId] = useState(null);
   const [selectedRejectionReason, setSelectedRejectionReason] = useState("");
 
+  const startDateRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const endDateRef = useRef(null);
+  const endTimeRef = useRef(null);
+
+  const getTodayString = () => new Date().toISOString().split("T")[0];
+
+  const getCurrentTimeString = () => {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+  };
+
   const fetchRequests = async () => {
     if (!user || !user.email) {
       setMyRequests([]);
@@ -128,7 +140,6 @@ const ClassRequest = () => {
       endTime,
       format,
       speaker,
-      requestedBy: user.email,
     };
 
     const isEditing = !!editingRequestId;
@@ -170,9 +181,12 @@ const ClassRequest = () => {
     }
 
     try {
-      const response = await authFetch(`http://localhost:5000/api/requests/${request_id}`, {
-        method: "DELETE",
-      });
+      const response = await authFetch(
+        `http://localhost:5000/api/requests/${request_id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -241,6 +255,46 @@ const ClassRequest = () => {
     setSelectedRejectionReason("");
   };
 
+  const handleStartDateChange = (e) => {
+    const newStartDate = e.target.value;
+    setStartDate(newStartDate);
+    // If the new start date is after the current end date, update the end date as well.
+    if (newStartDate > endDate) {
+      setEndDate(newStartDate);
+    }
+  };
+
+  const handleStartTimeChange = (e) => {
+    const newStartTime = e.target.value;
+    // Validation: Prevent selecting a past time on the current day
+    if (startDate === getTodayString() && newStartTime < getCurrentTimeString()) {
+      alert("ไม่สามารถเลือกเวลาในอดีตได้");
+      return;
+    }
+    setStartTime(newStartTime);
+
+    // Auto-calculate end time to be 1 hour after start time
+    if (newStartTime) {
+      const [hours, minutes] = newStartTime.split(":").map(Number);
+      const newEndDate = new Date();
+      newEndDate.setHours(hours + 1, minutes, 0);
+      const endHours = newEndDate.getHours().toString().padStart(2, "0");
+      const endMinutes = newEndDate.getMinutes().toString().padStart(2, "0");
+      setEndTime(`${endHours}:${endMinutes}`);
+      // Also ensure end date is at least the start date
+      if (endDate < startDate) setEndDate(startDate);
+    }
+  };
+
+  const handleEndTimeChange = (e) => {
+    const newEndTime = e.target.value;
+    if (startDate === endDate && startTime && newEndTime < startTime) {
+      alert("เวลาสิ้นสุดต้องไม่น้อยกว่าเวลาเริ่มต้น");
+      return; // Prevent setting the invalid time
+    }
+    setEndTime(newEndTime);
+  };
+
   return (
     <div className="flex h-screen w-screen">
       <Sidebar />
@@ -288,9 +342,12 @@ const ClassRequest = () => {
                     <input
                       type="date"
                       id="start-date"
+                      ref={startDateRef}
                       value={startDate}
                       required
-                      onChange={(e) => setStartDate(e.target.value)}
+                      min={getTodayString()}
+                      onClick={() => startDateRef.current?.showPicker?.()}
+                      onChange={handleStartDateChange}
                       disabled={isViewing}
                       className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                     />
@@ -312,44 +369,6 @@ const ClassRequest = () => {
                     </div>
                   </div>
                 </div>
-                <div>
-                  <label
-                    htmlFor="end-date"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    ถึงวันที่ (ระบุเป็นปี ค.ศ.)<span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative mt-1">
-                    <input
-                      type="date"
-                      id="end-date"
-                      value={endDate}
-                      required
-                      onChange={(e) => setEndDate(e.target.value)}
-                      disabled={isViewing}
-                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <svg
-                        className="h-5 w-5 text-gray-400"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label
                     htmlFor="start-time"
@@ -362,9 +381,15 @@ const ClassRequest = () => {
                     <input
                       type="time"
                       id="start-time"
+                      ref={startTimeRef}
                       value={startTime}
                       required
-                      onChange={(e) => setStartTime(e.target.value)}
+                      onClick={() => startTimeRef.current?.showPicker?.()}
+                      onChange={handleStartTimeChange}
+                      min={
+                        startDate === getTodayString() ? getCurrentTimeString() : undefined
+                      }
+                      onKeyDown={(e) => e.preventDefault()}
                       disabled={isViewing}
                       className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                     />
@@ -388,6 +413,46 @@ const ClassRequest = () => {
                 </div>
                 <div>
                   <label
+                    htmlFor="end-date"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    ถึงวันที่ (ระบุเป็นปี ค.ศ.)
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative mt-1">
+                    <input
+                      type="date"
+                      id="end-date"
+                      ref={endDateRef}
+                      value={endDate}
+                      required
+                      min={startDate}
+                      onKeyDown={(e) => e.preventDefault()}
+                      onClick={() => endDateRef.current?.showPicker?.()}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      disabled={isViewing || !startDate}
+                      className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label
                     htmlFor="end-time"
                     className="block text-sm font-medium text-gray-700"
                   >
@@ -397,10 +462,15 @@ const ClassRequest = () => {
                     <input
                       type="time"
                       id="end-time"
+                      ref={endTimeRef}
                       value={endTime}
                       required
-                      onChange={(e) => setEndTime(e.target.value)}
-                      disabled={isViewing}
+                      min={
+                        startDate === endDate ? startTime : undefined
+                      }
+                      onClick={() => endTimeRef.current?.showPicker?.()}
+                      onChange={handleEndTimeChange}
+                      disabled={isViewing || !startTime}
                       className="block w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -538,11 +608,11 @@ const ClassRequest = () => {
                         </h3>
                         <div className="flex items-center">
                           <StatusBadge status={request.status} />
-                          {request.status === "rejected" &&
-                            request.rejection_reason && (
+                          {request.status === "rejected" && // Check if the request was rejected
+                            request.admin_comment && ( // Use admin_comment instead of rejection_reason
                               <button
                                 onClick={() =>
-                                  handleViewReason(request.rejection_reason)
+                                  handleViewReason(request.admin_comment)
                                 }
                                 className="text-orange-500 hover:text-gray-700 rounded-full transition-colors"
                                 style={{ padding: "0" }}
@@ -566,14 +636,16 @@ const ClassRequest = () => {
                       </div>
                       <p className="text-xs text-gray-500 mb-2">
                         ส่งเมื่อ{" "}
-                        {new Date(request.request_date).toLocaleDateString(
+                        {new Date(request.updated_at).toLocaleString(
                           "th-TH",
                           {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
                           }
-                        )}
+                        )} น.
                       </p>
                       <div className="flex justify-end items-center gap-2 mt-3 pt-3 border-t border-gray-200">
                         <button
@@ -602,17 +674,33 @@ const ClassRequest = () => {
                               className="text-black hover:text-yellow-800 p-1 rounded-full transition-colors"
                               title="แก้ไขคำขอ"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
                                 <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                                <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                             </button>
                             <button
-                              onClick={() => handleDeleteRequest(request.request_id)}
+                              onClick={() =>
+                                handleDeleteRequest(request.request_id)
+                              }
                               className="text-red-500 hover:text-red-700 p-1 rounded-full transition-colors"
                               title="ลบคำขอ"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
                                 <path
                                   fillRule="evenodd"
                                   d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z"

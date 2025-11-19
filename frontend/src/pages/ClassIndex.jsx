@@ -230,10 +230,21 @@ const ClassIndex = () => {
     for (const key in updatedData) {
       if (key === "speaker" || key === "target_groups") {
         updateForm.append(key, JSON.stringify(updatedData[key]));
-      } else if (key !== "files") {
+      } else if (key !== "materials") { // Ignore 'materials' as we handle it separately
         updateForm.append(key, updatedData[key]);
       }
     }
+
+    // Handle files separately to distinguish between new and existing files
+    const existingFiles = [];
+    updatedData.materials.forEach((file) => {
+      if (file instanceof File) {
+        updateForm.append("files", file); // New files to upload
+      } else if (file && typeof file.name === 'string') {
+        existingFiles.push(file.name); // Names of files to keep
+      }
+    });
+    updateForm.append("existingFiles", JSON.stringify(existingFiles));
     updateForm.append("user_email", user.email);
     try {
       const response = await authFetch(`http://localhost:5000/api/classes/${classId}`, {

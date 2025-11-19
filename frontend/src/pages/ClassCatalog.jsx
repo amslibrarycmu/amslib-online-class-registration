@@ -170,6 +170,12 @@ const ClassCatalog = () => {
     const results = { success: [], failed: [] };
 
     for (const classId of selectedClasses) {
+      const cls = classMap[classId];
+      if (!cls || !isUserInTargetGroup(cls)) {
+        results.failed.push({ classId, message: "คุณไม่มีสิทธิ์ในการลงทะเบียนเรียนคลาสนี้" });
+        continue; // Skip to the next class
+      }
+
       try {
         const response = await authFetch(`http://localhost:5000/api/classes/${classId}/register`, {
           method: "POST",
@@ -210,6 +216,20 @@ const ClassCatalog = () => {
   const isUserRegistered = (cls) => {
     if (!user || !Array.isArray(cls.registered_users)) return false;
     return cls.registered_users.includes(user.email);
+  };
+
+  const isUserInTargetGroup = (cls) => {
+    if (!user || !user.roles || !Array.isArray(user.roles)) return false;
+
+    // Ensure cls.target_groups is parsed as an array
+    const targetGroups = Array.isArray(cls.target_groups)
+      ? cls.target_groups
+      : typeof cls.target_groups === 'string'
+        ? cls.target_groups.split(',').map(group => group.trim())
+        : [];
+
+    // Check if any of the user's roles are in the targetGroups
+    return user.roles.some(role => targetGroups.includes(role));
   };
 
   const getFilteredClasses = () => {
@@ -317,8 +337,9 @@ const ClassCatalog = () => {
                   const isFull =
                     cls.max_participants !== 999 &&
                     cls.registered_users.length >= cls.max_participants;
-                  const isRegistered = isUserRegistered(cls);
-                  const isRegisterable = !isFull && !isRegistered && cls.status !== "closed";
+                  const isRegistered = isUserRegistered(cls);                  
+                  const isInTargetGroup = isUserInTargetGroup(cls);
+                  const isRegisterable = !isFull && !isRegistered && cls.status !== "closed" && isInTargetGroup;
 
                   const StatusBadge = () => {
                     if (isRegistered) {
@@ -337,6 +358,12 @@ const ClassCatalog = () => {
                     }
                     return null;
                   };
+
+                  let registerButtonTooltip = "";
+                  if (!isInTargetGroup) {
+                    registerButtonTooltip = "คุณไม่มีสิทธิ์ในการลงทะเบียนเนื่องจากบทบาทของคุณไม่ตรงกับกลุ่มเป้าหมาย";
+                  }
+
 
                   return (
                     <div
@@ -457,30 +484,6 @@ const ClassCatalog = () => {
                               </span>
                             </div>
                           )}
-                          {cls.format === "ONLINE" && cls.join_link && (
-                            <div className="flex items-start gap-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-5 w-5 text-gray-400"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path d="M12.232 4.232a2.5 2.5 0 013.536 3.536l-1.225 1.224a.75.75 0 001.061 1.06l1.224-1.224a4 4 0 00-5.656-5.656l-3 3a4 4 0 00.225 5.865.75.75 0 00.977-1.138 2.5 2.5 0 01-.142-3.665l3-3z" />
-                                <path d="M8.603 17.002a4 4 0 005.656-5.656l-3-3a4 4 0 00-5.865-.225.75.75 0 00.977 1.138 2.5 2.5 0 013.665.142l3 3a2.5 2.5 0 01-3.536 3.536l-1.225-1.224a.75.75 0 00-1.061-1.06l-1.224 1.224a4 4 0 000 5.656z" />
-                              </svg>
-                              <span>
-                                <strong>ลิงก์:</strong>{" "}
-                                <a
-                                  href={cls.join_link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline break-all"
-                                >
-                                  {cls.join_link}
-                                </a>
-                              </span>
-                            </div>
-                          )}
                           {cls.target_groups && (
                             <div className="flex items-start gap-2">
                               <svg
@@ -523,12 +526,16 @@ const ClassCatalog = () => {
                                   ? handleCancelRegistration(cls.class_id)
                                   : handleRegister(cls.class_id)
                               }
+                              title={registerButtonTooltip}
                               disabled={
                                 (!isRegistered && isFull) ||
-                                cls.status === "closed"
+                                  cls.status === "closed" ||
+                                  !isInTargetGroup
                               }
                               className={`py-2 px-4 rounded-md font-semibold text-white text-sm transition-colors duration-300 ${
-                                cls.status === "closed"
+                                  !isInTargetGroup
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : cls.status === "closed"
                                   ? "bg-gray-400 cursor-not-allowed"
                                   : isRegistered
                                   ? "bg-yellow-500 hover:bg-yellow-600"
@@ -537,7 +544,9 @@ const ClassCatalog = () => {
                                   : "bg-blue-600 hover:bg-blue-700"
                               }`}
                             >
-                              {cls.status === "closed"
+                              {!isInTargetGroup
+                                ? "ไม่ตรงกลุ่มเป้าหมาย"
+                                : cls.status === "closed"
                                 ? "จบการสอนแล้ว"
                                 : isRegistered
                                 ? "ยกเลิก"

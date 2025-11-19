@@ -1,0 +1,23 @@
+log_id,timestamp,user_id,user_name,user_email,action_type,target_type,target_id,details,ip_address
+143,"2025-11-04 11:38:25",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,LOGIN_SUCCESS,USER,133,NULL,::1
+144,"2025-11-04 11:38:53",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,APPROVE_CLASS_REQUEST,REQUEST,2,"{"request_title":"ทดสอบการขอห้องเรียน 1 (4 พฤศจิกายน 2568)","approved_by":"kantaphon.promkam@cmu.ac.th","approved_by_name":"KANTAPHON PROMKAM"}",::1
+145,"2025-11-04 14:20:31",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,LOGIN_SUCCESS,USER,133,NULL,::1
+146,"2025-11-04 14:35:47",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,REJECT_CLASS_REQUEST,REQUEST,2,"{"request_title":"ทดสอบการขอห้องเรียน 1 (4 พฤศจิกายน 2568)","rejected_by":"kantaphon.promkam@cmu.ac.th","reason":"วิทยากรไม่สะดวก"}",::1
+147,"2025-11-04 14:35:56",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,SWITCH_ROLE,NULL,NULL,"{"from_role":"ผู้ดูแลระบบ","to_role":"บุคลากร"}",::1
+148,"2025-11-04 14:36:28",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,SWITCH_ROLE,NULL,NULL,"{"from_role":"บุคลากร","to_role":"ผู้ดูแลระบบ"}",::1
+149,"2025-11-04 14:36:34",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,VIEW_ACTIVITY_LOGS,NULL,NULL,NULL,::1
+150,"2025-11-04 14:38:01",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,CREATE_CLASS,CLASS,69,"{"class_title":"ทดสอบการสร้างห้องเรียนแบบปกติ 1"}",::1
+151,"2025-11-04 14:38:21",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,UPDATE_CLASS,CLASS,786781,"{"class_title":"ทดสอบการสร้างห้องเรียนแบบปกติ 1 แก้ไข 1"}",::1
+152,"2025-11-04 14:38:42",NULL,Admin,N/A,DELETE_CLASS,CLASS,786781,"{"class_title":"ทดสอบการสร้างห้องเรียนแบบปกติ 1 แก้ไข 1"}",::1
+153,"2025-11-04 14:42:48",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,CREATE_CLASS,CLASS,70,"{"class_title":"ทดสอบการสร้างห้องเรียน"}",::1
+154,"2025-11-04 14:42:57",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,PROMOTE_CLASS,CLASS,661217,"{"class_id":"661217"}",::1
+155,"2025-11-04 14:42:59",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,SWITCH_ROLE,NULL,NULL,"{"from_role":"ผู้ดูแลระบบ","to_role":"บุคลากร"}",::1
+156,"2025-11-04 14:43:04",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,REGISTER_CLASS,CLASS,661217,"{"class_title":"ทดสอบการสร้างห้องเรียน"}",::1
+157,"2025-11-04 14:49:16",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,CANCEL_CLASS_REGISTRATION,CLASS,661217,"{"class_title":"ทดสอบการสร้างห้องเรียน"}",::1
+158,"2025-11-04 14:49:19",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,SWITCH_ROLE,NULL,NULL,"{"from_role":"บุคลากร","to_role":"ผู้ดูแลระบบ"}",::1
+159,"2025-11-04 14:49:21",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,SWITCH_ROLE,NULL,NULL,"{"from_role":"ผู้ดูแลระบบ","to_role":"บุคลากร"}",::1
+160,"2025-11-04 14:49:24",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,SWITCH_ROLE,NULL,NULL,"{"from_role":"บุคลากร","to_role":"ผู้ดูแลระบบ"}",::1
+161,"2025-11-04 14:49:27",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,UPDATE_CLASS,CLASS,661217,"{"class_title":"ทดสอบการสร้างห้องเรียน"}",::1
+162,"2025-11-04 14:49:30",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,SWITCH_ROLE,NULL,NULL,"{"from_role":"ผู้ดูแลระบบ","to_role":"บุคลากร"}",::1
+163,"2025-11-04 14:49:33",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,REGISTER_CLASS,CLASS,661217,"{"class_title":"ทดสอบการสร้างห้องเรียน"}",::1
+164,"2025-11-04 14:49:35",133,"KANTAPHON PROMKAM",kantaphon.promkam@cmu.ac.th,CANCEL_CLASS_REGISTRATION,CLASS,661217,"{"class_title":"ทดสอบการสร้างห้องเรียน"}",::1

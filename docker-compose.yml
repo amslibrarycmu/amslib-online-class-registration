@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  mysql:
+    # Use the official MySQL image
+    image: mysql:8.0
+    container_name: amslib_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD} # ใช้รหัสผ่านจากไฟล์ .env
+      MYSQL_DATABASE: ${DB_DATABASE} # ใช้ชื่อฐานข้อมูลจากไฟล์ .env
+      MYSQL_USER: ${DB_USER} # ใช้ชื่อผู้ใช้จากไฟล์ .env
+      MYSQL_PASSWORD: ${DB_PASSWORD} # ใช้รหัสผ่านจากไฟล์ .env
+    ports:
+      - "3306:3306" # Map Port 3306 ของ Container ไปยัง Port 3306 ของ Host
+    volumes:
+      - mysql_data:/var/lib/mysql # เก็บข้อมูล MySQL อย่างถาวร
+      - ./backend/schema:/docker-entrypoint-initdb.d # Mount โฟลเดอร์ schema ทั้งหมด
+    healthcheck: # ตรวจสอบว่า MySQL พร้อมใช้งานก่อนที่ Backend จะเริ่ม
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      start_period: 10s # เพิ่ม start_period เพื่อให้ MySQL มีเวลาเริ่มทำงาน
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+  backend:
+    build:
+      context: . # กำหนด Context ในการ Build คือโฟลเดอร์หลักของโปรเจกต์
+      dockerfile: Dockerfile # ใช้ dockerfile ที่สร้างไว้ (ตัวพิมพ์เล็ก)
+    container_name: amslib_backend
+    ports:
+      - "5000:5000" # Map Port 5000 ของ Container ไปยัง Port 5000 ของ Host
+    environment:
+      NODE_ENV: production
+      DB_HOST: mysql # ชื่อ Service ของ MySQL Container
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      JWT_SECRET: ${JWT_SECRET}
+      EMAIL_SERVICE: ${EMAIL_SERVICE}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
+      EMAIL_AUTH_USER: ${EMAIL_AUTH_USER}
+      EMAIL_AUTH_PASS: ${EMAIL_AUTH_PASS}
+      MS_ENTRA_ID_CLIENT_ID: ${MS_ENTRA_ID_CLIENT_ID}
+      MS_ENTRA_ID_CLIENT_SECRET: ${MS_ENTRA_ID_CLIENT_SECRET}
+      MS_ENTRA_ID_TENANT_ID: ${MS_ENTRA_ID_TENANT_ID}
+      MS_ENTRA_ID_REDIRECT_URI: ${MS_ENTRA_ID_REDIRECT_URI}
+      FRONTEND_URL: http://localhost:5173 # เพิ่ม FRONTEND_URL สำหรับการ Redirect ใน auth.js
+    depends_on:
+      mysql:
+        condition: service_healthy # รอจนกว่า MySQL จะพร้อมใช้งาน
+    volumes:
+      - ./backend:/app/backend # Mount โค้ด Backend สำหรับการพัฒนา (Live Reload)
+      - /app/backend/node_modules # ป้องกันการทับซ้อนของ node_modules จาก Host
+    command: npm start # รันคำสั่ง start ที่กำหนดใน package.json ของ Backend
+
+volumes:
+  mysql_data: # กำหนด Named Volume สำหรับข้อมูล MySQLz:\Z-Working\Programming\GIT\AMSLIB-Course-Registration\amslib-online-class-registration\docker-compose.yml

@@ -9,7 +9,7 @@ module.exports = (
   sendRequestRejectedNotification
 ) => {
   // --- Activity Logs ---
-  router.get("/activity-logs", async (req, res) => {
+  router.get("/activity-logs", async (req, res, next) => {
     const { page = 1, limit = 25, search = "", actionType = "" } = req.query;
     const offset = (page - 1) * limit;
 
@@ -43,11 +43,11 @@ module.exports = (
       });
     } catch (err) {
       console.error("Error fetching activity logs:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err); // Pass error to the centralized handler
     }
   });
 
-  router.get("/activity-logs/all", async (req, res) => {
+  router.get("/activity-logs/all", async (req, res, next) => {
     const { search = "", actionType = "" } = req.query;
 
     let sql = "SELECT * FROM activity_logs";
@@ -75,24 +75,27 @@ module.exports = (
       return res.json(results);
     } catch (err) {
       console.error("Error fetching all activity logs for export:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err); // Pass error to the centralized handler
     }
   });
 
   // --- Class Requests (Admin) ---
-  router.get("/class-requests", async (req, res) => {
+  router.get("/class-requests", async (req, res, next) => {
     const { status, roles } = req.query;
-
+    // Use LEFT JOIN to ensure all requests are returned, even if the requesting user has been deleted.
+    // Use COALESCE to provide a fallback name if the user is not found.
+    // Aliased table columns to match the frontend's expected field names.
     let sql = `
       SELECT
-        r.request_id, r.title, r.reason, r.start_date, r.end_date, r.start_time,
-        r.end_time, r.format, r.suggested_speaker, r.request_date, r.status,
-        r.rejection_reason, r.approved_by, u_requester.id AS requested_by_id, 
-        u_requester.name AS requested_by_name, u_requester.email AS requested_by_email, 
-        u_admin.id as action_by_id, u_admin.name as action_by_name, u_admin.email as action_by_email
-      FROM requests r
-      JOIN users u_requester ON r.user_email = u_requester.email
-      LEFT JOIN users u_admin ON r.approved_by = u_admin.email
+        r.request_id, r.title, r.reason, r.start_date, r.end_date, r.start_time, r.created_at,
+        r.end_time, r.format, r.speaker, r.status, r.admin_comment,
+        u_requester.id AS requested_by_id,
+        COALESCE(u_requester.name, r.requested_by_name, r.requested_by_email) AS requested_by_name, 
+        r.requested_by_email, 
+        u_admin.name as action_by_name 
+      FROM class_requests r
+      LEFT JOIN users u_requester ON r.requested_by_email = u_requester.email
+      LEFT JOIN users u_admin ON r.action_by_email = u_admin.email
     `;
 
     const params = [];
@@ -102,7 +105,7 @@ module.exports = (
       params.push(status);
     }
 
-    sql += " ORDER BY r.request_date DESC";
+    sql += " ORDER BY r.created_at DESC";
 
     try {
       const [results] = await db.query(sql, params);
@@ -113,7 +116,7 @@ module.exports = (
     }
   });
 
-  router.post("/class-requests/:requestId", async (req, res) => {
+  router.post("/class-requests/:requestId", async (req, res, next) => {
     const { requestId } = req.params;
     const { action, reason, admin_email } = req.body; // รับ action จาก body
 
@@ -136,12 +139,12 @@ module.exports = (
             .json({ message: "Rejection reason is required." });
         }
         updateRequestSql =
-          "UPDATE requests SET status = ?, rejection_reason = ?, approved_by = ?, approval_date = NOW() WHERE request_id = ?";
-        updateParams = ["rejected", reason, admin_email, requestId];
+          "UPDATE class_requests SET status = 'rejected', admin_comment = ?, action_by_email = ?, action_at = NOW() WHERE request_id = ?";
+        updateParams = [reason, admin_email, requestId];
       } else {
         updateRequestSql =
-          "UPDATE requests SET status = ?, approved_by = ?, approval_date = NOW() WHERE request_id = ?";
-        updateParams = ["approved", admin_email, requestId];
+          "UPDATE class_requests SET status = 'approved', admin_comment = NULL, action_by_email = ?, action_at = NOW() WHERE request_id = ?";
+        updateParams = [admin_email, requestId];
       }
 
       const [updateResult] = await connection.query(
@@ -154,8 +157,8 @@ module.exports = (
 
       const getRequestSql = `
           SELECT r.*, u.name as requested_by_name 
-          FROM requests r 
-          JOIN users u ON r.user_email = u.email 
+          FROM class_requests r 
+          LEFT JOIN users u ON r.requested_by_email = u.email 
           WHERE r.request_id = ?
         `;
       const [requestResults] = await connection.query(getRequestSql, [
@@ -168,7 +171,7 @@ module.exports = (
 
       if (action === "approve") {
         await sendRequestApprovedNotification(
-          requestDetails.user_email,
+          requestDetails.requested_by_email,
           requestDetails
         );
         logActivity(
@@ -187,7 +190,7 @@ module.exports = (
         );
       } else {
         await sendRequestRejectedNotification(
-          requestDetails.user_email,
+          requestDetails.requested_by_email,
           requestDetails,
           reason
         );
@@ -199,7 +202,11 @@ module.exports = (
           "REJECT_CLASS_REQUEST",
           "REQUEST",
           requestId,
-          { request_title: requestDetails.title, rejected_by: req.user.email, reason }
+          {
+            request_title: requestDetails.title,
+            rejected_by: req.user.email,
+            reason,
+          }
         );
       }
 
@@ -209,17 +216,14 @@ module.exports = (
         .json({ message: `Request ${action}ed successfully.` });
     } catch (error) {
       await connection.rollback();
-      console.error(`Error ${action}ing class request:`, error);
-      res
-        .status(500)
-        .json({ message: "Database server error.", error: error.message });
+      next(error); // Pass error to the centralized handler
     } finally {
       connection.release();
     }
   });
 
   // --- Statistics ---
-  router.get("/statistics/class-demographics", async (req, res) => {
+  router.get("/statistics/class-demographics", async (req, res, next) => {
     const { year, month } = req.query;
     const params = [];
     const dateWhereClauses = [];
@@ -282,7 +286,8 @@ module.exports = (
       // 2. ประมวลผล Demographics
       const allEmails = new Set();
       rawClassStats.forEach((cls) => {
-        const registeredUsersEmails = JSON.parse(cls.registered_users || "[]");
+        // The mysql2 driver already parses the JSON column, so cls.registered_users is an array.
+        const registeredUsersEmails = cls.registered_users || [];
         registeredUsersEmails.forEach(allEmails.add, allEmails);
       });
 
@@ -294,15 +299,16 @@ module.exports = (
           Array.from(allEmails),
         ]);
         userRoles.forEach((user) => {
-          const roles = JSON.parse(user.roles || "[]");
-          userRoleMap[user.email] = roles.length > 0 ? roles[0] : "Unknown"; // ใช้ role แรก
+          // The mysql2 driver already parses the JSON column, so user.roles is an array.
+          userRoleMap[user.email] =
+            user.roles && user.roles.length > 0 ? user.roles[0] : "Unknown"; // ใช้ role แรก
         });
       }
 
       // 3. รวมข้อมูล Demographics เข้ากับสถิติห้องเรียน
       const classStatsWithDemographics = rawClassStats.map((cls) => {
         const demographics = {};
-        const registeredUsersEmails = JSON.parse(cls.registered_users || "[]");
+        const registeredUsersEmails = cls.registered_users || [];
         for (const email of registeredUsersEmails) {
           const role = userRoleMap[email];
           if (role) {
@@ -316,7 +322,7 @@ module.exports = (
       return res.json(classStatsWithDemographics);
     } catch (err) {
       console.error("❌ Error fetching class demographics statistics:", err);
-      return res.status(500).json({ message: "Database server error." });
+      next(err); // Pass error to the centralized handler
     }
   });
 

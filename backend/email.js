@@ -1,5 +1,4 @@
 const nodemailer = require("nodemailer");
-require("dotenv").config();
 
 async function createTransporter() {
   if (process.env.NODE_ENV !== "production") {

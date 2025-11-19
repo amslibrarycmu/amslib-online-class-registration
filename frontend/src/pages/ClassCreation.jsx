@@ -104,13 +104,17 @@ export default function ClassCreation() {
     newForm.append("max_participants", formData.max_participants);
     newForm.append("target_groups", JSON.stringify(formData.target_groups));
     newForm.append("created_by_email", user.email);
-
-    formData.files.forEach((file) => {
+  
+    // Append files: separate new files from existing file names
+    formData.materials.forEach((file) => {
       if (file instanceof File) {
+        // This is a new file to be uploaded
         newForm.append("files", file);
+      } else if (file && typeof file.name === 'string') {
+        // This is an existing file, just send its name
+        newForm.append("existingFiles", file.name); // Backend will receive this as existingFiles
       }
     });
-
     try {
       const res = await authFetch("http://localhost:5000/api/classes", {
         method: "POST",
@@ -356,8 +360,7 @@ export default function ClassCreation() {
           onClose={handleCloseModal}
           initialData={selectedClassToEdit}
           onSubmit={handleModalSubmit}
-          isEditing={false} // This component is only for creation
-          isDuplicating={mode === "duplicate" || mode === "fromRequest"}
+          mode={mode} // Pass the mode to the modal
         />
       )}
     </div>
