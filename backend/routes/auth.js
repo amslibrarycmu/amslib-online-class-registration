@@ -105,9 +105,14 @@ module.exports = (db, logActivity) => {
       const name = graphData.displayName || account.name;
 
       // Check if user exists in our database
-      const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
-        email,
-      ]);
+      const userQuery = `
+        SELECT u.*, ap.admin_level 
+        FROM users u
+        LEFT JOIN admin_permissions ap ON u.id = ap.user_id
+        WHERE u.email = ?
+      `;
+
+      const [users] = await db.query(userQuery, [email]);
 
       let user;
       if (users.length > 0) {
@@ -131,6 +136,7 @@ module.exports = (db, logActivity) => {
           email: user.email,
           name: user.name,
           roles: user.roles, 
+          admin_level: user.admin_level, // เพิ่ม admin_level เข้าไปใน Token
           profile_completed: !!user.profile_completed,
           // 🟢 ใส่ photo ลงไปใน Token เพื่อให้ Frontend จำค่าได้แม้จะ Refresh
           photo: user.photo, 
@@ -235,6 +241,7 @@ module.exports = (db, logActivity) => {
         name: name,
         roles: roles || [],
         profile_completed: true,
+        admin_level: null, // 🟢 ผู้ใช้ใหม่จะยังไม่มี level
         // 🟢 ใส่ photo เป็น null สำหรับ user ใหม่
         photo: null,
       };

@@ -1,130 +1,3 @@
--- ====================================================================================
--- ====================================================================================
--- AMSLIB Online Class Registration - Database Initialization Script
--- Version: Final & Simplified
--- Description: This script creates all necessary tables and inserts data directly
---              using INSERT statements to avoid all `LOAD DATA LOCAL INFILE` issues.
---              This is the single source of truth for database setup.
--- ====================================================================================
-
--- Step 0: Initial Setup
--- ------------------------------------------------------------------------------------
-SET FOREIGN_KEY_CHECKS = 0;
-SET NAMES 'utf8mb4';
-
--- Step 1: Create `users` table
--- ------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS `users`;
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `roles` json DEFAULT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
-  `photo` varchar(255) DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `pdpa` tinyint(1) DEFAULT 0,
-  `profile_completed` tinyint(1) DEFAULT 0,
-  `original_name` varchar(255) DEFAULT NULL,
-  `name_updated_by_user` tinyint(1) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Step 2: Create `classes` table
--- ------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS `classes`;
-CREATE TABLE `classes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `class_id` varchar(10) NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `speaker` json DEFAULT NULL,
-  `format` varchar(50) DEFAULT NULL,
-  `join_link` varchar(255) DEFAULT NULL,
-  `location` varchar(255) DEFAULT NULL,
-  `start_date` date DEFAULT NULL,
-  `end_date` date DEFAULT NULL,
-  `start_time` time DEFAULT NULL,
-  `end_time` time DEFAULT NULL,
-  `max_participants` int(11) DEFAULT 50,
-  `target_groups` json DEFAULT NULL,
-  `created_by_email` varchar(255) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `status` varchar(20) DEFAULT 'open',
-  `promoted` tinyint(1) DEFAULT 0,
-  `video_link` varchar(255) DEFAULT NULL,
-  `materials` json DEFAULT NULL,
-  `registered_users` json DEFAULT NULL,
-  `reminder_sent` tinyint(1) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `class_id` (`class_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Step 3: Create `class_requests` table
--- ------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS `class_requests`;
-CREATE TABLE `class_requests` (
-  `request_id` int(11) NOT NULL AUTO_INCREMENT,
-  `title` varchar(255) NOT NULL,
-  `speaker` varchar(255) DEFAULT NULL,
-  `format` varchar(50) DEFAULT NULL,
-  `start_date` date DEFAULT NULL,
-  `end_date` date DEFAULT NULL,
-  `start_time` time DEFAULT NULL,
-  `end_time` time DEFAULT NULL,
-  `reason` text DEFAULT NULL,
-  `status` varchar(20) DEFAULT 'pending',
-  `requested_by_email` varchar(255) NOT NULL,
-  `requested_by_name` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `admin_comment` text DEFAULT NULL,
-  `action_by_email` varchar(255) DEFAULT NULL,
-  `action_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`request_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Step 4: Create `evaluations` table
--- ------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS `evaluations`;
-CREATE TABLE `evaluations` (
-  `evaluation_id` int(11) NOT NULL AUTO_INCREMENT,
-  `class_id` varchar(10) NOT NULL,
-  `user_email` varchar(255) NOT NULL,
-  `score_content` int(11) DEFAULT NULL,
-  `score_material` int(11) DEFAULT NULL,
-  `score_duration` int(11) DEFAULT NULL,
-  `score_format` int(11) DEFAULT NULL,
-  `score_speaker` int(11) DEFAULT NULL,
-  `comments` text DEFAULT NULL,
-  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`evaluation_id`),
-  UNIQUE KEY `class_user_unique` (`class_id`,`user_email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Step 5: Create `activity_logs` table
--- ------------------------------------------------------------------------------------
-DROP TABLE IF EXISTS `activity_logs`;
-CREATE TABLE `activity_logs` (
-  `log_id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` int(11) DEFAULT NULL,
-  `user_name` varchar(255) DEFAULT NULL,
-  `user_email` varchar(255) DEFAULT NULL,
-  `action_type` varchar(50) NOT NULL,
-  `target_type` varchar(50) DEFAULT NULL,
-  `target_id` varchar(255) DEFAULT NULL,
-  `details` json DEFAULT NULL,
-  `ip_address` varchar(45) DEFAULT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`log_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Step 6: Insert data directly
--- ------------------------------------------------------------------------------------
--- Data for `users` table
 INSERT INTO `users` (`id`, `name`, `email`, `roles`, `is_active`, `phone`, `pdpa`, `photo`, `profile_completed`, `original_name`, `name_updated_by_user`, `created_at`, `updated_at`) VALUES
 (1,'ขนิษฐา วงค์ลังกา','k.wonglangka@gmail.com','["บุคลากร"]',0,'0984473082',1,NULL,0,'ขนิษฐา วงค์ลังกา',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (2,'ณัฐสุขา หรินทรเวช','natsucha_h@cmu.ac.th','["นักศึกษาบัณฑิต"]',0,'0649635453',1,NULL,0,'ณัฐสุขา หรินทรเวช',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
@@ -259,8 +132,6 @@ INSERT INTO `users` (`id`, `name`, `email`, `roles`, `is_active`, `phone`, `pdpa
 (131,'ปวีณา อินทราพงษ์','paweena.i@email.com','["บุคลากร"]',0,NULL,1,NULL,0,'ปวีณา อินทราพงษ์',0,'2025-09-16 17:44:29','2025-10-24 14:45:21'),
 (132,'สิรินภา ครีบผา','sirinapa.kr@email.com','["บุคลากร"]',0,NULL,1,NULL,0,'สิรินภา ครีบผา',0,'2025-09-16 17:46:28','2025-10-24 14:45:21');
 
--- Data for `classes` table
--- (Data from classes.csv would be inserted here)
 INSERT INTO `classes` (`id`, `class_id`, `title`, `description`, `speaker`, `format`, `join_link`, `location`, `start_date`, `end_date`, `start_time`, `end_time`, `max_participants`, `target_groups`, `created_by_email`, `created_at`, `status`, `promoted`, `video_link`, `materials`, `registered_users`, `reminder_sent`) VALUES
 (1, '165741', 'การนำเสนอข้อมูลด้วย Power BI', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2022-08-17', '2022-08-17', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["natsucha_h@cmu.ac.th","sawitree.sri@cmu.ac.th"]', 0),
 (2, '937620', 'การนำเสนอข้อมูลด้วย Power BI', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2022-09-20', '2022-09-20', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["Phattarawadeeinnuan@gmail.com","thunsinee_nga@cmu.ac.th"]', 0),
@@ -324,7 +195,6 @@ INSERT INTO `classes` (`id`, `class_id`, `title`, `description`, `speaker`, `for
 (60, '150405', 'Information Seeking : การค้นหาหนังสืออิเล็กทรอนิกส์ บทความ งานวิจัย และวิทยานิพนธ์จากฐานข้อมูลอิเล็กทรอนิกส์', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2025-07-21', '2025-07-21', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["nida.b@cmu.ac.th"]', 0),
 (61, '150138', 'EndNote 21 : โปรแกรมจัดการบรรณานุกรมสำเร็จรูปและการเขียนอ้างอิงเอกสารทางวิชาการ', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2025-07-29', '2025-07-29', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["lalisa.w@cmu.ac.th","patitta.pt@cmu.ac.th","jittraporn.c@email.com"]', 0);
 
--- Data for `evaluations` table
 INSERT INTO `evaluations` (`evaluation_id`, `class_id`, `user_email`, `score_content`, `score_material`, `score_duration`, `score_format`, `score_speaker`, `comments`, `submitted_at`) VALUES
 (1,'100507','napatpakcp@gmail.com',5,5,5,5,5,NULL,'2025-09-16 17:35:35'),
 (2,'100507','pwyx2002@gmail.com',4,3,4,2,4,NULL,'2025-09-16 17:35:35'),
@@ -401,9 +271,3 @@ INSERT INTO `evaluations` (`evaluation_id`, `class_id`, `user_email`, `score_con
 (73,'988615','mallika.k@cmu.ac.th',5,5,5,5,5,NULL,'2025-09-16 17:35:35'),
 (74,'988615','jittraporn.c@email.com',5,5,5,5,5,NULL,'2025-09-16 17:35:35');
 
--- Data for `class_requests` table
--- (requests.csv is empty, so no data to insert)
-
--- Step 7: Finalization
--- ------------------------------------------------------------------------------------
-SET FOREIGN_KEY_CHECKS = 1; -- เปิด FK check กลับคืน

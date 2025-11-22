@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import ProfilePictureModal from "./ProfilePictureModal";
 
 import amsliblogo from "../assets/amslib-logo.svg";
 import profile from "../assets/abstract-user.png";
@@ -57,7 +56,6 @@ export default function Sidebar() {
   } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [imageVersion, setImageVersion] = useState(Date.now());
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // --- State ใหม่สำหรับรูป Preview ชั่วคราว ---
   const [localPreview, setLocalPreview] = useState(null);
@@ -89,21 +87,6 @@ export default function Sidebar() {
   useEffect(() => {
     if (user?.photo) setImageVersion(Date.now());
   }, [user?.photo]);
-
-  const handleProfileUpdate = (updatedUser, updatedToken, previewUrl) => {
-    login(updatedUser, updatedToken);
-    
-    if (previewUrl) {
-      // ถ้ามีรูปใหม่ที่เพิ่ง crop ให้แสดงทันที
-      setLocalPreview(previewUrl);
-    } else {
-      // ถ้าเป็นกรณีลบรูป (previewUrl = null) ให้เคลียร์ preview
-      setLocalPreview(null);
-    }
-
-    // อัปเดต version เผื่อไว้สำหรับตอนโหลดใหม่
-    setImageVersion(Date.now());
-  };
 
   const handleRoleSwitch = () => {
     if (!user?.roles || user.roles.length <= 1) return;
@@ -141,12 +124,6 @@ export default function Sidebar() {
 
   return (
     <>
-      <ProfilePictureModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        onUpdateSuccess={handleProfileUpdate}
-      />
-
       {/* Mobile Toggle Button */}
       <button
         className="lg:hidden fixed top-4 left-4 z-30 p-2 bg-white rounded-full shadow-lg"
@@ -189,10 +166,7 @@ export default function Sidebar() {
             AMS Library Class Registration System (HSL KM)
           </p>
           <div className="flex items-center justify-center gap-[15px] my-[10px]">
-            <div
-              className="relative group cursor-pointer"
-              onClick={() => setIsProfileModalOpen(true)}
-            >
+            <div className="relative">
               <img
                 key={localPreview || imageVersion} // บังคับวาดใหม่ถ้า preview หรือ version เปลี่ยน
                 src={displayImageSrc}
@@ -206,9 +180,6 @@ export default function Sidebar() {
                   if (localPreview) setLocalPreview(null);
                 }}
               />
-              <div className="absolute inset-0 bg-black bg-opacity-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-opacity-50 transition-all duration-300">
-                <CameraIcon />
-              </div>
             </div>
 
             <div className="flex flex-col text-start px-0 grow text-black">
