@@ -39,6 +39,9 @@ const EvaluationResultsModal = ({
               <table className="min-w-full bg-white border border-gray-200 shadow-lg">
                 <thead className="bg-gray-100">
                   <tr>
+                    {/* <th className="px-6 py-3 text-left text-md font-medium text-black uppercase tracking-wider">
+                      ชื่อ-สกุล
+                    </th> */}
                     {scoreHeaders.map((header, index) => (
                       <th
                         key={index}
@@ -52,6 +55,9 @@ const EvaluationResultsModal = ({
                 <tbody className="divide-y divide-gray-200">
                   {evaluations.map((evaluation, index) => (
                     <tr key={index} className="hover:bg-gray-50">
+                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">
+                        {evaluation.name}
+                      </td> */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-black text-center">
                         {evaluation.score_content}
                       </td>

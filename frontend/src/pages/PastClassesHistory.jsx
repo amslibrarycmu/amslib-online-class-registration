@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import FileViewerModal from "../components/FileViewerModal";
-import EvaluationModal from "../components/EvaluationModal"; // 1. Import the new modal
+import EvaluationModal from "../components/EvaluationModal";
 
 const PastClassesHistory = () => {
   const { user, authFetch } = useAuth(); // Use authFetch

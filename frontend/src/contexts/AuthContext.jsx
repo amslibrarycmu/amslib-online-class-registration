@@ -1,3 +1,17 @@
+// ในไฟล์ AuthContext.jsx
+const login = (userData, token, initialRole = null) => {
+  // ... (โค้ดเดิมของคุณ)
+  setUser(userData);
+  setToken(token);
+  localStorage.setItem("token", token);
+
+  // --- ส่วนที่แก้ไข ---
+  // ใช้ initialRole ที่ส่งเข้ามา หรือถ้าไม่มี ก็ใช้บทบาทแรกเป็นค่าเริ่มต้น
+  const roleToActivate = initialRole || (userData.roles && userData.roles[0]) || null;
+  setActiveRole(roleToActivate);
+  localStorage.setItem("activeRole", roleToActivate);
+  // --- จบส่วนที่แก้ไข ---
+};
 import React, {
   createContext,
   useState,
@@ -40,19 +54,25 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = useCallback((userData, newUserToken) => {
+  const login = useCallback((userData, newToken, initialRole = null) => {
     const roleToSet =
-      userData.roles && userData.roles.length > 0 ? userData.roles[0] : null;
-    const tokenToSet = newUserToken || token; // Use new token if provided, otherwise keep the old one
-
+      initialRole && userData.roles?.includes(initialRole)
+        ? initialRole
+        : userData.roles?.[0] || null;
+  
     setUser(userData);
-    setToken(tokenToSet);
     setActiveRole(roleToSet);
-
     localStorage.setItem("user", JSON.stringify(userData));
-    localStorage.setItem("token", tokenToSet);
+  
+    // Use functional update for setToken to ensure we always have the latest state
+    setToken((prevToken) => {
+      const tokenToSet = newToken || prevToken;
+      localStorage.setItem("token", tokenToSet);
+      return tokenToSet;
+    });
+  
     localStorage.setItem("activeRole", roleToSet);
-  }, [token]); // Add token to dependency array
+  }, []);
 
   const setNewUserTempData = useCallback((data, tempToken) => {
     setNewUserTempDataState({ ...data, tempToken });

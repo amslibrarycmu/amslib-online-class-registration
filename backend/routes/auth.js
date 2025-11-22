@@ -83,26 +83,16 @@ module.exports = (db, logActivity) => {
       }
 
       const responseText = await graphResponse.text();
-
-      // --- 🟡 เพิ่ม LOG เพื่อดักจับตัวร้าย ---
-      console.log("DEBUG: Status Code:", graphResponse.status);
-      console.log(
-        "DEBUG: Response Body (First 100 chars):",
-        responseText.substring(0, 100)
-      );
-      // ------------------------------------
-
       let graphData;
 
       try {
         graphData = JSON.parse(responseText);
       } catch (e) {
         console.error("--- ERROR: FAILED TO PARSE MS GRAPH API RESPONSE ---");
-        console.error("Status Code:", graphResponse.status); // ดู Status code
-        console.error("Full Response Text:", responseText); // ดูข้อความเต็มๆ ว่า "บ..." คืออะไร
+        console.error("Status Code:", graphResponse.status);
+        console.error("Full Response Text:", responseText);
         console.error("--- END OF MS GRAPH API RESPONSE ---");
 
-        // ส่ง Error กลับไปแบบจัดการได้ แทนที่จะปล่อยให้ Server Crash
         return res.redirect(
           `${frontendUrl}/login?error=${encodeURIComponent(
             "Microsoft Graph Error: " + responseText.substring(0, 50)
@@ -111,8 +101,7 @@ module.exports = (db, logActivity) => {
       }
 
       // Use the standard fields from the Microsoft Graph API response
-      const email =
-        graphData.mail || graphData.userPrincipalName || account.username;
+      const email = graphData.mail || graphData.userPrincipalName || account.username;
       const name = graphData.displayName || account.name;
 
       // Check if user exists in our database
@@ -123,9 +112,16 @@ module.exports = (db, logActivity) => {
       let user;
       if (users.length > 0) {
         user = users[0];
-        // The mysql2 driver automatically parses JSON columns, so user.roles is already an array.
-        if (!Array.isArray(user.roles)) {
-          user.roles = [];
+        
+        // Handle roles parsing safely
+        if (typeof user.roles === 'string') {
+            try {
+                user.roles = JSON.parse(user.roles || "[]");
+            } catch (e) {
+                user.roles = [];
+            }
+        } else if (!Array.isArray(user.roles)) {
+            user.roles = [];
         }
 
         // --- Existing User Flow ---
@@ -134,8 +130,10 @@ module.exports = (db, logActivity) => {
           id: user.id,
           email: user.email,
           name: user.name,
-          roles: user.roles, // Use the user.roles array that was already parsed
-          profile_completed: !!user.profile_completed, // Ensure this is a boolean
+          roles: user.roles, 
+          profile_completed: !!user.profile_completed,
+          // 🟢 ใส่ photo ลงไปใน Token เพื่อให้ Frontend จำค่าได้แม้จะ Refresh
+          photo: user.photo, 
         };
         const appToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, {
           expiresIn: "1d",
@@ -160,17 +158,15 @@ module.exports = (db, logActivity) => {
         );
       } else {
         // --- New User Flow ---
-        // Don't create in DB yet. Create a temporary token.
         const tempPayload = {
           email,
           name,
-          is_temporary: true, // Flag to indicate this is a temporary token
+          is_temporary: true, 
         };
         const tempToken = jwt.sign(tempPayload, process.env.JWT_SECRET, {
-          expiresIn: "15m", // Short-lived token for completing registration
+          expiresIn: "15m", 
         });
 
-        // Redirect to the callback page with the temporary token
         return res.redirect(
           `${frontendUrl}/login-callback?temp_token=${tempToken}`
         );
@@ -190,7 +186,6 @@ module.exports = (db, logActivity) => {
     }
 
     try {
-      // 1. Verify the temporary token
       const decoded = jwt.verify(temp_token, process.env.JWT_SECRET);
       if (!decoded.is_temporary) {
         return res.status(403).json({ message: "Invalid token type." });
@@ -198,7 +193,6 @@ module.exports = (db, logActivity) => {
 
       const { email, name } = decoded;
 
-      // 2. Check if user has been created in the meantime
       const [existingUsers] = await db.query(
         "SELECT id FROM users WHERE email = ?",
         [email]
@@ -207,22 +201,20 @@ module.exports = (db, logActivity) => {
         return res.status(409).json({ message: "User already exists." });
       }
 
-      // 3. Create the new user in the database
       const newUser = {
         email,
         name,
-        original_name: name, // Set original_name to the name from CMU OAuth
+        original_name: name, 
         roles: JSON.stringify(roles || []),
         phone: phone || null,
         pdpa: pdpa ? 1 : 0,
         is_active: true,
-        profile_completed: true, // Profile is complete upon creation
+        profile_completed: true, 
       };
 
       const [result] = await db.query("INSERT INTO users SET ?", newUser);
       const newUserId = result.insertId;
 
-      // 4. Log the registration activity
       logActivity(
         req,
         newUserId,
@@ -243,16 +235,17 @@ module.exports = (db, logActivity) => {
         name: name,
         roles: roles || [],
         profile_completed: true,
+        // 🟢 ใส่ photo เป็น null สำหรับ user ใหม่
+        photo: null,
       };
       const finalToken = jwt.sign(finalPayload, process.env.JWT_SECRET, {
         expiresIn: "1d",
       });
 
-      // 6. Send back the final token and user data
       res.status(201).json({
         message: "User registered successfully.",
         token: finalToken,
-        user: finalPayload, // Send user payload back to frontend
+        user: finalPayload, 
       });
     } catch (error) {
       console.error("Error during registration completion:", error);

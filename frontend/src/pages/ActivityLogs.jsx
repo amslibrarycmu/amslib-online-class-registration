@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
-
 import UserDetailsModal from "../components/UserDetailsModal";
 // Constants for action types
 const ACTION_TYPE_LABELS = {
@@ -48,6 +47,7 @@ const ActivityLogs = () => {
   const [actionTypeFilter, setActionTypeFilter] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
 
   useEffect(() => {
     // This effect should only handle redirection, not fetching.
@@ -104,22 +104,15 @@ const ActivityLogs = () => {
         }
 
         const query = new URLSearchParams({
-          page: pageNum,
-          limit,
-          search: currentSearch,
-          actionType: currentActionType,
+          page: pageNum, limit, search: currentSearch, actionType: currentActionType,
         }).toString();
-        const response = await authFetch(
-          `http://localhost:5000/api/admin/activity-logs?${query}`
-        );
-        if (!response.ok)
-          throw new Error("ไม่สามารถดึงข้อมูลประวัติการใช้งานได้");
+        const response = await authFetch(`http://localhost:5000/api/admin/activity-logs?${query}`);
+        if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลประวัติการใช้งานได้");
         const data = await response.json();
         setTotalLogs(data.total);
         if (pageNum === 1) setLogs(data.logs);
         else setLogs((prevLogs) => [...prevLogs, ...data.logs]);
-        if (data.logs.length < limit || pageNum * limit >= data.total)
-          setHasMore(false);
+        if (data.logs.length < limit || pageNum * limit >= data.total) setHasMore(false);
       } catch (error) {
         console.error("Error fetching activity logs:", error);
         alert(error.message);
@@ -140,9 +133,7 @@ const ActivityLogs = () => {
     if (!userId) return;
     try {
       setLoading(true);
-      const response = await authFetch(
-        `http://localhost:5000/api/users/${userId}`
-      );
+      const response = await authFetch(`http://localhost:5000/api/users/${userId}`);
       if (!response.ok) {
         throw new Error("ไม่พบข้อมูลผู้ใช้");
       }

@@ -185,19 +185,6 @@ const verifyToken = (req, res, next) => {
     }
     req.user = user; // Attach user payload to the request object
 
-    // Enforce profile completion for all protected routes except the update-profile route itself
-    // and the logout route.
-    if (
-      !user.profile_completed &&
-      req.originalUrl !== "/api/users/update-profile" &&
-      req.originalUrl !== "/api/auth/logout"
-    ) {
-      return res.status(403).json({
-        message: "Forbidden: Profile not completed.",
-        code: "PROFILE_INCOMPLETE",
-      });
-    }
-
     next();
   });
 };

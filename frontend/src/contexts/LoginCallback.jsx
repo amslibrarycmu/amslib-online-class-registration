@@ -27,10 +27,19 @@ const LoginCallback = () => {
         );
         const userPayload = JSON.parse(jsonPayload);
 
-        login(userPayload, token);
-        
-        // Redirect based on role
-        if (Array.isArray(userPayload.roles) && userPayload.roles.includes("ผู้ดูแลระบบ")) {
+        // Determine the initial active role. Prioritize 'ผู้ดูแลระบบ'.
+        let initialActiveRole = userPayload.roles?.[0] || null;
+        const isAdmin = Array.isArray(userPayload.roles) && userPayload.roles.includes("ผู้ดูแลระบบ");
+
+        if (isAdmin) {
+          initialActiveRole = "ผู้ดูแลระบบ";
+        }
+
+        // Login with the determined initial active role
+        login(userPayload, token, initialActiveRole);
+
+        // Redirect based on the determined role
+        if (isAdmin) {
           navigate("/index", { replace: true });
         } else {
           navigate("/classes", { replace: true });

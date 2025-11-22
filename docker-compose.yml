@@ -53,7 +53,9 @@ services:
     volumes:
       - ./backend:/app/backend # Mount โค้ด Backend สำหรับการพัฒนา (Live Reload)
       - /app/backend/node_modules # ป้องกันการทับซ้อนของ node_modules จาก Host
+      # 🟢 เพิ่มบรรทัดนี้เพื่อล็อคโฟลเดอร์ uploads ให้คงอยู่ถาวร
+      - ./backend/uploads:/app/backend/uploads
     command: npm start # รันคำสั่ง start ที่กำหนดใน package.json ของ Backend
 
 volumes:
-  mysql_data: # กำหนด Named Volume สำหรับข้อมูล MySQLz:\Z-Working\Programming\GIT\AMSLIB-Course-Registration\amslib-online-class-registration\docker-compose.yml
+  mysql_data: # กำหนด Named Volume สำหรับข้อมูล MySQL

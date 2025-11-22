@@ -10,12 +10,17 @@ function serveProtectedFile(req, res, next) {
     return res.status(400).send("Invalid filename.");
   }
 
+  // 🔴 แก้ไขตรงนี้ครับ: ลด .. เหลือตัวเดียว เพื่อให้อยู่ใน backend/uploads
+  // จากเดิม: path.join(__dirname, "..", "..", "uploads", filename);
+  
+  // ✅ เปลี่ยนเป็น:
   const filePath = path.join(__dirname, "..", "uploads", filename);
 
   // Check if file exists
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {
+    console.error(`File not found at: ${filePath}`); // เพิ่ม log ช่วยดู
     res.status(404).send("File not found.");
   }
 }
@@ -286,6 +291,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
 
   // PUT /api/users/profile-picture - อัปเดตรูปโปรไฟล์
   router.put("/profile-picture", upload.single("photo"), async (req, res) => {
+    const jwt = require("jsonwebtoken");
     const { email } = req.body;
     const photo = req.file ? req.file.filename : null;
 
@@ -293,7 +299,8 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       return res.status(400).json({ message: "Email and photo are required." });
     }
 
-    const sql = "UPDATE users SET photo = ? WHERE email = ?";
+    // Also update profile_completed status to true when a photo is uploaded.
+    const sql = "UPDATE users SET photo = ?, profile_completed = 1 WHERE email = ?";
     try {
       const [result] = await db.query(sql, [photo, email]);
       if (result.affectedRows === 0) {
@@ -305,12 +312,24 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       });
 
       const [users] = await db.query(
-        "SELECT id, name, roles, email, phone, pdpa, is_active, photo FROM users WHERE email = ?",
+        "SELECT * FROM users WHERE email = ?",
         [email]
       );
-      // No need to parse roles
       const updatedUser = users[0];
-      res.status(200).json(updatedUser);
+
+      // Issue a new token with the updated profile_completed status
+      const newPayload = {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        roles: updatedUser.roles || [],
+        profile_completed: true, // Explicitly set to true
+      };
+      const newToken = jwt.sign(newPayload, process.env.JWT_SECRET, {
+        expiresIn: "1d",
+      });
+
+      res.status(200).json({ user: updatedUser, token: newToken });
     } catch (err) {
       console.error("Error updating profile picture:", err);
       return res.status(500).json({ message: "Database error." });
@@ -319,6 +338,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
 
   // DELETE /api/users/profile-picture - ลบรูปโปรไฟล์
   router.delete("/profile-picture", async (req, res) => {
+    const jwt = require("jsonwebtoken");
     const { email } = req.query; // Changed from req.body to req.query
     if (!email) {
       return res.status(400).json({ message: "Email is required." });
@@ -347,12 +367,24 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       }
 
       const [users] = await db.query(
-        "SELECT id, name, roles, email, phone, pdpa, is_active, photo FROM users WHERE email = ?",
+        "SELECT * FROM users WHERE email = ?",
         [email]
       );
-      // No need to parse roles
       const updatedUser = users[0];
-      res.status(200).json(updatedUser);
+
+      // Issue a new token with the updated user data (photo is now null)
+      const newPayload = {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        roles: updatedUser.roles || [],
+        profile_completed: updatedUser.profile_completed, // Use the current value from DB
+      };
+      const newToken = jwt.sign(newPayload, process.env.JWT_SECRET, {
+        expiresIn: "1d",
+      });
+
+      res.status(200).json({ user: updatedUser, token: newToken });
     } catch (err) {
       console.error("Error deleting profile picture:", err);
       return res.status(500).json({ message: "Database error." });
