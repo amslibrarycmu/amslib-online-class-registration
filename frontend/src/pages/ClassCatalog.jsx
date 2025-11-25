@@ -247,6 +247,10 @@ const ClassCatalog = () => {
     return classes; // 'all'
   };
 
+  // --- คำนวณจำนวนรายการสำหรับแต่ละ Tab ---
+  const availableCount = classes.filter(cls => !isUserRegistered(cls) && (cls.max_participants === 999 || cls.registered_users.length < cls.max_participants)).length;
+  const registeredCount = classes.filter(isUserRegistered).length;
+
   const classMap = classes.reduce((acc, cls) => {
     acc[cls.class_id] = cls;
     return acc;
@@ -258,20 +262,6 @@ const ClassCatalog = () => {
   };
 
   const filteredClasses = getFilteredClasses();
-
-  const renderNavButton = (key, label) => (
-    <button
-      key={key}
-      onClick={() => setFilter(key)}
-      className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
-        filter === key
-          ? "bg-purple-600 text-white"
-          : "bg-white text-gray-700 hover:bg-gray-200"
-      }`}
-    >
-      {label}
-    </button>
-  );
 
   return (
     <div className="w-screen flex flex-col lg:flex-row">
@@ -302,28 +292,29 @@ const ClassCatalog = () => {
           ห้องเรียน
         </h1>
 
-        <div className="mb-6 flex justify-between items-center gap-4">
-          {/* Filter Buttons */}
-          <div className="p-2 bg-gray-200 rounded-lg inline-flex space-x-2 flex-shrink-0">
-            {renderNavButton("all", "ทั้งหมด")}
-            {renderNavButton("available", "ลงทะเบียนได้")}
-            {renderNavButton("registered", "ลงทะเบียนแล้ว")}
-          </div>
-
-          {/* Bulk Register Button for Desktop */}
-          {selectedClasses.length > 0 && (
-            <div className="hidden lg:block">
-              <button
-                onClick={handleBulkRegister}
-                disabled={isBulkRegistering}
-                className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait"
-              >
-                {isBulkRegistering
-                  ? "กำลังลงทะเบียน..."
-                  : `ลงทะเบียน ${selectedClasses.length} ห้องเรียนที่เลือก`}
+        {/* --- TABS --- */}
+        <div className="border-b border-gray-200 mb-6">
+          <div className="flex justify-between items-center">
+            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+              <button onClick={() => setFilter('all')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filter === 'all' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                ทั้งหมด ({classes.length})
               </button>
-            </div>
-          )}
+              <button onClick={() => setFilter('available')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filter === 'available' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                ลงทะเบียนได้ ({availableCount})
+              </button>
+              <button onClick={() => setFilter('registered')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filter === 'registered' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                ลงทะเบียนแล้ว ({registeredCount})
+              </button>
+            </nav>
+            {/* Bulk Register Button for Desktop */}
+            {selectedClasses.length > 0 && (
+              <div className="hidden lg:block">
+                <button onClick={handleBulkRegister} disabled={isBulkRegistering} className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait">
+                  {isBulkRegistering ? "กำลังลงทะเบียน..." : `ลงทะเบียน ${selectedClasses.length} ห้องเรียนที่เลือก`}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {loading && <p>Loading classes...</p>}

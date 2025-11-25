@@ -155,10 +155,19 @@ module.exports = (db, logActivity, adminOnly, upload) => {
   // --- 🟢 ZONE 2: General Routes 🟢 ---
 
   // GET /api/users (All)
-  router.get("/", adminOnly, async (req, res) => {
-    const sql = "SELECT id, name, email, roles, is_active, photo, phone, pdpa, created_at, updated_at FROM users";
+  router.get("/", requireAdminLevel(3), async (req, res) => {
+    const { search = "" } = req.query;
+    let sql = "SELECT id, name, email, roles, is_active, photo, phone, pdpa, created_at, updated_at FROM users";
+    const params = [];
+
+    if (search) {
+      // 🟢 แก้ไข: ใช้ LIKE สำหรับการค้นหาทั้งชื่อและอีเมล
+      sql += " WHERE name LIKE ? OR email LIKE ?";
+      params.push(`${search}%`, `${search}%`);
+    }
+    sql += " ORDER BY name ASC";
     try {
-      const [results] = await db.query(sql);
+      const [results] = await db.query(sql, params);
       res.json(results);
     } catch (err) {
       console.error("Error fetching users:", err);

@@ -12,6 +12,7 @@ const Statistics = () => {
 
   const [selectedYear, setSelectedYear] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState("all");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [triggerSearchTerm, setTriggerSearchTerm] = useState("");
 

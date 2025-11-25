@@ -533,9 +533,10 @@ const AdminClassRequests = () => {
                           {request.status === "rejected" &&
                             request.rejection_reason && (
                               <button
-                                onClick={() =>
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   handleViewReason(request.rejection_reason)
-                                }
+                                }}
                                 className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
                                 title="ดูเหตุผลที่ไม่อนุมัติ"
                               >
@@ -644,9 +645,10 @@ const AdminClassRequests = () => {
                       {request.status === "rejected" &&
                         request.rejection_reason && (
                           <button
-                            onClick={() =>
+                            onClick={(e) => {
+                              e.stopPropagation();
                               handleViewReason(request.rejection_reason)
-                            }
+                            }}
                             className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
                             title="ดูเหตุผลที่ไม่อนุมัติ"
                           >
@@ -693,7 +695,7 @@ const AdminClassRequests = () => {
                           handleAction(request.request_id, "approve")
                         }
                         className="flex items-center gap-1 bg-green-500 text-white font-semibold py-2 px-3 rounded-md hover:bg-green-600 transition-colors"
-                        title="อนุมัติ"
+                        title="อนุมัติ" // This button does not need focus:outline-none as it's a larger, primary action button.
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -716,7 +718,7 @@ const AdminClassRequests = () => {
                           handleAction(request.request_id, "reject")
                         }
                         className="flex items-center gap-1 bg-red-500 text-white font-semibold py-2 px-3 rounded-md hover:bg-red-600 transition-colors"
-                        title="ปฏิเสธ"
+                        title="ปฏิเสธ" // This button also does not need it.
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

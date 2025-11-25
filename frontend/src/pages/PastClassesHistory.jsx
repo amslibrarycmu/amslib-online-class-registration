@@ -135,7 +135,7 @@ const PastClassesHistory = () => {
                             {!evaluatedClasses.has(cls.class_id) ? (
                               <button
                                 title="ตอบแบบประเมินความพึงพอใจ"
-                                className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold py-2 px-3 rounded-md transition-colors"
+                                className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold py-2 px-3 rounded-md transition-colors focus:outline-none"
                                 onClick={() => handleOpenEvalModal(cls)}
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -153,7 +153,7 @@ const PastClassesHistory = () => {
                             <button
                               title="ดูไฟล์"
                               disabled={!cls.materials || cls.materials.length === 0}
-                              className="text-green-600 hover:text-green-800 p-2 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                              className="text-green-600 hover:text-green-800 p-2 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed transition-colors focus:outline-none"
                               onClick={() => handleViewFiles(cls.materials, cls.title)}
                             >
                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -163,7 +163,7 @@ const PastClassesHistory = () => {
                             <button
                               title="ดูวิดีโอย้อนหลัง"
                               disabled={!cls.video_link}
-                              className="text-purple-600 hover:text-purple-800 p-2 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                              className="text-purple-600 hover:text-purple-800 p-2 rounded-full disabled:text-gray-300 disabled:cursor-not-allowed transition-colors focus:outline-none"
                               onClick={() => window.open(cls.video_link, "_blank")}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">

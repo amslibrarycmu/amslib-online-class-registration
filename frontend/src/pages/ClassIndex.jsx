@@ -416,7 +416,7 @@ const ClassIndex = () => {
 
                     <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-200">
                       <button
-                        title="ดูรายชื่อผู้ลงทะเบียน"
+                        title="ดูรายชื่อผู้ลงทะเบียน" // Icon buttons generally don't need focus removal unless specified
                         className="text-green-600 hover:text-green-800 rounded-full p-1"
                         onClick={() => handleOpenRegistrantsModal(cls)}
                       >
@@ -436,7 +436,7 @@ const ClassIndex = () => {
                         </svg>
                       </button>
                       <button
-                        title="แก้ไข"
+                        title="แก้ไข" // Icon buttons
                         className="text-blue-600 hover:text-blue-800 rounded-full p-1"
                         onClick={() => handleEditClick(cls)}
                       >
@@ -455,7 +455,7 @@ const ClassIndex = () => {
                         </svg>
                       </button>
                       <button
-                        title="ลบ"
+                        title="ลบ" // Icon buttons
                         className="text-red-600 hover:text-red-800 rounded-full p-1"
                         onClick={() => handleDeleteClick(cls.class_id)}
                       >
@@ -499,7 +499,7 @@ const ClassIndex = () => {
                       </label>
                       <button
                         title="จบการสอน"
-                        className="ml-auto bg-amber-500 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded"
+                        className="ml-auto bg-amber-500 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded focus:outline-none"
                         onClick={() => handleOpenCloseClassModal(cls)}
                       >
                         จบการสอน
@@ -549,7 +549,7 @@ const ClassIndex = () => {
                   onClick={() =>
                     setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                   }
-                  className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                  className="p-2 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors focus:outline-none"
                   title="สลับทิศทางการเรียง"
                 >
                   {sortOrder === "asc" ? "▲" : "▼"}
@@ -608,7 +608,7 @@ const ClassIndex = () => {
 
                     <div className="flex items-center mt-4 pt-4 border-t border-gray-200">
                       <button
-                        title="ดูรายชื่อผู้ลงทะเบียน"
+                        title="ดูรายชื่อผู้ลงทะเบียน" // Icon buttons
                         className="text-green-600 hover:text-green-800 rounded-full p-1"
                         onClick={() => handleOpenRegistrantsModal(cls)}
                       >
@@ -628,7 +628,7 @@ const ClassIndex = () => {
                         </svg>
                       </button>
                       <button
-                        title="ลบ"
+                        title="ลบ" // Icon buttons
                         className="text-red-600 hover:text-red-800 rounded-full p-1"
                         onClick={() => handleDeleteClick(cls.class_id)}
                       >
@@ -648,14 +648,14 @@ const ClassIndex = () => {
                       <div className="flex items-center ml-auto gap-x-2">
                         <button
                           title="ผลการประเมินความพึงพอใจ"
-                          className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+                          className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none"
                           onClick={() => handleEvaluationResultsClick(cls)}
                         >
                           ผลการประเมิน
                         </button>
                         <button
                           title="แก้ไข"
-                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none"
                           onClick={() => handleOpenCloseClassModal(cls)}
                         >
                           แก้ไข
