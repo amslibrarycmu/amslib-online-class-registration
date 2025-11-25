@@ -91,6 +91,16 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
     ];
 
     try {
+      // --- IDOR Prevention: Check ownership before updating ---
+      const [requestCheck] = await db.query("SELECT requested_by_email FROM class_requests WHERE request_id = ?", [requestId]);
+      if (requestCheck.length === 0) {
+        return res.status(404).json({ message: "Request not found." });
+      }
+      if (requestCheck[0].requested_by_email !== req.user.email) {
+        return res.status(403).json({ message: "Forbidden: You do not have permission to edit this request." });
+      }
+      // --- End IDOR Prevention ---
+
       const [result] = await db.query(sql, values);
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Request not found." });
@@ -108,6 +118,16 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
     const sql = "DELETE FROM class_requests WHERE request_id = ?";
 
     try {
+      // --- IDOR Prevention: Check ownership before deleting ---
+      const [requestCheck] = await db.query("SELECT requested_by_email FROM class_requests WHERE request_id = ?", [requestId]);
+      if (requestCheck.length === 0) {
+        return res.status(404).json({ message: "Request not found." });
+      }
+      if (requestCheck[0].requested_by_email !== req.user.email) {
+        return res.status(403).json({ message: "Forbidden: You do not have permission to delete this request." });
+      }
+      // --- End IDOR Prevention ---
+
       const [result] = await db.query(sql, [requestId]);
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "Class request not found." });

@@ -304,7 +304,7 @@ const ClassRequest = () => {
           onClose={handleCloseReasonModal}
           reason={selectedRejectionReason}
         />
-        <h1 className="text-3xl font-bold text-gray-800 text-center lg:text-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-6">
           ยื่นคำขอเปิดห้องเรียน
         </h1>
 

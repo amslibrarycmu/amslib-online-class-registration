@@ -359,7 +359,7 @@ const ClassIndex = () => {
     <div className="flex h-screen w-screen flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 p-8 overflow-y-auto bg-gray-100">
-        <h1 className="text-2xl font-bold mb-6 text-center">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
           ห้องเรียนทั้งหมด
         </h1>
         <h2 className="font-bold mb-[10px] text-[1.25rem]">

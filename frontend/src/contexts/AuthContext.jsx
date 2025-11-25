@@ -1,17 +1,3 @@
-// ในไฟล์ AuthContext.jsx
-const login = (userData, token, initialRole = null) => {
-  // ... (โค้ดเดิมของคุณ)
-  setUser(userData);
-  setToken(token);
-  localStorage.setItem("token", token);
-
-  // --- ส่วนที่แก้ไข ---
-  // ใช้ initialRole ที่ส่งเข้ามา หรือถ้าไม่มี ก็ใช้บทบาทแรกเป็นค่าเริ่มต้น
-  const roleToActivate = initialRole || (userData.roles && userData.roles[0]) || null;
-  setActiveRole(roleToActivate);
-  localStorage.setItem("activeRole", roleToActivate);
-  // --- จบส่วนที่แก้ไข ---
-};
 import React, {
   createContext,
   useState,
@@ -30,7 +16,24 @@ export const AuthProvider = ({ children }) => {
   const [activeRole, setActiveRole] = useState(null);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [newUserTempData, setNewUserTempDataState] = useState(null); // For new user registration flow
+  const [newUserTempData, setNewUserTempDataState] = useState(null);
+
+  // ฟังก์ชันช่วยแกะ Token (Decode JWT)
+  const decodeToken = (token) => {
+    try {
+      // ถ้ามี lib jwt-decode ให้ใช้: return jwtDecode(token);
+      // ถ้าไม่มี ใช้แบบบ้านๆ (Base64 decode) ไปก่อน:
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error("Failed to decode token", error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     try {
@@ -40,12 +43,20 @@ export const AuthProvider = ({ children }) => {
 
       if (storedToken && storedUser) {
         setToken(storedToken);
-        setUser(storedUser);
-        setActiveRole(storedRole || (storedUser.roles && storedUser.roles[0]));
+        
+        // 🟢 สำคัญ! อ่านข้อมูลล่าสุดจาก Token เสมอ (รวมถึง admin_level)
+        const decoded = decodeToken(storedToken);
+        const updatedUser = { 
+            ...storedUser, 
+            // ถ้าใน token มี admin_level ให้เอามาทับค่าเก่า
+            admin_level: decoded?.admin_level || storedUser.admin_level || 0 
+        };
+
+        setUser(updatedUser);
+        setActiveRole(storedRole || (updatedUser.roles && updatedUser.roles[0]));
       }
     } catch (error) {
       console.error("Failed to parse auth data from localStorage", error);
-      // Clear corrupted data
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("activeRole");
@@ -54,25 +65,37 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = useCallback((userData, newToken, initialRole = null) => {
-    const roleToSet =
-      initialRole && userData.roles?.includes(initialRole)
-        ? initialRole
-        : userData.roles?.[0] || null;
-  
-    setUser(userData);
-    setActiveRole(roleToSet);
-    localStorage.setItem("user", JSON.stringify(userData));
-  
-    // Use functional update for setToken to ensure we always have the latest state
-    setToken((prevToken) => {
-      const tokenToSet = newToken || prevToken;
-      localStorage.setItem("token", tokenToSet);
-      return tokenToSet;
-    });
-  
-    localStorage.setItem("activeRole", roleToSet);
-  }, []);
+  const login = useCallback(
+    (userData, newUserToken, initialRole = null) => {
+      return new Promise((resolve) => {
+        const tokenToSet = newUserToken || token;
+        
+        // 🟢 แกะ Token ใหม่เพื่อเอา admin_level ล่าสุด
+        let finalUserData = { ...userData };
+        if (tokenToSet) {
+            const decoded = decodeToken(tokenToSet);
+            if (decoded && decoded.admin_level !== undefined) {
+                finalUserData.admin_level = decoded.admin_level;
+            }
+        }
+
+        const roleToSet =
+          initialRole && finalUserData.roles?.includes(initialRole)
+            ? initialRole
+            : finalUserData.roles?.[0] || null;
+
+        setUser(finalUserData);
+        setToken(tokenToSet);
+        setActiveRole(roleToSet);
+        
+        localStorage.setItem("user", JSON.stringify(finalUserData));
+        localStorage.setItem("token", tokenToSet);
+        localStorage.setItem("activeRole", roleToSet);
+        resolve();
+      });
+    },
+    [token]
+  );
 
   const setNewUserTempData = useCallback((data, tempToken) => {
     setNewUserTempDataState({ ...data, tempToken });
@@ -89,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("activeRole");
-    setNewUserTempDataState(null); // Also clear temp data on logout
+    setNewUserTempDataState(null);
   }, []);
 
   const switchRole = useCallback(
@@ -98,7 +121,6 @@ export const AuthProvider = ({ children }) => {
         setIsSwitchingRole(true);
         setActiveRole(newRole);
         localStorage.setItem("activeRole", newRole);
-        // Use a timeout to simulate the role switch transition and prevent race conditions
         setTimeout(() => setIsSwitchingRole(false), 50);
       }
     },
@@ -107,24 +129,15 @@ export const AuthProvider = ({ children }) => {
 
   const authFetch = useCallback(
     async (url, options = {}) => {
-      const headers = {
-        ...options.headers,
-      };
-
-      // Handle query parameters for GET/DELETE requests
+      const headers = { ...options.headers };
       if (options.params && Object.keys(options.params).length > 0) {
         const query = new URLSearchParams(options.params).toString();
-        // Check if URL already has query params
         url += (url.includes('?') ? '&' : '?') + query;
         delete options.params;
       }
-
-      // Automatically add the Authorization header if a token exists
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-
-      // Automatically stringify the body and set Content-Type for JSON objects
       if (options.body && typeof options.body === "object" && !(options.body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
         options.body = JSON.stringify(options.body);
@@ -133,25 +146,22 @@ export const AuthProvider = ({ children }) => {
       const response = await fetch(url, { ...options, headers });
 
       if (response.status === 401) {
-        logout(); // Token is invalid or expired
+        logout();
         window.location.href = "/login?reason=unauthorized";
         throw new Error("Unauthorized");
       }
-
       if (response.status === 403) {
         try {
           const errorData = await response.json();
           if (errorData.code === 'PROFILE_INCOMPLETE') {
-            // Redirect to login page, which will then show the complete profile modal
             window.location.href = "/login?reason=incomplete_profile";
             throw new Error("Profile Incomplete");
           }
-        } catch (e) { /* Ignore if parsing fails, will fall through to generic error */ }
-        logout(); // For any other 403, treat as forbidden and logout
+        } catch (e) { /* Ignore */ }
+        logout();
         window.location.href = "/login?reason=forbidden";
         throw new Error("Forbidden");
       }
-
       return response;
     },
     [token, logout]
@@ -175,13 +185,8 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Helper function for logging frontend activities
 export const logFrontendActivity = (user, action_type, details = {}) => {
   if (!user) return;
-  // This function now needs to use an authenticated fetch.
-  // Since it's outside the component tree, we can't use the hook.
-  // A better approach is to pass `authFetch` to it or handle it inside a component.
-  // For now, we'll assume it's called from a place that has access to the token.
   const token = localStorage.getItem("token");
   if (!token) return;
 

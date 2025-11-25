@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
+const { requireAdminLevel } = require("../middleware/auth");
+
 module.exports = (
   db,
   logActivity,
@@ -8,8 +10,8 @@ module.exports = (
   sendRequestApprovedNotification,
   sendRequestRejectedNotification
 ) => {
-  // --- Activity Logs ---
-  router.get("/activity-logs", async (req, res, next) => {
+  // --- Activity Logs (Requires Level 3) ---
+  router.get("/activity-logs", requireAdminLevel(3), async (req, res, next) => {
     const { page = 1, limit = 25, search = "", actionType = "" } = req.query;
     const offset = (page - 1) * limit;
 
@@ -47,7 +49,7 @@ module.exports = (
     }
   });
 
-  router.get("/activity-logs/all", async (req, res, next) => {
+  router.get("/activity-logs/all", requireAdminLevel(3), async (req, res, next) => {
     const { search = "", actionType = "" } = req.query;
 
     let sql = "SELECT * FROM activity_logs";
@@ -79,8 +81,8 @@ module.exports = (
     }
   });
 
-  // --- Class Requests (Admin) ---
-  router.get("/class-requests", async (req, res, next) => {
+  // --- Class Requests (Admin - Requires Level 2) ---
+  router.get("/class-requests", requireAdminLevel(2), async (req, res, next) => {
     const { status, roles } = req.query;
     // Use LEFT JOIN to ensure all requests are returned, even if the requesting user has been deleted.
     // Use COALESCE to provide a fallback name if the user is not found.
@@ -116,7 +118,7 @@ module.exports = (
     }
   });
 
-  router.post("/class-requests/:requestId", async (req, res, next) => {
+  router.post("/class-requests/:requestId", requireAdminLevel(2), async (req, res, next) => {
     const { requestId } = req.params;
     const { action, reason, admin_email } = req.body; // รับ action จาก body
 
@@ -222,8 +224,8 @@ module.exports = (
     }
   });
 
-  // --- Statistics ---
-  router.get("/statistics/class-demographics", async (req, res, next) => {
+  // --- Statistics (Requires Level 2) ---
+  router.get("/statistics/class-demographics", requireAdminLevel(2), async (req, res, next) => {
     const { year, month } = req.query;
     const params = [];
     const dateWhereClauses = [];

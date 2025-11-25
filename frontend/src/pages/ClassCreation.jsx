@@ -148,7 +148,7 @@ export default function ClassCreation() {
     <div className="w-screen flex h-screen">
       <Sidebar />
       <div className="flex-1 p-8 overflow-y-auto bg-gray-100">
-        <h1 className="text-2xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
         <div className="flex flex-col md:flex-row gap-8 justify-center mb-8">
           {/* Card for creating a new class */}
           <div

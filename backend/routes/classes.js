@@ -18,6 +18,8 @@ const materialsStorage = multer.diskStorage({
 });
 const uploadMaterials = multer({ storage: materialsStorage });
 
+const { requireAdminLevel } = require("../middleware/auth");
+
 module.exports = (
   db,
   logActivity,
@@ -32,7 +34,8 @@ module.exports = (
     let sql;
     let params = [];
 
-    if (roles && roles.includes("ผู้ดูแลระบบ")) {
+    // 🟢 ใช้ admin_level ในการตรวจสอบสิทธิ์
+    if (req.user && req.user.admin_level > 0) {
       sql = "SELECT * FROM classes ORDER BY created_at DESC";
     } else {
       sql = "SELECT * FROM classes WHERE created_by_email = ?";
@@ -77,7 +80,7 @@ module.exports = (
     }
   });
 
-  router.get("/:classId/registrants", adminOnly, async (req, res) => {
+  router.get("/:classId/registrants", requireAdminLevel(1), async (req, res) => {
     const { classId } = req.params;
     const findClassSql =
       "SELECT registered_users FROM classes WHERE class_id = ?";
@@ -103,7 +106,7 @@ module.exports = (
     }
   });
 
-  router.post("/", upload.array("files"), async (req, res) => {
+  router.post("/", requireAdminLevel(1), upload.array("files"), async (req, res) => {
     const {
       title,
       speaker,
@@ -194,7 +197,7 @@ module.exports = (
     }
   });
 
-  router.put("/:classId", upload.array("files"), async (req, res) => {
+  router.put("/:classId", requireAdminLevel(1), upload.array("files"), async (req, res) => {
     const { classId } = req.params;
     const {
       title,
@@ -263,7 +266,7 @@ module.exports = (
 
     try {
       // --- IDOR Prevention ---
-      // Check if the user is an admin or the owner of the class
+      // Check if the user is an admin (any level) or the owner of the class
       if (!req.user.roles.includes("ผู้ดูแลระบบ")) {
         const [classCheck] = await db.query(
           "SELECT created_by_email FROM classes WHERE class_id = ?",
@@ -306,7 +309,7 @@ module.exports = (
     }
   });
 
-  router.delete("/:classId", adminOnly, async (req, res) => {
+  router.delete("/:classId", requireAdminLevel(1), async (req, res) => {
     const { classId } = req.params;
     try {
       const [findResults] = await db.query(
@@ -324,7 +327,7 @@ module.exports = (
         return res.status(404).json({ error: "Class not found" });
       }
 
-      logActivity(req, null, "Admin", "N/A", "DELETE_CLASS", "CLASS", classId, {
+      logActivity(req, req.user.id, req.user.name, req.user.email, "DELETE_CLASS", "CLASS", classId, {
         class_title: classTitle,
       });
       res.status(200).json({ message: "Class deleted successfully" });
@@ -540,6 +543,7 @@ module.exports = (
   router.post(
     "/:classId/close",
     uploadMaterials.array("materials"),
+    requireAdminLevel(1),
     async (req, res) => {
       const { classId } = req.params;
       const { video_link, existing_materials } = req.body;
@@ -593,7 +597,7 @@ module.exports = (
     }
   );
 
-  router.put("/:classId/promote", adminOnly, async (req, res) => {
+  router.put("/:classId/promote", requireAdminLevel(1), async (req, res) => {
     const { classId } = req.params;
     const { promoted } = req.body;
     const promotedValue = promoted ? 1 : 0;
@@ -625,7 +629,7 @@ module.exports = (
     }
   });
 
-  router.get("/:classId/evaluations", async (req, res) => {
+  router.get("/:classId/evaluations", requireAdminLevel(1), async (req, res) => {
     const classId = req.params.classId;
     const sql = `
       SELECT u.name, e.score_content, e.score_material, e.score_duration,

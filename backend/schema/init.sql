@@ -1,3 +1,143 @@
+-- =================================================================
+-- AMSLIB COURSE REGISTRATION - DATABASE INITIALIZATION SCRIPT
+-- This script creates all tables and seeds initial data.
+-- It is designed to be run by the docker-entrypoint-initdb.d mechanism.
+-- =================================================================
+
+-- Step 1: Disable foreign key checks to avoid errors during table creation.
+SET FOREIGN_KEY_CHECKS = 0;
+SET NAMES 'utf8mb4';
+
+-- =================================================================
+-- Step 2: Drop existing tables to ensure a clean slate.
+-- =================================================================
+DROP TABLE IF EXISTS `activity_logs`;
+DROP TABLE IF EXISTS `admin_permissions`;
+DROP TABLE IF EXISTS `class_requests`;
+DROP TABLE IF EXISTS `classes`;
+DROP TABLE IF EXISTS `evaluations`;
+DROP TABLE IF EXISTS `users`;
+
+-- =================================================================
+-- Step 3: Create tables in the correct order of dependency.
+-- =================================================================
+
+-- Table: users (must be created before admin_permissions)
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `roles` json DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `photo` varchar(255) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `pdpa` tinyint(1) DEFAULT 0,
+  `profile_completed` tinyint(1) DEFAULT 0,
+  `original_name` varchar(255) DEFAULT NULL,
+  `name_updated_by_user` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table: admin_permissions (depends on users)
+CREATE TABLE `admin_permissions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `admin_level` int(11) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_id` (`user_id`),
+  CONSTRAINT `fk_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table: classes (must be created before evaluations)
+CREATE TABLE `classes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `class_id` varchar(10) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `speaker` json DEFAULT NULL,
+  `format` varchar(50) DEFAULT NULL,
+  `join_link` varchar(255) DEFAULT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `start_time` time DEFAULT NULL,
+  `end_time` time DEFAULT NULL,
+  `max_participants` int(11) DEFAULT 50,
+  `target_groups` json DEFAULT NULL,
+  `created_by_email` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` varchar(20) DEFAULT 'open',
+  `promoted` tinyint(1) DEFAULT 0,
+  `video_link` varchar(255) DEFAULT NULL,
+  `materials` json DEFAULT NULL,
+  `registered_users` json DEFAULT NULL,
+  `reminder_sent` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `class_id` (`class_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table: evaluations (depends on classes)
+CREATE TABLE `evaluations` (
+  `evaluation_id` int(11) NOT NULL AUTO_INCREMENT,
+  `class_id` varchar(10) NOT NULL,
+  `user_email` varchar(255) NOT NULL,
+  `score_content` int(11) DEFAULT NULL,
+  `score_material` int(11) DEFAULT NULL,
+  `score_duration` int(11) DEFAULT NULL,
+  `score_format` int(11) DEFAULT NULL,
+  `score_speaker` int(11) DEFAULT NULL,
+  `comments` text DEFAULT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`evaluation_id`),
+  UNIQUE KEY `class_user_unique` (`class_id`,`user_email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table: class_requests
+CREATE TABLE `class_requests` (
+  `request_id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL,
+  `speaker` varchar(255) DEFAULT NULL,
+  `format` varchar(50) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `start_time` time DEFAULT NULL,
+  `end_time` time DEFAULT NULL,
+  `reason` text DEFAULT NULL,
+  `status` varchar(20) DEFAULT 'pending',
+  `requested_by_email` varchar(255) NOT NULL,
+  `requested_by_name` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `admin_comment` text DEFAULT NULL,
+  `action_by_email` varchar(255) DEFAULT NULL,
+  `action_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`request_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table: activity_logs
+CREATE TABLE `activity_logs` (
+  `log_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `user_name` varchar(255) DEFAULT NULL,
+  `user_email` varchar(255) DEFAULT NULL,
+  `action_type` varchar(50) NOT NULL,
+  `target_type` varchar(50) DEFAULT NULL,
+  `target_id` varchar(255) DEFAULT NULL,
+  `details` json DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`log_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+-- =================================================================
+-- Step 4: Insert seed data into the newly created tables.
+-- =================================================================
+
+-- Seed data for `users` table
 INSERT INTO `users` (`id`, `name`, `email`, `roles`, `is_active`, `phone`, `pdpa`, `photo`, `profile_completed`, `original_name`, `name_updated_by_user`, `created_at`, `updated_at`) VALUES
 (1,'ขนิษฐา วงค์ลังกา','k.wonglangka@gmail.com','["บุคลากร"]',0,'0984473082',1,NULL,0,'ขนิษฐา วงค์ลังกา',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (2,'ณัฐสุขา หรินทรเวช','natsucha_h@cmu.ac.th','["นักศึกษาบัณฑิต"]',0,'0649635453',1,NULL,0,'ณัฐสุขา หรินทรเวช',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
@@ -132,6 +272,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `roles`, `is_active`, `phone`, `pdpa
 (131,'ปวีณา อินทราพงษ์','paweena.i@email.com','["บุคลากร"]',0,NULL,1,NULL,0,'ปวีณา อินทราพงษ์',0,'2025-09-16 17:44:29','2025-10-24 14:45:21'),
 (132,'สิรินภา ครีบผา','sirinapa.kr@email.com','["บุคลากร"]',0,NULL,1,NULL,0,'สิรินภา ครีบผา',0,'2025-09-16 17:46:28','2025-10-24 14:45:21');
 
+-- Seed data for `classes` table
 INSERT INTO `classes` (`id`, `class_id`, `title`, `description`, `speaker`, `format`, `join_link`, `location`, `start_date`, `end_date`, `start_time`, `end_time`, `max_participants`, `target_groups`, `created_by_email`, `created_at`, `status`, `promoted`, `video_link`, `materials`, `registered_users`, `reminder_sent`) VALUES
 (1, '165741', 'การนำเสนอข้อมูลด้วย Power BI', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2022-08-17', '2022-08-17', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["natsucha_h@cmu.ac.th","sawitree.sri@cmu.ac.th"]', 0),
 (2, '937620', 'การนำเสนอข้อมูลด้วย Power BI', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2022-09-20', '2022-09-20', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["Phattarawadeeinnuan@gmail.com","thunsinee_nga@cmu.ac.th"]', 0),
@@ -159,7 +300,7 @@ INSERT INTO `classes` (`id`, `class_id`, `title`, `description`, `speaker`, `for
 (24, '598133', 'การเขียนอ้างอิงรูปแบบ APA 7', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2024-03-22', '2024-03-22', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["chalanda.j@cmu.ac.th","kong04112544@gmail.com"]', 0),
 (25, '692261', 'การเขียนอ้างอิงรูปแบบ APA 7', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2024-04-18', '2024-04-18', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["saifon.bun@cmu.ac.th","napatpakcp@gmail.com","pwyx2002@gmail.com","teto40892@gmail.com","Sukanya_sa@cmu.ac.th","Nattanicha_w@cmu.ac.th","Supanun_p@cmu.ac.th","piyawan.jareon@cmu.ac.th","supaporn.c@cmu.ac.th","bantita255705@gmail.com","krongporn.c@cmu.ac.th","minnaxnana@gmail.com","natcha_chaikhamla@cmu.ac.th","apichaya_boon@cmu.ac.th","pornpen.siri@cmu.ac.th","yean144143@gmail.com","natcharee_tul@cmu.ac.th","siramol_sommanas@cmu.ac.th","chaitas_t@amu.ac.th","anusorn_meeboon@cmu.ac.th"]', 0),
 (26, '549188', 'การเขียนอ้างอิงรูปแบบ APA 7', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2024-05-24', '2024-05-24', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["muimanita@gmail.com","maliko_pink@hotmail.com","Samorthongjanista@gmail.com","kaewalin.sri@cmu.ac.th","Janista_samorthong@cmu.ac.th"]', 0),
-(27, '202903', 'การเขียนอ้างอิงรูปแบบ APA 7', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2024-06-24', '2024-06-24', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["panpassorn.work@gmail.com","pornpen.siri@cmu.ac.th","muimanita@gmail.com","jutamas_nak@cmu.ac.th","juthamas_th@cmu.ac.th","jarinya_kraisale@cmu.ac.th","nunpitcha_c@cmu.ac.th","issadanath@gmail.com","parattakornss19@gmail.com","sarunya.cha@cmu.ac.th","daranee_si@cmu.ac.th","nichanan_ke@cmu.ac.th"]', 0),
+(27, '202903', 'การเขียนอ้างอิงรูปแบบ APA 7', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2024-06-24', '2024-06-24', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["panpassorn.work@gmail.com","pornpen.siri@cmu.ac.th","muimanita@gmail.com","jutamas_nak@cmu.ac.th","juthamas_th@cmu.ac.th","jarinya_kraisale@cmu.ac.th","nunpitcha_c@cmu.ac.th","issadanath@gmail.com","parattakornss19@gmail.com","daranee_si@cmu.ac.th","nichanan_ke@cmu.ac.th"]', 0),
 (28, '571378', 'การเขียนอ้างอิงรูปแบบ APA 7', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2024-07-24', '2024-07-24', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["issadanath@gmail.com","parattakornss19@gmail.com","sarunya.cha@cmu.ac.th","daranee_si@cmu.ac.th","nichanan_ke@cmu.ac.th"]', 0),
 (29, '901741', 'Turnitin : การตรวจสอบการคัดลอกผลงานทางวิชาการ', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2023-10-17', '2023-10-17', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["sorasak_suw@cmu.ac.th","rodsarin.t@cmu.ac.th"]', 0),
 (30, '409808', 'Turnitin : การตรวจสอบการคัดลอกผลงานทางวิชาการ', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2024-02-28', '2024-02-28', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["kasira.a@cmu.ac.th"]', 0),
@@ -195,6 +336,7 @@ INSERT INTO `classes` (`id`, `class_id`, `title`, `description`, `speaker`, `for
 (60, '150405', 'Information Seeking : การค้นหาหนังสืออิเล็กทรอนิกส์ บทความ งานวิจัย และวิทยานิพนธ์จากฐานข้อมูลอิเล็กทรอนิกส์', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2025-07-21', '2025-07-21', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["nida.b@cmu.ac.th"]', 0),
 (61, '150138', 'EndNote 21 : โปรแกรมจัดการบรรณานุกรมสำเร็จรูปและการเขียนอ้างอิงเอกสารทางวิชาการ', NULL, '["ห้องสมุดคณะเทคนิคการแพทย์"]', 'ONLINE', NULL, NULL, '2025-07-29', '2025-07-29', '14:00:00', '15:00:00', 999, '["บุคลากร","นักศึกษา","อาจารย์/นักวิจัย"]', 'useradmin@email.com', '2025-01-01 00:00:00', 'closed', 0, NULL, '[]', '["lalisa.w@cmu.ac.th","patitta.pt@cmu.ac.th","jittraporn.c@email.com"]', 0);
 
+-- Seed data for `evaluations` table
 INSERT INTO `evaluations` (`evaluation_id`, `class_id`, `user_email`, `score_content`, `score_material`, `score_duration`, `score_format`, `score_speaker`, `comments`, `submitted_at`) VALUES
 (1,'100507','napatpakcp@gmail.com',5,5,5,5,5,NULL,'2025-09-16 17:35:35'),
 (2,'100507','pwyx2002@gmail.com',4,3,4,2,4,NULL,'2025-09-16 17:35:35'),
@@ -271,3 +413,15 @@ INSERT INTO `evaluations` (`evaluation_id`, `class_id`, `user_email`, `score_con
 (73,'988615','mallika.k@cmu.ac.th',5,5,5,5,5,NULL,'2025-09-16 17:35:35'),
 (74,'988615','jittraporn.c@email.com',5,5,5,5,5,NULL,'2025-09-16 17:35:35');
 
+-- Seed data for `admin_permissions` table
+-- This will grant admin level 1 to the specified user after the user has been created.
+INSERT INTO admin_permissions (user_id, admin_level)
+SELECT id, 1 
+FROM users 
+WHERE email = 'kantaphon.promkam@cmu.ac.th';
+
+
+-- =================================================================
+-- Step 5: Re-enable foreign key checks.
+-- =================================================================
+SET FOREIGN_KEY_CHECKS = 1;

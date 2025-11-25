@@ -1,9 +1,16 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 import amsliblogo from "../assets/amslib-logo.svg";
 import profile from "../assets/abstract-user.png";
+
+// --- 🟢 1. กำหนดค่าคงที่ของ Admin Level ---
+const ADMIN_LEVELS = {
+  VIEWER: 1, // ผู้ช่วย (ดูสถิติ, ประวัติ, รายชื่อ)
+  MANAGER: 2, // ผู้จัดการเนื้อหา (จัดการห้องเรียน, คำขอ)
+  SUPER: 3, // ผู้ดูแลสูงสุด (จัดการสิทธิ์)
+};
 
 const CameraIcon = () => (
   <svg
@@ -42,6 +49,13 @@ const SwitchRoleIcon = () => (
   </svg>
 );
 
+// 🟢 เพิ่ม Mapping สำหรับชื่อบทบาทตาม Level
+const ADMIN_LEVEL_ROLE_MAP = {
+  1: "ผู้สอน",
+  2: "ผู้จัดการเนื้อหา",
+  3: "ผู้ดูแลระบบ",
+};
+
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,7 +74,16 @@ export default function Sidebar() {
   // --- State ใหม่สำหรับรูป Preview ชั่วคราว ---
   const [localPreview, setLocalPreview] = useState(null);
 
-  const isAdmin = activeRole === "ผู้ดูแลระบบ";
+  // --- 🟢 2. ดึงค่า admin_level (ถ้าไม่มีให้เป็น 0) ---
+  const adminLevel = user?.admin_level || 0;
+  
+  // 🟢 แก้ไขเงื่อนไข: ต้องมี admin_level และ activeRole เป็น "ผู้ดูแลระบบ"
+  const isAdminRoleActive = adminLevel > 0 && activeRole === "ผู้ดูแลระบบ";
+  
+  // 🟢 หาชื่อบทบาทที่ถูกต้องเพื่อแสดงผล
+  const displayRole = isAdminRoleActive 
+    ? ADMIN_LEVEL_ROLE_MAP[adminLevel] // ถ้าเป็นแอดมินและใช้บทบาทแอดมิน -> แสดงชื่อตาม Level
+    : activeRole;
 
   let firstname = "";
   let lastname = "";
@@ -84,9 +107,11 @@ export default function Sidebar() {
     setLocalPreview(null);
   }, [user?.email]);
 
+  // ทำให้ useEffect นี้ทำงานเมื่อ user.photo "เปลี่ยนค่า" เท่านั้น
+  // ไม่ใช่ทำงานทุกครั้งที่มัน "มีค่า"
   useEffect(() => {
-    if (user?.photo) setImageVersion(Date.now());
-  }, [user?.photo]);
+    setImageVersion(Date.now());
+  }, [user?.photo]); // Dependency array ยังคงเดิม แต่ logic ภายในเปลี่ยน
 
   const handleRoleSwitch = () => {
     if (!user?.roles || user.roles.length <= 1) return;
@@ -115,12 +140,24 @@ export default function Sidebar() {
     else navigate("/classes");
   };
 
-  // --- Logic เลือกรูปภาพ ---
-  const displayImageSrc = localPreview 
+  // --- Logic เลือกรูปที่จะแสดง ---
+  const displayImageSrc = localPreview
     ? localPreview // 1. ถ้ามีรูปเพิ่งอัปโหลด ให้ใช้เลย
     : user?.photo // 2. ถ้าไม่มี ให้ใช้รูปจาก Server
-      ? `http://localhost:5000/api/users/photo/${user.photo}?t=${imageVersion}`
-      : profile; // 3. ถ้าไม่มีอะไรเลย ใช้รูป Default
+    ? `http://localhost:5000/api/users/photo/${user.photo}?t=${imageVersion}`
+    : profile; // 3. ถ้าไม่มีอะไรเลย ใช้รูป Default
+
+  // --- 🟢 Helper Component สำหรับสร้างลิงก์เมนู ---
+  const MenuLink = ({ to, label }) => (
+    <span
+      onClick={() => navigate(to)}
+      className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
+        location.pathname === to ? "underline" : ""
+      }`}
+    >
+      {label}
+    </span>
+  );
 
   return (
     <>
@@ -179,6 +216,7 @@ export default function Sidebar() {
                   // ถ้า preview พัง ให้ล้างออกแล้วลองโหลดจาก server
                   if (localPreview) setLocalPreview(null);
                 }}
+                // onClick ถูกปิดไว้ตามความต้องการ
               />
             </div>
 
@@ -204,7 +242,7 @@ export default function Sidebar() {
                     <SwitchRoleIcon />
                   </button>
                 )}
-                <span className="text-xs text-black py-1">({activeRole})</span>
+              <span className="text-xs text-black py-1">({displayRole})</span>
               </div>
               <span
                 className="font-semibold mt-1 cursor-pointer hover:underline"
@@ -231,86 +269,39 @@ export default function Sidebar() {
             </div>
           </div>
 
+          {/* --- 🟢 3. ส่วนแสดงเมนูตาม Level (โครงสร้างใหม่ตามคำขอ) --- */}
           <div className="flex flex-col items-center gap-5 mt-4">
-            {isAdmin ? (
+            {isAdminRoleActive ? (
               <>
-                <span
-                  onClick={handleOverviewClick}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/index" ? "underline" : ""
-                  }`}
-                >
-                  ห้องเรียนทั้งหมด
-                </span>
-                <span
-                  onClick={() => navigate("/creations")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/creations" ? "underline" : ""
-                  }`}
-                >
-                  สร้างห้องเรียน
-                </span>
-                <span
-                  onClick={() => navigate("/statistics")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/statistics" ? "underline" : ""
-                  }`}
-                >
-                  สถิติ
-                </span>
-                <span
-                  onClick={() => navigate("/admin/class-requests")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/admin/class-requests"
-                      ? "underline"
-                      : ""
-                  }`}
-                >
-                  จัดการคำขอ
-                </span>
-                <span
-                  onClick={() => navigate("/user-management")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/user-management" ? "underline" : ""
-                  }`}
-                >
-                  สิทธิ์
-                </span>
-                <span
-                  onClick={() => navigate("/activity-logs")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/activity-logs" ? "underline" : ""
-                  }`}
-                >
-                  ประวัติการใช้งาน
-                </span>
+                {/* === Level 1+ (ผู้สอน) === */}
+                {adminLevel >= ADMIN_LEVELS.VIEWER && (
+                  <>
+                    <MenuLink to="/index" label="ห้องเรียนทั้งหมด" />
+                    <MenuLink to="/creations" label="สร้างห้องเรียน" />
+                  </>
+                )}
+
+                {/* === Level 2+ (ผู้จัดการเนื้อหา) === */}
+                {adminLevel >= ADMIN_LEVELS.MANAGER && (
+                  <>
+                    <MenuLink to="/statistics" label="สถิติ" />
+                    <MenuLink to="/admin/class-requests" label="จัดการคำขอ" />
+                  </>
+                )}
+
+                {/* === Level 3 (ผู้ดูแลระบบสูงสุด) === */}
+                {adminLevel >= ADMIN_LEVELS.SUPER && (
+                  <>
+                    <MenuLink to="/user-management" label="สิทธิ์" />
+                    <MenuLink to="/activity-logs" label="ประวัติการใช้งาน" />
+                  </>
+                )}
               </>
             ) : (
               <>
-                <span
-                  onClick={() => navigate("/classes")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/classes" ? "underline" : ""
-                  }`}
-                >
-                  ห้องเรียน
-                </span>
-                <span
-                  onClick={() => navigate("/past-classes")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/past-classes" ? "underline" : ""
-                  }`}
-                >
-                  ประวัติการเข้าร่วม
-                </span>
-                <span
-                  onClick={() => navigate("/class-request")}
-                  className={`text-black cursor-pointer hover:underline text-[1.25rem] ${
-                    location.pathname === "/class-request" ? "underline" : ""
-                  }`}
-                >
-                  ยื่นคำขอเปิดห้องเรียน
-                </span>
+                <MenuLink to="/classes" label="ห้องเรียน" />
+                <MenuLink to="/past-classes" label="ประวัติการเข้าร่วม" />
+                <MenuLink to="/class-request" label="ยื่นคำขอเปิดห้องเรียน" />
               </>
             )}
           </div>

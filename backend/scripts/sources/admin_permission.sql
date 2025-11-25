@@ -15,3 +15,8 @@ CREATE TABLE `admin_permissions` (
 SET FOREIGN_KEY_CHECKS = 1; 
 
 SELECT * FROM admin_permissions;
+
+INSERT INTO admin_permissions (user_id, admin_level)
+SELECT id, 1 
+FROM users 
+WHERE email = 'kantaphon.promkam@cmu.ac.th';

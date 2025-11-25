@@ -298,7 +298,7 @@ const ClassCatalog = () => {
       )}
 
       <div className="flex-1 p-8 bg-gray-100 min-h-screen">
-        <h1 className="text-3xl font-bold mb-4 text-gray-800 text-center">
+        <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-800 text-center">
           ห้องเรียน
         </h1>
 

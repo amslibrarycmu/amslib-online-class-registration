@@ -104,7 +104,7 @@ const PastClassesHistory = () => {
       <div className="w-screen flex">
         <Sidebar />
         <div className="flex-1 p-8 bg-gray-100 min-h-screen">
-          <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">ประวัติการเข้าร่วม</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 text-center">ประวัติการเข้าร่วม</h1>
 
           {loading && <p>กำลังโหลดข้อมูล...</p>}
           {error && <p className="text-red-500">เกิดข้อผิดพลาด: {error}</p>}

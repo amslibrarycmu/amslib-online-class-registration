@@ -270,7 +270,7 @@ const Statistics = () => {
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
         <div className="flex justify-center items-center gap-x-4 mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">สถิติ</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">สถิติ</h1>
           <button
             onClick={handleDownloadCSV}
             className="p-2 text-gray-600  rounded-3xl shadow-md hover:bg-gray-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
