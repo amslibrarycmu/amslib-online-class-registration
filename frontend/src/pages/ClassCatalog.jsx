@@ -63,7 +63,7 @@ const ClassCatalog = () => {
         ...cls,
         speaker: parseAndJoin(cls.speaker),
         target_groups: parseAndJoin(cls.target_groups),
-        registered_users: JSON.parse(cls.registered_users || "[]"),
+        registered_users: cls.registered_users || [], // Directly use the array from backend, default to [] if null/undefined
       }));
       // Filter out closed classes for ClassCatalog
       const activeClasses = parsedData.filter((cls) => cls.status !== "closed");

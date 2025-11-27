@@ -32,7 +32,8 @@ const PastClassesHistory = () => {
         .map((cls) => ({
           ...cls,
           speaker: parseAndJoin(cls.speaker),
-          materials: cls.materials ? JSON.parse(cls.materials) : [],
+          // Safely parse materials: only parse if it's a non-empty string.
+          materials: (cls.materials && typeof cls.materials === 'string') ? JSON.parse(cls.materials) : [],
         }))
         .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
       setPastClasses(parsedAndSortedData);

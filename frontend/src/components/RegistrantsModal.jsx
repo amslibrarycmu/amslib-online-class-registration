@@ -13,7 +13,7 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
   return (
     <div className="fixed inset-0 bg-white/85 z-50 flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="text-center border-b pb-3 mb-4">
+        <div className="text-center pb-3 mb-4">
           <h2 className="text-2xl font-bold text-gray-800">รายชื่อผู้ลงทะเบียน</h2>
         </div>
 
@@ -27,22 +27,22 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
 
         <div className="overflow-y-auto flex-grow">
           {registrants.length > 0 ? (
-            <table className="min-w-full bg-white border">
-              <thead className="bg-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="py-2 px-4 border-b text-left">#</th>
-                  <th className="py-2 px-4 border-b text-left">ชื่อ-สกุล</th>
-                  <th className="py-2 px-4 border-b text-left">อีเมล</th>
-                  <th className="py-2 px-4 border-b text-left">สถานะ</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อ-สกุล</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">อีเมล</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {registrants.map((user, index) => (
                   <tr key={index} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b">{index + 1}</td>
-                    <td className="py-2 px-4 border-b">{user.name}</td>
-                    <td className="py-2 px-4 border-b">{user.email}</td>
-                    <td className="py-2 px-4 border-b">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {(() => {
                         try {
                           let roles = Array.isArray(user.roles) ? user.roles : JSON.parse(user.roles || '[]');
