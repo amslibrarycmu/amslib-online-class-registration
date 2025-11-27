@@ -5,13 +5,21 @@ import Sidebar from "../components/Sidebar";
 import DemographicsPieChart from "../components/DemographicsPieChart";
 import CategoryBarChart from "../components/CategoryBarChart";
 import { useStatisticsData } from "../components/UseStatisticsData";
+import StatisticsFilterModal from "../components/StatisticsFilterModal";
 
 const Statistics = () => {
   const { user, activeRole, isSwitchingRole } = useAuth();
   const navigate = useNavigate();
 
-  const [selectedYear, setSelectedYear] = useState("all");
-  const [selectedMonth, setSelectedMonth] = useState("all");
+  // --- State สำหรับการกรองแบบใหม่ ---
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterType, setFilterType] = useState("all"); // all, yearly, monthly, range
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [roles, setRoles] = useState([]); // State for roles filter
+  // ------------------------------------
 
   const [searchTerm, setSearchTerm] = useState("");
   const [triggerSearchTerm, setTriggerSearchTerm] = useState("");
@@ -19,11 +27,24 @@ const Statistics = () => {
   const [sortKey, setSortKey] = useState("start_date");
   const [sortOrder, setSortOrder] = useState("desc"); // Default to descending for newest classes first
 
+  // --- แก้ไข: ใช้ useMemo เพื่อป้องกันการสร้าง object ใหม่ทุกครั้งที่ render ---
+  const filters = useMemo(
+    () => ({
+      filterType,
+      year,
+      month,
+      startDate,
+      endDate,
+      roles,
+    }),
+    [filterType, year, month, startDate, endDate, roles]
+  );
+
+  // --- เรียกใช้ Hook ด้วย Object ของ filters ที่ผ่านการ Memoize แล้ว ---
   const { stats, loading, error } = useStatisticsData(
     user,
     activeRole,
-    selectedYear,
-    selectedMonth
+    filters
   );
 
   const [expandedClassIds, setExpandedClassIds] = useState([]);
@@ -51,11 +72,25 @@ const Statistics = () => {
 
   useEffect(() => {
     // Redirect non-admins, but not during a role switch.
-    if (user && activeRole && activeRole !== "ผู้ดูแลระบบ" && !isSwitchingRole) {
+    if (
+      user &&
+      activeRole &&
+      activeRole !== "ผู้ดูแลระบบ" &&
+      !isSwitchingRole
+    ) {
       alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
       navigate("/");
     }
   }, [user, activeRole, navigate, isSwitchingRole]);
+
+  const handleApplyFilters = (newFilters) => {
+    setFilterType(newFilters.filterType);
+    setYear(newFilters.year);
+    setMonth(newFilters.month);
+    setStartDate(newFilters.startDate);
+    setEndDate(newFilters.endDate);
+    setRoles(newFilters.roles || []);
+  };
 
   const handleSearch = () => {
     setTriggerSearchTerm(searchTerm);
@@ -156,6 +191,31 @@ const Statistics = () => {
     }
     return scores.reduce((acc, score) => acc + score, 0) / scores.length;
   }, [aggregatedEvaluationData]);
+
+  const renderActiveFilter = () => {
+    switch (filterType) {
+      case "yearly":
+        return `ปี: ${parseInt(year, 10) + 543} (${year})`;
+      case "monthly":
+        const monthLabel = months.find((m) => m.value === month)?.label || "";
+        return `เดือน: ${monthLabel} ${parseInt(year, 10) + 543} (${year})`;
+      case 'range':
+        const formatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        const formattedStartDate = startDate ? new Date(startDate).toLocaleDateString('th-TH', formatOptions) : '...';
+        const formattedEndDate = endDate ? new Date(endDate).toLocaleDateString('th-TH', formatOptions) : '...';
+        if (startDate || endDate) {
+          return `ช่วงวันที่: ${formattedStartDate} - ${formattedEndDate}`;
+        }
+        return "ช่วงวันที่ (ยังไม่สมบูรณ์)";
+      case "all":
+      default:
+        // Show role filter status even when 'all' time filter is selected
+        if (roles.length > 0) {
+          return `สถานภาพ: ${roles.join(', ')}`;
+        }
+        return "ข้อมูลทั้งหมด";
+    }
+  };
 
   if (error) {
     return <p>Error loading data: {error.message}</p>;
@@ -268,10 +328,18 @@ const Statistics = () => {
 
   return (
     <div className="flex h-screen w-screen">
+      <StatisticsFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={handleApplyFilters}
+        initialFilters={filters}
+      />
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
         <div className="flex justify-center items-center gap-x-4 mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">สถิติ</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+            สถิติ
+          </h1>
           <button
             onClick={handleDownloadCSV}
             className="p-2 text-gray-600  rounded-3xl shadow-md hover:bg-gray-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
@@ -296,37 +364,52 @@ const Statistics = () => {
 
         <div className="space-y-8">
           {/* Filters and Tools Card */}
-          <div className="flex flex-wrap justify-between items-center gap-4">
-              <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <label htmlFor="year-filter" className="text-lg font-medium text-gray-700">ปี:</label>
-                  <select id="year-filter" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="all">ทั้งหมด</option>
-                    {years.map((year) => (<option key={year} value={year}>{year}</option>))}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label htmlFor="month-filter" className="text-lg font-medium text-gray-700">เดือน:</label>
-                  <select id="month-filter" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="all">ทั้งหมด</option>
-                    {months.map((month) => (<option key={month.value} value={month.value}>{month.label}</option>))}
-                  </select>
+          <div>
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+              {/* Left Side: Filter Info */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-md shadow-sm hover:bg-gray-50 focus:outline-none"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span>ตัวกรอง</span>
+                </button>
+                <div className="text-sm text-gray-600">
+                  <span className="font-semibold">กำลังแสดง:</span>{" "}
+                  {renderActiveFilter()}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <input
-                    id="search"
-                    type="text"
-                    placeholder="ระบุ Class ID หรือชื่อห้องเรียน"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full sm:w-80 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                <button onClick={handleSearch} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+              {/* Right Side: Search */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <input
+                  id="search"
+                  type="text"
+                  placeholder="ระบุ Class ID หรือชื่อห้องเรียน"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full md:w-72 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <button
+                  onClick={handleSearch}
+                  className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                >
                   ค้นหา
                 </button>
               </div>
+            </div>
           </div>
 
           <div>
@@ -466,8 +549,8 @@ const Statistics = () => {
                         <h3 className="text-lg font-bold text-purple-800">
                           <span className="text-red-500 pr-1">
                             {classStat.class_id}
-                          </span> {" "}
-                           {classStat.title}
+                          </span>{" "}
+                          {classStat.title}
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
                           เปิดเมื่อ{" "}

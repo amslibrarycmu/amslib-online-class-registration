@@ -68,6 +68,22 @@ module.exports = (
     return classId;
   };
 
+  // --- 🟢 START: New Route for Unique Titles 🟢 ---
+  // GET /api/classes/unique-titles - Get all unique, non-draft, non-empty class titles
+  router.get("/unique-titles", async (req, res, next) => {
+    // Select distinct, non-empty, non-null titles from classes that are not drafts.
+    const sql = "SELECT DISTINCT title FROM classes WHERE status = 'closed' AND title IS NOT NULL AND title != '' ORDER BY title ASC";
+    try {
+      const [results] = await db.query(sql);
+      const titles = results.map(r => r.title);
+      res.json(titles);
+    } catch (err) {
+      console.error("❌ Error fetching unique class titles:", err);
+      next(err); // Pass error to the centralized handler
+    }
+  });
+  // --- 🟢 END: New Route for Unique Titles 🟢 ---
+
   router.get("/promoted", async (req, res) => {
     const sql =
       "SELECT * FROM classes WHERE promoted = 1 AND status != 'closed' ORDER BY start_date ASC";
@@ -91,7 +107,7 @@ module.exports = (
         return res.status(404).json({ message: "Class not found." });
       }
 
-      const registeredEmails = JSON.parse(results[0].registered_users || "[]");
+      const registeredEmails = results[0].registered_users || [];
       if (registeredEmails.length === 0) {
         return res.json([]);
       }
@@ -354,10 +370,10 @@ module.exports = (
       }
 
       const course = results[0];
-      const registeredUsers = JSON.parse(course.registered_users || "[]");
+      const registeredUsers = course.registered_users || []; // The driver handles parsing
 
       if (
-        course.max_participants !== 999 &&
+        course.max_participants !== 999 && Array.isArray(registeredUsers) &&
         registeredUsers.length >= course.max_participants
       ) {
         throw { status: 409, message: "This class is already full." };
@@ -373,7 +389,7 @@ module.exports = (
       registeredUsers.push(email);
       await connection.query(
         "UPDATE classes SET registered_users = ? WHERE class_id = ?",
-        [JSON.stringify(registeredUsers), classId]
+        [registeredUsers, classId] // Pass the array directly
       );
 
       await connection.commit();
@@ -444,7 +460,7 @@ module.exports = (
       }
 
       const course = results[0];
-      const registeredUsers = JSON.parse(course.registered_users || "[]");
+      const registeredUsers = course.registered_users || []; // The driver handles parsing
 
       if (!registeredUsers.includes(email)) {
         throw {
@@ -458,7 +474,7 @@ module.exports = (
       );
       await connection.query(
         "UPDATE classes SET registered_users = ? WHERE class_id = ?",
-        [JSON.stringify(updatedUsers), classId]
+        [updatedUsers, classId] // Pass the array directly
       );
 
       await connection.commit();

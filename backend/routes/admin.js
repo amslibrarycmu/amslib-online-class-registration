@@ -226,9 +226,9 @@ module.exports = (
 
   // --- Statistics (Requires Level 2) ---
   router.get("/statistics/class-demographics", requireAdminLevel(2), async (req, res, next) => {
-    const { year, month } = req.query;
+    const { filterType, year, month, startDate, endDate, roles: rolesJSON } = req.query;
     const params = [];
-    const dateWhereClauses = [];
+    let dateWhereClauses = [];
 
     // SQL: ดึงข้อมูลห้องเรียนพร้อมคะแนนเฉลี่ยการประเมิน
     let sql = `
@@ -236,7 +236,7 @@ module.exports = (
         c.class_id,
         c.title,
         c.start_date,
-        c.registered_users, -- ดึง JSON string ของอีเมลมาเพื่อประมวลผลต่อ
+        c.registered_users,
         (
             SELECT COUNT(e.evaluation_id) FROM evaluations e
             WHERE e.class_id = c.class_id
@@ -262,17 +262,25 @@ module.exports = (
             WHERE e.class_id = c.class_id
         ) AS avg_score_speaker
       FROM classes c
-      WHERE c.status != 'draft' AND c.status != 'open' -- กรองเฉพาะห้องเรียนที่เสร็จสิ้นแล้ว (สมมติว่ามีสถานะ 'completed' หรือ 'closed')
+      WHERE c.status = 'closed'
     `;
 
-    // การกรองตามปี/เดือน
-    if (year && year !== "all") {
-      dateWhereClauses.push("YEAR(c.start_date) = ?");
-      params.push(year);
-    }
-    if (month && month !== "all") {
-      dateWhereClauses.push("MONTH(c.start_date) = ?");
-      params.push(month);
+
+    if (filterType === 'yearly' && year) {
+        dateWhereClauses.push("YEAR(c.start_date) = ?");
+        params.push(year);
+    } else if (filterType === 'monthly' && year && month) {
+        dateWhereClauses.push("YEAR(c.start_date) = ? AND MONTH(c.start_date) = ?");
+        params.push(year, month);
+    } else if (filterType === 'range') {
+        if (startDate) {
+            dateWhereClauses.push("c.start_date >= ?");
+            params.push(startDate);
+        }
+        if (endDate) {
+            dateWhereClauses.push("c.start_date <= ?");
+            params.push(endDate);
+        }
     }
 
     if (dateWhereClauses.length > 0) {
@@ -280,6 +288,7 @@ module.exports = (
     }
 
     sql += " ORDER BY c.start_date DESC";
+    // --- 🟢 END: เพิ่ม Logic การกรองแบบใหม่ ---
 
     try {
       // 1. ดึงข้อมูลห้องเรียนและคะแนนเฉลี่ย
@@ -290,10 +299,19 @@ module.exports = (
       rawClassStats.forEach((cls) => {
         // The mysql2 driver already parses the JSON column, so cls.registered_users is an array.
         const registeredUsersEmails = cls.registered_users || [];
-        registeredUsersEmails.forEach(allEmails.add, allEmails);
+        if (registeredUsersEmails.length > 0) {
+          registeredUsersEmails.forEach(email => allEmails.add(email));
+        }
       });
 
       let userRoleMap = {};
+      let rolesToFilter = [];
+      try {
+        if (rolesJSON) rolesToFilter = JSON.parse(rolesJSON);
+      } catch (e) {
+        console.error("Could not parse roles filter from query:", e);
+      }
+
       if (allEmails.size > 0) {
         const userRolesSql =
           "SELECT email, roles FROM users WHERE email IN (?)";
@@ -310,13 +328,22 @@ module.exports = (
       // 3. รวมข้อมูล Demographics เข้ากับสถิติห้องเรียน
       const classStatsWithDemographics = rawClassStats.map((cls) => {
         const demographics = {};
-        const registeredUsersEmails = cls.registered_users || [];
-        for (const email of registeredUsersEmails) {
-          const role = userRoleMap[email];
-          if (role) {
-            demographics[role] = (demographics[role] || 0) + 1;
+        const registeredUsersEmails = cls.registered_users || []; // This is an array of emails
+
+        if (registeredUsersEmails.length > 0) {
+          for (const email of registeredUsersEmails) {
+            const userRole = userRoleMap[email]; // e.g., 'นักศึกษาปริญญาตรี'
+
+            // If a role filter is active, only count users with that role.
+            // If no role filter, count everyone.
+            const shouldCountUser = rolesToFilter.length === 0 || rolesToFilter.includes(userRole);
+
+            if (userRole && shouldCountUser) {
+              demographics[userRole] = (demographics[userRole] || 0) + 1;
+            }
           }
         }
+
         delete cls.registered_users; // ลบข้อมูลที่ไม่จำเป็นออก
         return { ...cls, demographics };
       });

@@ -27,9 +27,9 @@ const getCurrentTimeString = () => {
 const initialFormState = {
   title: "",
   speaker: [],
-  start_date: getTodayString(),
+  start_date: "",
   start_time: "",
-  end_date: getTodayString(),
+  end_date: "",
   end_time: "",
   description: "",
   format: "ONLINE",
@@ -139,18 +139,20 @@ const ClassCreationModal = ({
       preparedData = {
         ...initialFormState,
         class_id: randomId(), // Generate a random ID for display
-        end_date: getTodayString(), // Keep end_date same as start_date initially
+        end_date: "", // Clear end_date
         end_time: "", // Clear end_time
       };
     }
 
-    if ((mode === 'duplicate' || mode === 'fromRequest') && preparedData.start_date < getTodayString()) {
-      alert("วันที่ของต้นฉบับอยู่ในอดีต กรุณากำหนดวันและเวลาใหม่");
-      preparedData.start_date = getTodayString();
-      preparedData.end_date = getTodayString();
+    // --- 🟢 START: New Logic - Always clear dates when duplicating ---
+    // If duplicating from any existing class (past or future), clear the date/time fields.
+    if (mode === 'duplicate' || mode === 'fromRequest') {
+      preparedData.start_date = "";
+      preparedData.end_date = "";
       preparedData.start_time = "";
       preparedData.end_time = ""; 
     }
+    // --- 🟢 END: New Logic ---
     dispatch({ type: "INITIALIZE_FORM", payload: preparedData });
   }, [initialData, mode]);
 
@@ -275,7 +277,7 @@ const ClassCreationModal = ({
               name="title"
               value={formData.title || ""}
               onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
+              className="w-full border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               maxLength="255"
               required
             />
@@ -288,7 +290,7 @@ const ClassCreationModal = ({
                 name="speaker"
                 value={speakerInput}
                 onChange={handleChange}
-                className="w-full border px-4 py-2 rounded"
+                className="w-full border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               >
                 <option value="">-- เลือกวิทยากร --</option>
                 {speakerOptions
@@ -302,7 +304,7 @@ const ClassCreationModal = ({
               <button
                 type="button"
                 onClick={handleAddSpeaker}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex-shrink-0"
               >
                 เพิ่ม
               </button>
@@ -338,73 +340,93 @@ const ClassCreationModal = ({
               <label className="block font-medium mb-1">
                 วันที่เรียน <span>(วัน/เดือน/ค.ศ.)</span>{" "}
               </label>
-              <input
-                type="date"
-                name="start_date"
-                value={formData.start_date || ""}
-                ref={startDateRef}
-                onChange={handleChange}
-                className="w-full border px-4 py-2 rounded"
-                onClick={() => startDateRef.current?.showPicker?.()}
-                min={getTodayString()}
-                onKeyDown={(e) => e.preventDefault()}
-                required
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  name="start_date"
+                  value={formData.start_date || ""}
+                  ref={startDateRef}
+                  onChange={handleChange}
+                  className="w-full border border-gray-400 px-3 py-2 pr-10 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  onClick={() => startDateRef.current?.showPicker?.()}
+                  min={getTodayString()}
+                  onKeyDown={(e) => e.preventDefault()}
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block font-medium mb-1">เวลา</label>
-              <input
-                type="time"
-                name="start_time"
-                value={formData.start_time || ""}
-                ref={startTimeRef}
-                onChange={handleChange}
-                className="w-full border px-4 py-2 rounded"
-                onClick={() => startTimeRef.current?.showPicker?.()}
-                min={
-                  formData.start_date === getTodayString() ? getCurrentTimeString() : undefined
-                }
-                onKeyDown={(e) => e.preventDefault()}
-                required
-              />
+              <div className="relative">
+                <input
+                  type="time"
+                  name="start_time"
+                  value={formData.start_time || ""}
+                  ref={startTimeRef}
+                  onChange={handleChange}
+                  className="w-full border border-gray-400 px-3 py-2 pr-10 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  onClick={() => startTimeRef.current?.showPicker?.()}
+                  min={
+                    formData.start_date === getTodayString() ? getCurrentTimeString() : undefined
+                  }
+                  onKeyDown={(e) => e.preventDefault()}
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block font-medium mb-1">
                 วันที่สิ้นสุด <span>(วัน/เดือน/ค.ศ.)</span>
               </label>
-              <input
-                type="date"
-                name="end_date"
-                value={formData.end_date || ""}
-                ref={endDateRef}
-                onChange={handleChange}
-                className="w-full border px-4 py-2 rounded disabled:bg-gray-100"
-                min={formData.start_date}
-                onClick={() => endDateRef.current?.showPicker?.()}
-                disabled={!formData.start_time}
-                onKeyDown={(e) => e.preventDefault()}
-                required
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  name="end_date"
+                  value={formData.end_date || ""}
+                  ref={endDateRef}
+                  onChange={handleChange}
+                  className="w-full border border-gray-400 px-3 py-2 pr-10 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  min={formData.start_date}
+                  onClick={() => endDateRef.current?.showPicker?.()}
+                  disabled={!formData.start_time}
+                  onKeyDown={(e) => e.preventDefault()}
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block font-medium mb-1">เวลา</label>
-              <input
-                type="time"
-                name="end_time"
-                value={formData.end_time || ""}
-                ref={endTimeRef}
-                onChange={handleChange}
-                min={
-                  formData.start_date === formData.end_date
-                    ? formData.start_time
-                    : ""
-                }
-                className="w-full border px-4 py-2 rounded disabled:bg-gray-100"
-                disabled={!formData.start_time}
-                onClick={() => endTimeRef.current?.showPicker?.()}
-                onKeyDown={(e) => e.preventDefault()}
-                required
-              />
+              <div className="relative">
+                <input
+                  type="time"
+                  name="end_time"
+                  value={formData.end_time || ""}
+                  ref={endTimeRef}
+                  onChange={handleChange}
+                  min={
+                    formData.start_date === formData.end_date
+                      ? formData.start_time
+                      : ""
+                  }
+                  className="w-full border border-gray-400 px-3 py-2 pr-10 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
+                  disabled={!formData.start_time}
+                  onClick={() => endTimeRef.current?.showPicker?.()}
+                  onKeyDown={(e) => e.preventDefault()}
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+              </div>
             </div>
           </div>
           <div>
@@ -414,7 +436,7 @@ const ClassCreationModal = ({
               value={formData.description || ""}
               onChange={handleChange}
               placeholder="ระบุรายละเอียดในรายวิชาของคุณ (ถ้ามี)"
-              className="w-full border px-4 py-2 rounded"
+              className="w-full border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
 
@@ -424,7 +446,7 @@ const ClassCreationModal = ({
               name="format"
               value={formData.format}
               onChange={handleChange}
-              className="w-full border px-4 py-2 rounded"
+              className="w-full border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               required
             >
               <option value="ONLINE">ONLINE</option>
@@ -441,7 +463,7 @@ const ClassCreationModal = ({
                 value={formData.location || ""}
                 onChange={handleChange}
                 placeholder="ระบุอาคาร ชั้นและห้อง"
-                className="w-full border px-4 py-2 rounded"
+                className="w-full border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                 required
               />
             </div>
@@ -458,7 +480,7 @@ const ClassCreationModal = ({
                 value={formData.join_link || ""}
                 onChange={handleChange}
                 placeholder="โปรดระบุเป็น https:// ตามด้วยลิงก์ของท่าน"
-                className="w-full border px-4 py-2 rounded"
+                className="w-full border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                 required
               />
             </div>
@@ -480,7 +502,7 @@ const ClassCreationModal = ({
                 value={formData.max_participants || "1"}
                 onChange={handleChange}
                 placeholder="ตั้งแต่ 1 ท่านขึ้นไป"
-                className="w-24 border px-4 py-2 rounded"
+                className="w-24 border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                 required
               />
               <span className="block font-medium my-auto w-fit">ท่าน</span>
@@ -542,13 +564,13 @@ const ClassCreationModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 rounded bg-gray-300 hover:bg-gray-400 w-[150px]"
+              className="px-6 py-2 rounded-md bg-gray-300 hover:bg-gray-400 w-[150px] font-semibold"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="bg-purple-700 text-white px-6 py-2 rounded hover:bg-purple-800 w-[150px]"
+              className="bg-purple-700 text-white px-6 py-2 rounded-md hover:bg-purple-800 w-[150px] font-semibold"
             >
               {mode === 'edit' ? "เปลี่ยนแปลง" : "สร้าง"}
             </button>

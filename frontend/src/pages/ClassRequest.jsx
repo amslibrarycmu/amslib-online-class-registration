@@ -76,6 +76,10 @@ const ClassRequest = () => {
   const [isViewing, setIsViewing] = useState(false);
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [editingRequestId, setEditingRequestId] = useState(null);
+  // --- 🟢 START: New states for topic dropdown ---
+  const [classTitles, setClassTitles] = useState([]);
+  const [otherTopic, setOtherTopic] = useState("");
+  // --- 🟢 END: New states ---
   const [selectedRejectionReason, setSelectedRejectionReason] = useState("");
 
   const startDateRef = useRef(null);
@@ -89,6 +93,23 @@ const ClassRequest = () => {
     const now = new Date();
     return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
   };
+
+  // --- 🟢 START: Fetch unique class titles ---
+  useEffect(() => {
+    const fetchTitles = async () => {
+      try {
+        const response = await authFetch(`http://localhost:5000/api/classes/unique-titles`);
+        if (response.ok) {
+          const data = await response.json();
+          setClassTitles(data);
+        }
+      } catch (error) {
+        console.error("Error fetching class titles:", error);
+      }
+    };
+    fetchTitles();
+  }, [authFetch]);
+  // --- 🟢 END: Fetch unique class titles ---
 
   const fetchRequests = async () => {
     if (!user || !user.email) {
@@ -126,6 +147,7 @@ const ClassRequest = () => {
     setFormat("ONLINE");
     setSpeaker("");
     setIsViewing(false);
+    setOtherTopic(""); // Reset other topic field
     setEditingRequestId(null);
   };
 
@@ -133,7 +155,7 @@ const ClassRequest = () => {
     e.preventDefault();
     const formData = {
       title: topic,
-      reason,
+      reason: reason,
       startDate,
       endDate,
       startTime,
@@ -141,6 +163,16 @@ const ClassRequest = () => {
       format,
       speaker,
     };
+
+    // --- 🟢 START: Logic to handle "Other" topic ---
+    if (topic === "other") {
+      if (!otherTopic.trim()) {
+        alert("กรุณาระบุหัวข้อที่สนใจในช่อง 'อื่นๆ'");
+        return;
+      }
+      formData.title = otherTopic;
+    }
+    // --- 🟢 END: Logic to handle "Other" topic ---
 
     const isEditing = !!editingRequestId;
     const url = isEditing
@@ -213,7 +245,15 @@ const ClassRequest = () => {
       }
     };
 
-    setTopic(request.title || "");
+    // --- 🟢 START: Logic to correctly display "Other" topic ---
+    if (classTitles.includes(request.title)) {
+      setTopic(request.title || "");
+      setOtherTopic("");
+    } else {
+      setTopic("other");
+      setOtherTopic(request.title || "");
+    }
+    // --- 🟢 END: Logic to correctly display "Other" topic ---
     setReason(request.reason || "");
     setStartDate(formatDate(request.start_date));
     setEndDate(formatDate(request.end_date));
@@ -233,7 +273,16 @@ const ClassRequest = () => {
         return "";
       }
     };
-    setTopic(request.title || "");
+
+    // --- 🟢 START: Logic to correctly display "Other" topic for editing ---
+    if (classTitles.includes(request.title)) {
+      setTopic(request.title || "");
+      setOtherTopic("");
+    } else {
+      setTopic("other");
+      setOtherTopic(request.title || "");
+    }
+    // --- 🟢 END: Logic to correctly display "Other" topic for editing ---
     setReason(request.reason || "");
     setStartDate(formatDate(request.start_date));
     setEndDate(formatDate(request.end_date));
@@ -316,18 +365,35 @@ const ClassRequest = () => {
                   htmlFor="topic"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  หัวข้อที่สนใจ <span className="text-red-500">*</span>
+                  เลือกหัวข้อที่สนใจ <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   id="topic"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   required
                   disabled={isViewing}
-                  className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
-                />
+                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md disabled:bg-gray-100"
+                >
+                  <option value="">-- กรุณาเลือก --</option>
+                  {classTitles.map((title, index) => (
+                    <option key={index} value={title}>{title}</option>
+                  ))}
+                  <option value="other">อื่นๆ (โปรดระบุ)</option>
+                </select>
               </div>
+
+              {topic === "other" && (
+                <div>
+                  <label htmlFor="other-topic" className="block text-sm font-medium text-gray-700">
+                    ระบุหัวข้ออื่นๆ <span className="text-red-500">*</span>
+                  </label>
+                  <input type="text" id="other-topic" value={otherTopic} onChange={(e) => setOtherTopic(e.target.value)}
+                    required disabled={isViewing}
+                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
+                    placeholder="เช่น การใช้งานโปรแกรม SPSS" />
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>

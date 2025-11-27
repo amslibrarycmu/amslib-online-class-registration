@@ -414,47 +414,21 @@ const AdminClassRequests = () => {
               user={userToView}
             />
           )}
-          <div className="flex justify-start md:justify-end items-center gap-2 mb-6">
-            <button
-              onClick={() => setFilterStatus("all")}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                filterStatus === "all"
-                  ? "bg-gray-700 text-white shadow-md"
-                  : "bg-white text-black hover:bg-gray-200"
-              }`}
-            >
-              ทั้งหมด
-            </button>
-            <button
-              onClick={() => setFilterStatus("pending")}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                filterStatus === "pending"
-                  ? "bg-orange-400 text-white shadow-md"
-                  : "bg-white text-black hover:bg-orange-50"
-              }`}
-            >
-              รอ
-            </button>
-            <button
-              onClick={() => setFilterStatus("approved")}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                filterStatus === "approved"
-                  ? "bg-green-600 text-white shadow-md"
-                  : "bg-white text-black hover:bg-green-50"
-              }`}
-            >
-              อนุมัติ
-            </button>
-            <button
-              onClick={() => setFilterStatus("rejected")}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                filterStatus === "rejected"
-                  ? "bg-red-600 text-white shadow-md"
-                  : "bg-white text-black hover:bg-red-50"
-              }`}
-            >
-              ไม่อนุมัติ
-            </button>
+          <div className="border-b border-gray-200 mb-6">
+            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+              <button onClick={() => setFilterStatus("all")} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filterStatus === "all" ? "border-purple-500 text-purple-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>
+                ทั้งหมด
+              </button>
+              <button onClick={() => setFilterStatus("pending")} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filterStatus === "pending" ? "border-purple-500 text-purple-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>
+                รอตรวจสอบ
+              </button>
+              <button onClick={() => setFilterStatus("approved")} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filterStatus === "approved" ? "border-purple-500 text-purple-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>
+                อนุมัติแล้ว
+              </button>
+              <button onClick={() => setFilterStatus("rejected")} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filterStatus === "rejected" ? "border-purple-500 text-purple-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>
+                ไม่อนุมัติ
+              </button>
+            </nav>
           </div>
           {filteredRequests.length === 0 ? (
             <div className="text-center py-10">
@@ -481,19 +455,19 @@ const AdminClassRequests = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-lg font-bold text-black uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ชื่อห้องเรียน
                     </th>
-                    <th className="px-6 py-3 text-left text-lg font-bold text-black uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ผู้ขอ
                     </th>
-                    <th className="px-6 py-3 text-left text-lg font-bold text-black uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       วันที่ขอ
                     </th>
-                    <th className="px-6 py-3 text-left text-lg font-bold text-black uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       สถานะ
                     </th>
-                    <th className="px-6 py-3 text-left text-lg font-bold text-black uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       การดำเนินการ
                     </th>
                   </tr>

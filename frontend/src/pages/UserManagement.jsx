@@ -264,7 +264,7 @@ const UserManagement = () => {
         <div className="max-w-7xl mx-auto">
           <div className="relative mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800 text-center py-2">
-              จัดการผู้ใช้และสิทธิ์
+              สิทธิ์
             </h1>
           </div>
 
