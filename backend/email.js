@@ -1,4 +1,6 @@
 const nodemailer = require("nodemailer");
+const fs = require('fs').promises;
+const path = require('path');
 
 async function createTransporter() {
   if (process.env.NODE_ENV !== "production") {
@@ -62,47 +64,32 @@ async function sendRegistrationConfirmation(
   studentName
 ) {
   try {
-    const transporter = await createTransporter();
+    // Use environment variable for backend URL, with a fallback for development
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+
+    const templateData = {
+      studentName: studentName,
+      classTitle: classDetails.title,
+      classDescription: classDetails.description ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>` : "",
+      classId: classDetails.class_id,
+      classSpeaker: classDetails.speaker,
+      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH"),
+      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH"),
+      classStartTime: classDetails.start_time.substring(0, 5),
+      classEndTime: classDetails.end_time.substring(0, 5),
+      classFormat: classDetails.format,
+      classLinkSection: classDetails.format !== "ONSITE" ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>` : "",
+      classLocationSection: classDetails.format !== "ONLINE" ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>` : "",
+      classMaterialsSection: createMaterialsSection(classDetails.materials, backendUrl),
+    };
+
+    const htmlContent = await loadTemplate('registration-confirmation', templateData);
+
     await sendEmail({
       to: recipientEmail,
       subject: `ยืนยันการลงทะเบียน ${classDetails.title}`,
-      html: `
-                <p>เรียน คุณ ${studentName},</p>
-                <p>ห้องสมุดคณะเทคนิคการแพทย์ ขอแจ้งให้ทราบว่าท่านได้ลงทะเบียนเข้าร่วมการอบรมเชิงปฏิบัติการดังต่อไปนี้เรียบร้อยแล้ว</p>
-                <hr>
-                <h2>${classDetails.title}</h2>
-                ${
-                  classDetails.description
-                    ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>`
-                    : ""
-                }
-                <p><strong>Class ID:</strong> ${classDetails.class_id}</p>
-                <p><strong>วิทยากร:</strong> ${classDetails.speaker}</p>
-                <p><strong>วันที่:</strong> ${new Date(
-                  classDetails.start_date
-                ).toLocaleDateString("th-TH")} - ${new Date(
-        classDetails.end_date
-      ).toLocaleDateString("th-TH")}</p>
-                <p><strong>เวลา:</strong> ${classDetails.start_time} - ${
-        classDetails.end_time
-      } น.</p>
-                <p><strong>รูปแบบ:</strong> ${classDetails.format}</p>
-                ${
-                  classDetails.format !== "ONSITE"
-                    ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>`
-                    : ""
-                }
-                ${
-                  classDetails.format !== "ONLINE"
-                    ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>`
-                    : ""
-                }
-                <hr>
-                <p>เราจะส่งอีเมลแจ้งเตือนท่านอีกครั้ง 24 ชั่วโมงก่อนห้องเรียนจะเริ่มขึ้น</p>
-                <p>จึงเรียนมาเพื่อโปรดทราบ</p>
-                <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
-                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>
-            `});
+      html: htmlContent,
+    });
   } catch (error) {
     console.error("Error sending registration confirmation email:", error);
   }
@@ -123,28 +110,19 @@ async function sendAdminNotification(
     .join("");
 
   try {
-    const transporter = await createTransporter();
+    const templateData = {
+      classTitle: classDetails.title,
+      classId: classDetails.class_id,
+      newRegistrantName: allRegisteredUsers[allRegisteredUsers.length - 1].name,
+      newRegistrantEmail: allRegisteredUsers[allRegisteredUsers.length - 1].email,
+      registrantCount: allRegisteredUsers.length,
+      userListHtml: userListHtml,
+    };
+    const htmlContent = await loadTemplate('admin-new-registrant', templateData);
     await sendEmail({
       to: adminEmails.join(", "),
       subject: `[ระบบแจ้งเตือน] มีผู้ลงทะเบียนใหม่ในห้องเรียน ชื่อ ${classDetails.title}`,
-      html: `
-                <p>เรียน ผู้ดูแลระบบ,</p>
-                <p><strong>${classDetails.title}</strong> (ID: ${
-        classDetails.class_id
-      })</p>
-                <p>มีผู้ลงทะเบียนล่าสุด: <strong>${
-                  allRegisteredUsers[allRegisteredUsers.length - 1].name
-                } (${
-        allRegisteredUsers[allRegisteredUsers.length - 1].email
-      })</strong></p>
-                <hr>
-                <h3>รายชื่อผู้ลงทะเบียนทั้งหมดในขณะนี้ (${
-                  allRegisteredUsers.length
-                } คน):</h3>
-                <ul>
-                    ${userListHtml}
-                </ul>
-                <hr>`
+      html: htmlContent,
     });
   } catch (error) {
     console.error("Error sending admin notification email:", error);
@@ -168,20 +146,19 @@ async function sendAdminCancellationNotification(
     .join("");
 
   try {
-    const transporter = await createTransporter();
+    const templateData = {
+      classTitle: classDetails.title,
+      classId: classDetails.class_id,
+      cancelingUserName: studentName,
+      cancelingUserEmail: studentEmail,
+      remainingUserCount: remainingUsers.length,
+      userListHtml: userListHtml,
+    };
+    const htmlContent = await loadTemplate('admin-cancellation', templateData);
     await sendEmail({
       to: adminEmails.join(", "),
       subject: `[ระบบแจ้งเตือน] มีผู้ยกเลิกลงทะเบียนจากห้องเรียน ชื่อ ${classDetails.title}`,
-      html: `
-                <p>เรียน ผู้ดูแลระบบ,</p>
-                <p><strong>${classDetails.title} (ID: ${classDetails.class_id})</strong></p>
-                <p>มีผู้ยกเลิกการลงทะเบียน: <strong>${studentName} (${studentEmail})</strong></p>
-                <hr>
-                <h3>รายชื่อผู้ลงทะเบียนที่เหลืออยู่ (${remainingUsers.length} คน):</h3>
-                <ul>
-                    ${userListHtml}
-                </ul>
-                <hr>`
+      html: htmlContent,
     });
   } catch (error) {
     console.error(
@@ -204,21 +181,18 @@ async function sendNewClassRequestAdminNotification(
   }
 
   try {
-    const transporter = await createTransporter();
+    const templateData = {
+      requestTitle: requestDetails.title || 'ไม่มีชื่อเรื่อง',
+      requesterName: requestDetails.requestedBy.name || 'ไม่พบชื่อ',
+      requesterEmail: requestDetails.requestedBy.email || 'ไม่พบอีเมล',
+      requestReason: requestDetails.reason || "-",
+      requestDate: new Date().toLocaleDateString("th-TH"),
+    };
+    const htmlContent = await loadTemplate('admin-new-request', templateData);
     await sendEmail({
       to: adminEmails.join(", "),
       subject: `[ระบบแจ้งเตือน] มีคำขอเปิดห้องเรียนใหม่ ชื่อ "${requestDetails.title}"`,
-      html: `
-                <h2>มีคำขอเปิดห้องเรียนใหม่</h2>
-                <p><strong>หัวข้อ:</strong> ${requestDetails.title || 'ไม่มีชื่อเรื่อง'}</p>
-                <p><strong>ผู้เสนอ:</strong> ${requestDetails.requestedBy.name || 'ไม่พบชื่อ'} (${
-        requestDetails.requestedBy.email || 'ไม่พบอีเมล'
-      })</p>
-                <p>เหตุผล: ${requestDetails.reason || "-"}</p>
-                <p>วันที่เสนอ: ${new Date().toLocaleDateString("th-TH")}</p>
-                <hr>
-                <p>โปรดเข้าสู่ระบบเพื่อตรวจสอบและดำเนินการต่อ</p>
-            `
+      html: htmlContent,
     });
   } catch (error) {
     console.error(
@@ -231,18 +205,15 @@ async function sendNewClassRequestAdminNotification(
 // เพิ่มฟังก์ชันสำหรับส่งอีเมลยืนยันการยื่นคำขอ
 async function sendRequestSubmittedConfirmation(recipientEmail, requestDetails, requesterName) {
   try {
+    const templateData = {
+      requesterName: requesterName,
+      requestTitle: requestDetails.title,
+    };
+    const htmlContent = await loadTemplate('request-submitted', templateData);
     await sendEmail({
       to: recipientEmail,
       subject: `[AMSLIB] ได้รับคำขอเปิดห้องเรียนของคุณแล้ว: ${requestDetails.title}`,
-      html: `
-                <p>เรียน คุณ ${requesterName},</p>
-                <p>ระบบได้รับคำขอเปิดห้องเรียนหัวข้อ <strong>"${requestDetails.title}"</strong> ของท่านเรียบร้อยแล้ว</p>
-                <p>ขณะนี้คำขอของท่านอยู่ในระหว่างการพิจารณาจากผู้ดูแลระบบ และจะแจ้งผลให้ทราบอีกครั้งทางอีเมล</p>
-                <p>ท่านสามารถตรวจสอบสถานะคำขอของท่านได้ในหน้า "ยื่นคำขอเปิดห้องเรียน"</p>
-                <hr>
-                <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
-                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ</p>
-            `,
+      html: htmlContent,
     });
   } catch (error) {
     console.error(
@@ -255,18 +226,15 @@ async function sendRequestSubmittedConfirmation(recipientEmail, requestDetails, 
 // เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการอนุมัติ
 async function sendRequestApprovedNotification(recipientEmail, requestDetails) {
   try {
+    const templateData = {
+      requesterName: requestDetails.requested_by_name || requestDetails.user_email,
+      requestTitle: requestDetails.title,
+    };
+    const htmlContent = await loadTemplate('request-approved', templateData);
     await sendEmail({
       to: recipientEmail,
       subject: `แจ้งผลการพิจารณาคำขอหลักสูตร ${requestDetails.title} "ได้รับการอนุมัติแล้ว"`,
-      html: `
-                <p>เรียน คุณ ${
-                  requestDetails.requested_by_name || requestDetails.user_email
-                },</p>
-                <p>ตามที่ท่านได้ยื่นคำขอเปิดหลักสูตร <strong>"${requestDetails.title}"</strong> ขณะนี้คำขอของท่านได้รับการอนุมัติเรียบร้อยแล้ว</p>
-                <p>ท่านสามารถติดตามความคืบหน้าของหลักสูตรนี้ได้ในระบบต่อไป</p>
-                <hr>
-                <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
-                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>`
+      html: htmlContent,
     });
   } catch (error) {
     console.error("Error sending request approved email:", error);
@@ -280,24 +248,16 @@ async function sendRequestRejectedNotification( // Make this async as well for c
   rejectionReason
 ) {
   try {
+    const templateData = {
+      requesterName: requestDetails.requested_by_name || requestDetails.user_email,
+      requestTitle: requestDetails.title,
+      rejectionReasonSection: rejectionReason ? `<p><strong>เหตุผล:</strong> ${rejectionReason}</p>` : "",
+    };
+    const htmlContent = await loadTemplate('request-rejected', templateData);
     await sendEmail({
       to: recipientEmail,
       subject: `แจ้งผลการพิจารณาคำขอหลักสูตร: ${requestDetails.title} "ไม่ได้รับการอนุมัติ"`,
-      html: `
-                <p>เรียน คุณ ${
-                  requestDetails.requested_by_name || requestDetails.user_email
-                },</p>
-                <p>คำขอหลักสูตร <strong>"${
-                  requestDetails.title
-                }"</strong> ของท่านยังไม่ได้รับการอนุมัติ</p>
-                ${
-                  rejectionReason
-                    ? `<p><strong>เหตุผล:</strong> ${rejectionReason}</p>`
-                    : ""
-                }
-                <hr>
-                <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
-                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>`
+      html: htmlContent,
     });
   } catch (error) {
     console.error("Error sending request rejected email:", error);
@@ -305,46 +265,34 @@ async function sendRequestRejectedNotification( // Make this async as well for c
 }
 
 async function sendReminderEmail(recipientEmail, classDetails, studentName) {
+  try {
+    // Use environment variable for backend URL, with a fallback for development
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+
+    const templateData = {
+      studentName: studentName,
+      classTitle: classDetails.title,
+      classDescription: classDetails.description ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>` : "",
+      classId: classDetails.class_id,
+      classSpeaker: classDetails.speaker,
+      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH"),
+      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH"),
+      classStartTime: classDetails.start_time.substring(0, 5),
+      classEndTime: classDetails.end_time.substring(0, 5),
+      classFormat: classDetails.format,
+      classLinkSection: classDetails.format !== "ONSITE" ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>` : "",
+      classLocationSection: classDetails.format !== "ONLINE" ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>` : "",
+      classMaterialsSection: createMaterialsSection(classDetails.materials, backendUrl),
+    };
+    const htmlContent = await loadTemplate('class-reminder', templateData);
     await sendEmail({
       to: recipientEmail,
       subject: `[แจ้งเตือน] ห้องเรียน "${classDetails.title}" จะเริ่มใน 24 ชั่วโมง`,
-      html: `
-                <p>เรียน คุณ ${studentName},</p>
-                <p>ห้องสมุดคณะเทคนิคการแพทย์ ขอแจ้งเตือนว่าห้องเรียนที่ท่านได้ลงทะเบียนไว้จะเริ่มในอีก 24 ชั่วโมงข้างหน้า</p>
-                <hr>
-                <h2>${classDetails.title}</h2>
-                ${
-                  classDetails.description
-                    ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>`
-                    : ""
-                }
-                <p><strong>Class ID:</strong> ${classDetails.class_id}</p>
-                <p><strong>วิทยากร:</strong> ${classDetails.speaker}</p>
-                <p><strong>วันที่:</strong> ${new Date(
-                  classDetails.start_date
-                ).toLocaleDateString("th-TH")} - ${new Date(
-        classDetails.end_date
-      ).toLocaleDateString("th-TH")}</p>
-                <p><strong>เวลา:</strong> ${classDetails.start_time} - ${
-        classDetails.end_time
-      } น.</p>
-                <p><strong>รูปแบบ:</strong> ${classDetails.format}</p>
-                ${
-                  classDetails.format !== "ONSITE"
-                    ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>`
-                    : ""
-                }
-                ${
-                  classDetails.format !== "ONLINE"
-                    ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>`
-                    : ""
-                }
-                <hr>
-                <p>โปรดเตรียมตัวให้พร้อมสำหรับการเข้าร่วม</p>
-                <p>ขอแสดงความนับถือ<br>ห้องสมุดคณะเทคนิคการแพทย์</p>
-                <p>หมายเหตุ: นี่เป็นเพียงจดหมายตอบกลับอัตโนมัติของระบบ หากต้องการสอบถามเพิ่มเติม ท่านสามารถติดต่อเจ้าหน้าที่ห้องสมุดได้โดยตรง</p>
-            `
+      html: htmlContent,
     });
+  } catch (error) {
+    console.error("Error sending reminder email:", error);
+  }
 }
 
 module.exports = {

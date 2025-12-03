@@ -45,13 +45,12 @@ module.exports = (
       });
     } catch (err) {
       console.error("Error fetching activity logs:", err);
-      next(err); // Pass error to the centralized handler
+      next(err);
     }
   });
 
   router.get("/activity-logs/all", requireAdminLevel(3), async (req, res, next) => {
     const { search = "", actionType = "" } = req.query;
-
     let sql = "SELECT * FROM activity_logs";
     const whereClauses = [];
     const params = [];
@@ -60,33 +59,27 @@ module.exports = (
       whereClauses.push("(user_name LIKE ? OR user_email LIKE ?)");
       params.push(`%${search}%`, `%${search}%`);
     }
-
     if (actionType) {
       whereClauses.push("action_type = ?");
       params.push(actionType);
     }
-
     if (whereClauses.length > 0) {
       sql += " WHERE " + whereClauses.join(" AND ");
     }
-
     sql += " ORDER BY timestamp DESC";
 
     try {
       const [results] = await db.query(sql, params);
       return res.json(results);
     } catch (err) {
-      console.error("Error fetching all activity logs for export:", err);
-      next(err); // Pass error to the centralized handler
+      console.error("Error fetching all activity logs:", err);
+      next(err);
     }
   });
 
   // --- Class Requests (Admin - Requires Level 2) ---
   router.get("/class-requests", requireAdminLevel(2), async (req, res, next) => {
-    const { status, roles } = req.query;
-    // Use LEFT JOIN to ensure all requests are returned, even if the requesting user has been deleted.
-    // Use COALESCE to provide a fallback name if the user is not found.
-    // Aliased table columns to match the frontend's expected field names.
+    const { status } = req.query;
     let sql = `
       SELECT
         r.request_id, r.title, r.reason, r.start_date, r.end_date, r.start_time, r.created_at,
@@ -99,16 +92,12 @@ module.exports = (
       LEFT JOIN users u_requester ON r.requested_by_email = u_requester.email
       LEFT JOIN users u_admin ON r.action_by_email = u_admin.email
     `;
-
     const params = [];
-
     if (status) {
       sql += " WHERE r.status = ?";
       params.push(status);
     }
-
     sql += " ORDER BY r.created_at DESC";
-
     try {
       const [results] = await db.query(sql, params);
       return res.json(results);
@@ -120,7 +109,7 @@ module.exports = (
 
   router.post("/class-requests/:requestId", requireAdminLevel(2), async (req, res, next) => {
     const { requestId } = req.params;
-    const { action, reason, admin_email } = req.body; // รับ action จาก body
+    const { action, reason, admin_email } = req.body;
 
     if (!["approve", "reject"].includes(action)) {
       return res.status(400).json({ message: "Invalid action." });
@@ -129,96 +118,42 @@ module.exports = (
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
-
       let updateRequestSql;
       let updateParams;
       if (action === "reject") {
         if (!reason || reason.trim() === "") {
           await connection.rollback();
           connection.release();
-          return res
-            .status(400)
-            .json({ message: "Rejection reason is required." });
+          return res.status(400).json({ message: "Rejection reason is required." });
         }
-        updateRequestSql =
-          "UPDATE class_requests SET status = 'rejected', admin_comment = ?, action_by_email = ?, action_at = NOW() WHERE request_id = ?";
+        updateRequestSql = "UPDATE class_requests SET status = 'rejected', admin_comment = ?, action_by_email = ?, action_at = NOW() WHERE request_id = ?";
         updateParams = [reason, admin_email, requestId];
       } else {
-        updateRequestSql =
-          "UPDATE class_requests SET status = 'approved', admin_comment = NULL, action_by_email = ?, action_at = NOW() WHERE request_id = ?";
+        updateRequestSql = "UPDATE class_requests SET status = 'approved', admin_comment = NULL, action_by_email = ?, action_at = NOW() WHERE request_id = ?";
         updateParams = [admin_email, requestId];
       }
 
-      const [updateResult] = await connection.query(
-        updateRequestSql,
-        updateParams
-      );
-      if (updateResult.affectedRows === 0) {
-        throw new Error("Request not found.");
-      }
+      const [updateResult] = await connection.query(updateRequestSql, updateParams);
+      if (updateResult.affectedRows === 0) throw new Error("Request not found.");
 
-      const getRequestSql = `
-          SELECT r.*, u.name as requested_by_name 
-          FROM class_requests r 
-          LEFT JOIN users u ON r.requested_by_email = u.email 
-          WHERE r.request_id = ?
-        `;
-      const [requestResults] = await connection.query(getRequestSql, [
-        requestId,
-      ]);
-      if (requestResults.length === 0) {
-        throw new Error("Request details not found.");
-      }
+      const getRequestSql = `SELECT r.*, u.name as requested_by_name FROM class_requests r LEFT JOIN users u ON r.requested_by_email = u.email WHERE r.request_id = ?`;
+      const [requestResults] = await connection.query(getRequestSql, [requestId]);
+      if (requestResults.length === 0) throw new Error("Request details not found.");
       const requestDetails = requestResults[0];
 
       if (action === "approve") {
-        await sendRequestApprovedNotification(
-          requestDetails.requested_by_email,
-          requestDetails
-        );
-        logActivity(
-          req,
-          req.user.id,
-          req.user.name,
-          req.user.email,
-          "APPROVE_CLASS_REQUEST",
-          "REQUEST",
-          requestId,
-          {
-            request_title: requestDetails.title,
-            approved_by: req.user.email,
-            approved_by_name: req.user.name,
-          }
-        );
+        await sendRequestApprovedNotification(requestDetails.requested_by_email, requestDetails);
+        logActivity(req, req.user.id, req.user.name, req.user.email, "APPROVE_CLASS_REQUEST", "REQUEST", requestId, { request_title: requestDetails.title, approved_by: req.user.email });
       } else {
-        await sendRequestRejectedNotification(
-          requestDetails.requested_by_email,
-          requestDetails,
-          reason
-        );
-        logActivity(
-          req,
-          req.user.id,
-          req.user.name,
-          req.user.email,
-          "REJECT_CLASS_REQUEST",
-          "REQUEST",
-          requestId,
-          {
-            request_title: requestDetails.title,
-            rejected_by: req.user.email,
-            reason,
-          }
-        );
+        await sendRequestRejectedNotification(requestDetails.requested_by_email, requestDetails, reason);
+        logActivity(req, req.user.id, req.user.name, req.user.email, "REJECT_CLASS_REQUEST", "REQUEST", requestId, { request_title: requestDetails.title, rejected_by: req.user.email, reason });
       }
 
       await connection.commit();
-      return res
-        .status(200)
-        .json({ message: `Request ${action}ed successfully.` });
+      return res.status(200).json({ message: `Request ${action}ed successfully.` });
     } catch (error) {
       await connection.rollback();
-      next(error); // Pass error to the centralized handler
+      next(error);
     } finally {
       connection.release();
     }
@@ -230,41 +165,18 @@ module.exports = (
     const params = [];
     let dateWhereClauses = [];
 
-    // SQL: ดึงข้อมูลห้องเรียนพร้อมคะแนนเฉลี่ยการประเมิน
     let sql = `
       SELECT
-        c.class_id,
-        c.title,
-        c.start_date,
-        c.registered_users,
-        (
-            SELECT COUNT(e.evaluation_id) FROM evaluations e
-            WHERE e.class_id = c.class_id
-        ) AS total_evaluations,
-        (
-            SELECT AVG(e.score_content) FROM evaluations e
-            WHERE e.class_id = c.class_id
-        ) AS avg_score_content,
-        (
-            SELECT AVG(e.score_material) FROM evaluations e
-            WHERE e.class_id = c.class_id
-        ) AS avg_score_material,
-        (
-            SELECT AVG(e.score_duration) FROM evaluations e
-            WHERE e.class_id = c.class_id
-        ) AS avg_score_duration,
-        (
-            SELECT AVG(e.score_format) FROM evaluations e
-            WHERE e.class_id = c.class_id
-        ) AS avg_score_format,
-        (
-            SELECT AVG(e.score_speaker) FROM evaluations e
-            WHERE e.class_id = c.class_id
-        ) AS avg_score_speaker
+        c.class_id, c.title, c.start_date, c.registered_users,
+        (SELECT COUNT(e.evaluation_id) FROM evaluations e WHERE e.class_id = c.class_id) AS total_evaluations,
+        (SELECT AVG(e.score_content) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_content,
+        (SELECT AVG(e.score_material) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_material,
+        (SELECT AVG(e.score_duration) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_duration,
+        (SELECT AVG(e.score_format) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_format,
+        (SELECT AVG(e.score_speaker) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_speaker
       FROM classes c
       WHERE c.status = 'closed'
     `;
-
 
     if (filterType === 'yearly' && year) {
         dateWhereClauses.push("YEAR(c.start_date) = ?");
@@ -273,85 +185,71 @@ module.exports = (
         dateWhereClauses.push("YEAR(c.start_date) = ? AND MONTH(c.start_date) = ?");
         params.push(year, month);
     } else if (filterType === 'range') {
-        if (startDate) {
-            dateWhereClauses.push("c.start_date >= ?");
-            params.push(startDate);
-        }
-        if (endDate) {
-            dateWhereClauses.push("c.start_date <= ?");
-            params.push(endDate);
-        }
+        if (startDate) { dateWhereClauses.push("c.start_date >= ?"); params.push(startDate); }
+        if (endDate) { dateWhereClauses.push("c.start_date <= ?"); params.push(endDate); }
     }
 
-    if (dateWhereClauses.length > 0) {
-      sql += " AND " + dateWhereClauses.join(" AND ");
-    }
-
+    if (dateWhereClauses.length > 0) sql += " AND " + dateWhereClauses.join(" AND ");
     sql += " ORDER BY c.start_date DESC";
-    // --- 🟢 END: เพิ่ม Logic การกรองแบบใหม่ ---
 
     try {
-      // 1. ดึงข้อมูลห้องเรียนและคะแนนเฉลี่ย
       const [rawClassStats] = await db.query(sql, params);
-
-      // 2. ประมวลผล Demographics
       const allEmails = new Set();
       rawClassStats.forEach((cls) => {
-        // The mysql2 driver already parses the JSON column, so cls.registered_users is an array.
         const registeredUsersEmails = cls.registered_users || [];
-        if (registeredUsersEmails.length > 0) {
-          registeredUsersEmails.forEach(email => allEmails.add(email));
-        }
+        if (registeredUsersEmails.length > 0) registeredUsersEmails.forEach(email => allEmails.add(email));
       });
 
       let userRoleMap = {};
       let rolesToFilter = [];
-      try {
-        if (rolesJSON) rolesToFilter = JSON.parse(rolesJSON);
-      } catch (e) {
-        console.error("Could not parse roles filter from query:", e);
-      }
+      try { if (rolesJSON) rolesToFilter = JSON.parse(rolesJSON); } catch (e) { }
 
       if (allEmails.size > 0) {
-        const userRolesSql =
-          "SELECT email, roles FROM users WHERE email IN (?)";
-        const [userRoles] = await db.query(userRolesSql, [
-          Array.from(allEmails),
-        ]);
+        const userRolesSql = "SELECT email, roles FROM users WHERE email IN (?)";
+        const [userRoles] = await db.query(userRolesSql, [Array.from(allEmails)]);
+        
         userRoles.forEach((user) => {
-          // The mysql2 driver already parses the JSON column, so user.roles is an array.
-          userRoleMap[user.email] =
-            user.roles && user.roles.length > 0 ? user.roles[0] : "Unknown"; // ใช้ role แรก
+          const roles = user.roles || [];
+          
+          // 🟢 แก้ไข Logic: เลือกบทบาทที่ไม่ใช่ "ผู้ดูแลระบบ" ก่อน
+          // ถ้ามี ["ผู้ดูแลระบบ", "บุคลากร"] -> จะได้ "บุคลากร"
+          // ถ้ามี ["ผู้ดูแลระบบ"] -> จะได้ undefined (ซึ่งจะถูกกรองออกทีหลัง)
+          const generalRole = roles.find(r => r !== "ผู้ดูแลระบบ");
+          
+          // ถ้ามีบทบาททั่วไป ให้ใช้บทบาทนั้น ถ้าไม่มี (เป็นแอดมินอย่างเดียว) ให้ใช้ค่าเดิมไปก่อน
+          userRoleMap[user.email] = generalRole || (roles.length > 0 ? roles[0] : "Unknown");
         });
       }
 
-      // 3. รวมข้อมูล Demographics เข้ากับสถิติห้องเรียน
       const classStatsWithDemographics = rawClassStats.map((cls) => {
         const demographics = {};
-        const registeredUsersEmails = cls.registered_users || []; // This is an array of emails
+        const registeredUsersEmails = cls.registered_users || [];
 
         if (registeredUsersEmails.length > 0) {
           for (const email of registeredUsersEmails) {
-            const userRole = userRoleMap[email]; // e.g., 'นักศึกษาปริญญาตรี'
+            const userRole = userRoleMap[email];
+            
+            // 🟢 Logic ใหม่: กรอง "ผู้ดูแลระบบ" ออกจากการนับ
+            // 1. userRole ต้องไม่ใช่ "ผู้ดูแลระบบ" (ตามเงื่อนไขข้างบน ถ้ามีบทบาทอื่นจะถูกเลือกมาแทนแล้ว)
+            // 2. ต้องตรงกับ Filter ที่เลือก (ถ้ามี)
+            
+            const isNotAdminRole = userRole !== "ผู้ดูแลระบบ";
+            const matchesFilter = rolesToFilter.length === 0 || rolesToFilter.includes(userRole);
 
-            // If a role filter is active, only count users with that role.
-            // If no role filter, count everyone.
-            const shouldCountUser = rolesToFilter.length === 0 || rolesToFilter.includes(userRole);
-
-            if (userRole && shouldCountUser) {
+            if (userRole && isNotAdminRole && matchesFilter) {
               demographics[userRole] = (demographics[userRole] || 0) + 1;
             }
           }
         }
 
-        delete cls.registered_users; // ลบข้อมูลที่ไม่จำเป็นออก
+        delete cls.registered_users;
         return { ...cls, demographics };
       });
 
       return res.json(classStatsWithDemographics);
     } catch (err) {
       console.error("❌ Error fetching class demographics statistics:", err);
-      next(err); // Pass error to the centralized handler
+      next(err);
     }
   });
 
