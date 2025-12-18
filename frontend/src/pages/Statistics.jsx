@@ -8,7 +8,7 @@ import { useStatisticsData } from "../components/UseStatisticsData";
 import StatisticsFilterModal from "../components/StatisticsFilterModal";
 
 const Statistics = () => {
-  const { user, activeRole, isSwitchingRole } = useAuth();
+  const { user, activeRole, isSwitchingRole, authFetch } = useAuth();
   const navigate = useNavigate();
 
   // --- State สำหรับการกรองแบบใหม่ ---
@@ -18,7 +18,14 @@ const Statistics = () => {
   const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [roles, setRoles] = useState([]); // State for roles filter
+
+  const allRoles = [
+    "นักศึกษาปริญญาตรี",
+    "นักศึกษาบัณฑิต",
+    "อาจารย์/นักวิจัย",
+    "บุคลากร",
+  ];
+  const [roles, setRoles] = useState(allRoles); // State for roles filter
   // ------------------------------------
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +55,7 @@ const Statistics = () => {
   );
 
   const [expandedClassIds, setExpandedClassIds] = useState([]);
+  const [detailedClassData, setDetailedClassData] = useState({}); // เก็บข้อมูล Raw Data ของแต่ละวิชา
 
   const currentYear = new Date().getFullYear();
   const years = Array.from(
@@ -232,6 +240,57 @@ const Statistics = () => {
     return count === 0 ? "N/A" : (total / count).toFixed(2);
   };
 
+  // ฟังก์ชันคำนวณสถิติใหม่สำหรับรายวิชาตามตัวกรอง (Client-side calculation)
+  const getFilteredClassStats = (classStat) => {
+    const rawEvaluations = detailedClassData[classStat.class_id];
+    
+    // 1. กรอง Demographics (Pie Chart) จากข้อมูลสรุปที่มีอยู่แล้ว
+    const filteredDemographics = {};
+    for (const status in classStat.demographics) {
+      if (statusMatchesRoles(status, roles)) {
+        filteredDemographics[status] = classStat.demographics[status];
+      }
+    }
+
+    // 2. คำนวณคะแนนเฉลี่ย (Bar Chart) จาก Raw Data (ถ้ามี)
+    let filteredAvgScores = {};
+    let filteredTotalEvals = 0;
+
+    // ตรวจสอบว่ามีข้อมูล Raw Data จริงหรือไม่
+    if (Array.isArray(rawEvaluations) && rawEvaluations.length > 0) {
+      const scoreKeys = ["content", "material", "duration", "format", "speaker"];
+      // กรอง Evaluation ตาม Role
+      const matchingEvals = rawEvaluations.filter(ev => {
+        if (roles.length === 0) return true;
+        if (!ev.user_roles || !Array.isArray(ev.user_roles)) return false;
+        return ev.user_roles.some(r => roles.includes(r));
+      });
+
+      filteredTotalEvals = matchingEvals.length;
+      scoreKeys.forEach(key => {
+        const sum = matchingEvals.reduce((acc, ev) => acc + (parseFloat(ev[`score_${key}`]) || 0), 0);
+        filteredAvgScores[`avg_score_${key}`] = filteredTotalEvals > 0 ? sum / filteredTotalEvals : 0;
+      });
+    } else if (rawEvaluations !== undefined) {
+      // กรณีโหลดเสร็จแล้ว (ไม่ใช่ undefined) แต่ได้ Array ว่าง [] (อาจเกิดจาก Error หรือไม่มีข้อมูลจริง)
+      // ถ้าข้อมูลสรุปบอกว่ามีคนประเมิน (total > 0) และเราไม่ได้กรอง Role (roles.length == 0)
+      // ให้ใช้ข้อมูลสรุป (classStat) มาแสดงแทน เพื่อป้องกันการขึ้นว่า "ยังไม่มีผู้ประเมิน"
+      if (classStat.total_evaluations > 0 && roles.length === 0) {
+        return { 
+          demographics: filteredDemographics, 
+          avgScores: classStat, // ใช้คะแนนเฉลี่ยรวมจากสรุป
+          totalEvaluations: classStat.total_evaluations, 
+          isLoading: false 
+        };
+      }
+    } else {
+      // ถ้ายังไม่มี Raw Data (เป็น undefined) ให้แสดงสถานะ Loading
+      return { demographics: filteredDemographics, avgScores: classStat, totalEvaluations: classStat.total_evaluations, isLoading: true };
+    }
+
+    return { demographics: filteredDemographics, avgScores: filteredAvgScores, totalEvaluations: filteredTotalEvals, isLoading: false };
+  };
+
   const renderActiveFilter = () => {
     switch (filterType) {
       case "yearly":
@@ -265,12 +324,36 @@ const Statistics = () => {
     return <p>Loading...</p>;
   }
 
-  const handleToggleExpand = (classId) => {
+  const handleToggleExpand = async (classId) => {
+    const isExpanding = !expandedClassIds.includes(classId);
+    
     setExpandedClassIds((prevIds) =>
-      prevIds.includes(classId)
+      !isExpanding
         ? prevIds.filter((id) => id !== classId)
         : [...prevIds, classId]
     );
+
+    // ถ้ากดขยายและยังไม่มีข้อมูล Raw Data ให้ไปดึงมา
+    if (isExpanding && !detailedClassData[classId]) {
+      try {
+        const res = await authFetch(`http://localhost:5000/api/classes/${classId}/evaluations`);
+        if (res.ok) {
+          const data = await res.json();
+          // The error suggests 'data' is not an array. It's likely an object like { evaluations: [...] }.
+          // We extract the array and provide a fallback to an empty array.
+          // This makes the code robust whether the API returns an array or an object.
+          const evaluationsArray = Array.isArray(data) ? data : (data.evaluations || []);
+          setDetailedClassData(prev => ({ ...prev, [classId]: evaluationsArray }));
+        } else {
+          // กรณี API Error (เช่น 404, 500) ให้เซ็ตเป็น [] เพื่อหยุด Loading และเข้าสู่ Fallback logic
+          setDetailedClassData(prev => ({ ...prev, [classId]: [] }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch class details", err);
+        // Set to an empty array on error to prevent future crashes and stop re-fetching.
+        setDetailedClassData(prev => ({ ...prev, [classId]: [] }));
+      }
+    }
   };
 
   const getSortIcon = (key) => {
@@ -626,31 +709,35 @@ const Statistics = () => {
                   </div>
                   {expandedClassIds.includes(classStat.class_id) && (
                     <div className="p-4 border-t border-gray-200 bg-white">
-                      {Object.keys(classStat.demographics).length > 0 ? (
+                      {(() => {
+                        const { demographics, avgScores, totalEvaluations, isLoading } = getFilteredClassStats(classStat);
+                        
+                        return Object.keys(demographics).length > 0 || totalEvaluations > 0 ? (
                         <div className="flex flex-col lg:flex-row lg:justify-around gap-4">
                           <div className="flex flex-col gap-y-2 relative h-80 w-full lg:w-1/2 min-w-[300px]">
                             <span className="text-lg font-semibold">
                               จำนวนของผู้เข้าเรียน คือ{" "}
-                              {Object.values(classStat.demographics).reduce(
+                              {Object.values(demographics).reduce(
                                 (sum, count) => sum + count,
                                 0
                               )}{" "}
                               คน
                             </span>
                             <DemographicsPieChart
-                              demographics={classStat.demographics}
+                              demographics={demographics}
                             />
                           </div>
                           <div className="flex flex-col h-auto w-full lg:w-1/2 min-w-[300px]">
-                            {classStat.total_evaluations > 0 ? (
+                            {isLoading ? <p className="text-center mt-10">กำลังคำนวณคะแนน...</p> : 
+                             totalEvaluations > 0 ? (
                               <>
                                 <div className="mb-2">
                                   <span className="text-lg font-semibold text-teal-600">
-                                    คะแนนเฉลี่ย (x̄) = {getClassAverageScore(classStat)}
+                                    คะแนนเฉลี่ย (x̄) = {getClassAverageScore(avgScores)}
                                   </span>
                                 </div>
                                 <div className="h-80 relative">
-                                  <CategoryBarChart data={classStat} />
+                                  <CategoryBarChart data={avgScores} />
                                 </div>
                               </>
                             ) : (
@@ -660,11 +747,12 @@ const Statistics = () => {
                             )}
                           </div>
                         </div>
-                      ) : (
-                        <p className="text-gray-500 text-center py-4">
-                          ยังไม่มีผู้ลงทะเบียนในห้องเรียนนี้
-                        </p>
-                      )}
+                        ) : (
+                          <p className="text-gray-500 text-center py-4">
+                            ไม่พบข้อมูลตามเงื่อนไขที่เลือก
+                          </p>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

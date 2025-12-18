@@ -159,23 +159,17 @@ module.exports = (
     }
   });
 
-  // --- Statistics (Requires Level 2) ---
+  // --- 🟢 Statistics: Class Demographics & Scores (Logic ใหม่ + Safe Parse) 🟢 ---
   router.get("/statistics/class-demographics", requireAdminLevel(2), async (req, res, next) => {
     const { filterType, year, month, startDate, endDate, roles: rolesJSON } = req.query;
     const params = [];
     let dateWhereClauses = [];
 
+    // 1. ดึงข้อมูล Class
     let sql = `
-      SELECT
-        c.class_id, c.title, c.start_date, c.registered_users,
-        (SELECT COUNT(e.evaluation_id) FROM evaluations e WHERE e.class_id = c.class_id) AS total_evaluations,
-        (SELECT AVG(e.score_content) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_content,
-        (SELECT AVG(e.score_material) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_material,
-        (SELECT AVG(e.score_duration) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_duration,
-        (SELECT AVG(e.score_format) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_format,
-        (SELECT AVG(e.score_speaker) FROM evaluations e WHERE e.class_id = c.class_id) AS avg_score_speaker
+      SELECT c.class_id, c.title, c.start_date, c.registered_users
       FROM classes c
-      WHERE c.status = 'closed'
+      WHERE c.status != 'draft' AND c.status != 'open'
     `;
 
     if (filterType === 'yearly' && year) {
@@ -193,13 +187,34 @@ module.exports = (
     sql += " ORDER BY c.start_date DESC";
 
     try {
-      const [rawClassStats] = await db.query(sql, params);
-      const allEmails = new Set();
-      rawClassStats.forEach((cls) => {
-        const registeredUsersEmails = cls.registered_users || [];
-        if (registeredUsersEmails.length > 0) registeredUsersEmails.forEach(email => allEmails.add(email));
-      });
+      const [classes] = await db.query(sql, params);
 
+      // 2. ดึงข้อมูล Evaluations
+      const classIds = classes.map(c => c.class_id);
+      let evaluations = [];
+      if (classIds.length > 0) {
+        const [evals] = await db.query("SELECT * FROM evaluations WHERE class_id IN (?)", [classIds]);
+        evaluations = evals;
+      }
+
+      // 3. รวบรวม Email เพื่อหา Role (พร้อม Safe Parse registered_users)
+      const allEmails = new Set();
+      classes.forEach((cls) => {
+        let registeredUsersEmails = cls.registered_users;
+        
+        // 🛡️ Safe Parse: ป้องกันกรณี Database ส่งมาเป็น String
+        if (typeof registeredUsersEmails === 'string') {
+            try { registeredUsersEmails = JSON.parse(registeredUsersEmails); } catch(e) { registeredUsersEmails = []; }
+        }
+        
+        // ถ้า parse แล้ว หรือเป็น array อยู่แล้ว ให้เก็บไว้ใช้ต่อเลย
+        cls.registered_users_parsed = Array.isArray(registeredUsersEmails) ? registeredUsersEmails : [];
+
+        cls.registered_users_parsed.forEach(email => allEmails.add(email));
+      });
+      evaluations.forEach(ev => allEmails.add(ev.user_email));
+
+      // 4. สร้าง Map ของ User Roles (พร้อม Safe Parse user.roles)
       let userRoleMap = {};
       let rolesToFilter = [];
       try { if (rolesJSON) rolesToFilter = JSON.parse(rolesJSON); } catch (e) { }
@@ -209,139 +224,129 @@ module.exports = (
         const [userRoles] = await db.query(userRolesSql, [Array.from(allEmails)]);
         
         userRoles.forEach((user) => {
-          const roles = user.roles || [];
+          let roles = user.roles;
           
-          // 🟢 แก้ไข Logic: เลือกบทบาทที่ไม่ใช่ "ผู้ดูแลระบบ" ก่อน
-          // ถ้ามี ["ผู้ดูแลระบบ", "บุคลากร"] -> จะได้ "บุคลากร"
-          // ถ้ามี ["ผู้ดูแลระบบ"] -> จะได้ undefined (ซึ่งจะถูกกรองออกทีหลัง)
+          // 🛡️ Safe Parse: ป้องกันกรณี roles เป็น String
+          if (typeof roles === 'string') {
+             try { roles = JSON.parse(roles); } catch(e) { roles = []; }
+          }
+          if (!Array.isArray(roles)) roles = [];
+
+          // 🟢 Logic สำคัญ: เลือกบทบาทที่ไม่ใช่ "ผู้ดูแลระบบ" ก่อน
           const generalRole = roles.find(r => r !== "ผู้ดูแลระบบ");
           
-          // ถ้ามีบทบาททั่วไป ให้ใช้บทบาทนั้น ถ้าไม่มี (เป็นแอดมินอย่างเดียว) ให้ใช้ค่าเดิมไปก่อน
           userRoleMap[user.email] = generalRole || (roles.length > 0 ? roles[0] : "Unknown");
         });
       }
 
-      const classStatsWithDemographics = rawClassStats.map((cls) => {
+      // 5. คำนวณสถิติ
+      const finalStats = classes.map((cls) => {
         const demographics = {};
-        const registeredUsersEmails = cls.registered_users || [];
+        const registeredUsersEmails = cls.registered_users_parsed || []; // ใช้ตัวที่ parse แล้ว
 
-        if (registeredUsersEmails.length > 0) {
-          for (const email of registeredUsersEmails) {
-            const userRole = userRoleMap[email];
-            
-            // 🟢 Logic ใหม่: กรอง "ผู้ดูแลระบบ" ออกจากการนับ
-            // 1. userRole ต้องไม่ใช่ "ผู้ดูแลระบบ" (ตามเงื่อนไขข้างบน ถ้ามีบทบาทอื่นจะถูกเลือกมาแทนแล้ว)
-            // 2. ต้องตรงกับ Filter ที่เลือก (ถ้ามี)
-            
-            const isNotAdminRole = userRole !== "ผู้ดูแลระบบ";
-            const matchesFilter = rolesToFilter.length === 0 || rolesToFilter.includes(userRole);
+        // 5.1 คำนวณ Demographics
+        for (const email of registeredUsersEmails) {
+          const userRole = userRoleMap[email];
+          const isNotAdminRole = userRole !== "ผู้ดูแลระบบ";
+          const matchesFilter = rolesToFilter.length === 0 || rolesToFilter.includes(userRole);
 
-            if (userRole && isNotAdminRole && matchesFilter) {
-              demographics[userRole] = (demographics[userRole] || 0) + 1;
-            }
+          if (userRole && isNotAdminRole && matchesFilter) {
+            demographics[userRole] = (demographics[userRole] || 0) + 1;
           }
         }
 
-        delete cls.registered_users;
-        return { ...cls, demographics };
+        // 5.2 คำนวณคะแนนเฉลี่ย (x̄)
+        const clsEvals = evaluations.filter(e => e.class_id === cls.class_id);
+        
+        let totalContent = 0, totalMaterial = 0, totalDuration = 0, totalFormat = 0, totalSpeaker = 0;
+        let validEvalCount = 0;
+
+        clsEvals.forEach(ev => {
+            const evaluatorRole = userRoleMap[ev.user_email];
+            
+            const isNotAdminRole = evaluatorRole !== "ผู้ดูแลระบบ";
+            const matchesFilter = rolesToFilter.length === 0 || rolesToFilter.includes(evaluatorRole);
+
+            if (evaluatorRole && isNotAdminRole && matchesFilter) {
+                totalContent += parseFloat(ev.score_content || 0);
+                totalMaterial += parseFloat(ev.score_material || 0);
+                totalDuration += parseFloat(ev.score_duration || 0);
+                totalFormat += parseFloat(ev.score_format || 0);
+                totalSpeaker += parseFloat(ev.score_speaker || 0);
+                validEvalCount++;
+            }
+        });
+
+        // 6. ส่งข้อมูลกลับ
+        delete cls.registered_users; 
+        delete cls.registered_users_parsed; // ลบ temp data ออก
+        
+        return { 
+            ...cls, 
+            demographics,
+            total_evaluations: validEvalCount, 
+            avg_score_content: validEvalCount ? (totalContent / validEvalCount) : 0,
+            avg_score_material: validEvalCount ? (totalMaterial / validEvalCount) : 0,
+            avg_score_duration: validEvalCount ? (totalDuration / validEvalCount) : 0,
+            avg_score_format: validEvalCount ? (totalFormat / validEvalCount) : 0,
+            avg_score_speaker: validEvalCount ? (totalSpeaker / validEvalCount) : 0
+        };
       });
 
-      return res.json(classStatsWithDemographics);
+      return res.json(finalStats);
     } catch (err) {
-      console.error("❌ Error fetching class demographics statistics:", err);
+      console.error("❌ Error fetching class stats:", err);
       next(err);
     }
   });
 
-  // --- Requestable Topics Management (Requires Level 2) ---
-  router.get("/topics", requireAdminLevel(2), async (req, res, next) => {
+  // --- Topic Management (จัดการหัวข้อ) ---
+  router.get("/topics", requireAdminLevel(3), async (req, res, next) => {
     try {
-      const [results] = await db.query("SELECT * FROM requestable_topics ORDER BY title ASC");
-      res.json(results);
+      const [results] = await db.query("SELECT * FROM requestable_topics ORDER BY id DESC");
+      return res.json(results);
     } catch (err) {
-      console.error("❌ Error fetching requestable topics:", err);
+      console.error("Error fetching topics:", err);
       next(err);
     }
   });
 
-  router.post("/topics", requireAdminLevel(2), async (req, res, next) => {
+  router.post("/topics", requireAdminLevel(3), async (req, res, next) => {
     const { title } = req.body;
-    if (!title || title.trim() === "") {
-      return res.status(400).json({ message: "Topic title is required." });
-    }
+    if (!title) return res.status(400).json({ message: "Title is required" });
     try {
-      const [result] = await db.query("INSERT INTO requestable_topics (title) VALUES (?)", [title]);
-      logActivity(
-        req,
-        req.user.id,
-        req.user.name,
-        req.user.email,
-        "CREATE_REQUESTABLE_TOPIC",
-        "TOPIC",
-        result.insertId,
-        { topic_title: title }
-      );
-      res.status(201).json({ message: "Topic created successfully.", id: result.insertId });
+      await db.query("INSERT INTO requestable_topics (title, is_active) VALUES (?, true)", [title]);
+      return res.status(201).json({ message: "Topic created" });
     } catch (err) {
-      if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(409).json({ message: "Topic with this title already exists." });
-      }
-      console.error("❌ Error creating requestable topic:", err);
+      console.error("Error creating topic:", err);
       next(err);
     }
   });
 
-  router.put("/topics/:id", requireAdminLevel(2), async (req, res, next) => {
+  router.put("/topics/:id", requireAdminLevel(3), async (req, res, next) => {
     const { id } = req.params;
     const { title, is_active } = req.body;
-    
-    if (!title && is_active === undefined) {
-      return res.status(400).json({ message: "No update data provided." });
-    }
-
-    let sql = "UPDATE requestable_topics SET ";
-    const params = [];
-    const updates = [];
-
-    if (title !== undefined) {
-      updates.push("title = ?");
-      params.push(title);
-    }
-    if (is_active !== undefined) {
-      updates.push("is_active = ?");
-      params.push(is_active);
-    }
-
-    sql += updates.join(", ") + " WHERE id = ?";
-    params.push(id);
-
     try {
-      const [result] = await db.query(sql, params);
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "Topic not found." });
+      if (title !== undefined) {
+        await db.query("UPDATE requestable_topics SET title = ? WHERE id = ?", [title, id]);
       }
-      logActivity(req, req.user.id, req.user.name, req.user.email, "UPDATE_REQUESTABLE_TOPIC", "TOPIC", id, { topic_title: title, is_active: is_active });
-      res.status(200).json({ message: "Topic updated successfully." });
+      if (is_active !== undefined) {
+        await db.query("UPDATE requestable_topics SET is_active = ? WHERE id = ?", [is_active, id]);
+      }
+      return res.json({ message: "Topic updated" });
     } catch (err) {
-      if (err.code === 'ER_DUP_ENTRY') {
-        return res.status(409).json({ message: "Topic with this title already exists." });
-      }
-      console.error("❌ Error updating requestable topic:", err);
+      console.error("Error updating topic:", err);
       next(err);
     }
   });
 
-  router.delete("/topics/:id", requireAdminLevel(2), async (req, res, next) => {
+  router.delete("/topics/:id", requireAdminLevel(3), async (req, res, next) => {
     const { id } = req.params;
     try {
-      const [result] = await db.query("DELETE FROM requestable_topics WHERE id = ?", [id]);
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "Topic not found." });
-      }
-      logActivity(req, req.user.id, req.user.name, req.user.email, "DELETE_REQUESTABLE_TOPIC", "TOPIC", id, { topic_id: id });
-      res.status(200).json({ message: "Topic deleted successfully." });
+      await db.query("DELETE FROM requestable_topics WHERE id = ?", [id]);
+      return res.json({ message: "Topic deleted" });
     } catch (err) {
-      console.error("❌ Error deleting requestable topic:", err);
+      console.error("Error deleting topic:", err);
       next(err);
     }
   });

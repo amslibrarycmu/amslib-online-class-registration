@@ -72,6 +72,10 @@ const StatisticsFilterModal = ({
   };
 
   const handleApply = () => {
+    if (selectedRoles.length === 0) {
+      alert("กรุณาเลือกสถานภาพอย่างน้อย 1 รายการ");
+      return;
+    }
     onApply({
       filterType,
       year,
@@ -84,16 +88,13 @@ const StatisticsFilterModal = ({
   };
 
   const handleReset = () => {
-    // Reset all filters including roles
-    onApply({
-      filterType: "all",
-      year: new Date().getFullYear().toString(),
-      month: (new Date().getMonth() + 1).toString(),
-      startDate: "",
-      endDate: "",
-      roles: [],
-    });
-    onClose();
+    // Reset local state to defaults
+    setFilterType("all");
+    setYear(new Date().getFullYear().toString());
+    setMonth((new Date().getMonth() + 1).toString());
+    setStartDate("");
+    setEndDate("");
+    setSelectedRoles(USER_ROLES);
   };
 
   if (!isOpen) return null;

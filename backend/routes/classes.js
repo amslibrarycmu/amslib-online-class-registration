@@ -70,7 +70,7 @@ module.exports = (
 
   // GET /api/classes/unique-titles
   router.get("/unique-titles", async (req, res, next) => {
-    // 🟢 แก้ไข: ดึงจากตาราง requestable_topics แทน
+    // 🟢 แก้ไข: ดึงจากตาราง requestable_topics แทน (เพื่อให้ตรงกับหน้าจัดการหัวข้อ)
     const sql = "SELECT title FROM requestable_topics WHERE is_active = TRUE ORDER BY title ASC";
     try {
       const [results] = await db.query(sql);
@@ -687,13 +687,27 @@ module.exports = (
     requireAdminLevel(1),
     async (req, res) => {
       const classId = req.params.classId;
-      const sql = `SELECT u.name, e.score_content, e.score_material, e.score_duration, e.score_format, e.score_speaker, e.comments FROM evaluations e JOIN users u ON e.user_email = u.email COLLATE utf8mb4_unicode_ci WHERE e.class_id = ?`;
+      const sql = `SELECT u.name, u.roles, e.score_content, e.score_material, e.score_duration, e.score_format, e.score_speaker, e.comments FROM evaluations e JOIN users u ON e.user_email = u.email COLLATE utf8mb4_unicode_ci WHERE e.class_id = ?`;
       try {
         const [results] = await db.query(sql, [classId]);
         if (!results || results.length === 0)
           return res.json({ evaluations: [], suggestions: [] });
+
+        const evaluations = results.map((r) => {
+          let user_roles = [];
+          try {
+            user_roles = typeof r.roles === "string" ? JSON.parse(r.roles) : r.roles;
+          } catch (e) {
+            user_roles = [];
+          }
+          return {
+            ...r,
+            user_roles: Array.isArray(user_roles) ? user_roles : [],
+          };
+        });
+
         const suggestions = results.map((r) => r.comments).filter(Boolean);
-        res.json({ evaluations: results, suggestions });
+        res.json({ evaluations, suggestions });
       } catch (err) {
         return res.status(500).json({ error: "Database error" });
       }
