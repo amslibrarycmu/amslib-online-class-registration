@@ -2,10 +2,14 @@ const nodemailer = require("nodemailer");
 const fs = require('fs').promises;
 const path = require('path');
 
+let testAccount = null;
+
 async function createTransporter() {
   if (process.env.NODE_ENV !== "production") {
-    let testAccount = await nodemailer.createTestAccount();
-    console.log("Ethereal test account created.");
+    if (!testAccount) {
+      testAccount = await nodemailer.createTestAccount();
+      console.log("Ethereal test account created.");
+    }
     return nodemailer.createTransport({
       host: "smtp.ethereal.email",
       port: 587,
@@ -42,18 +46,19 @@ async function createTransporter() {
 
 async function sendEmail(mailOptions) {
   try {
-    const transporter = await createTransporter();
-    const info = await transporter.sendMail({
-      from: `"AMS Library Class Registration System (HSL KM)" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    const transporter = await createTransporter(); // 1. สร้าง transporter
+    const info = await transporter.sendMail({ // 2. ส่งอีเมล
+      from: `"ระบบจัดการการอบรมเชิงปฏิบัติการ AMS Library Class" <${process.env.EMAIL_FROM_ADDRESS}>`,
       ...mailOptions,
     });
 
-    console.log(`✅ Email sent for subject "${mailOptions.subject}": ${info.messageId}`);
+    console.log(`✅ Email sent for subject "${mailOptions.subject}"`); // ลบ messageId ออก
     const previewUrl = nodemailer.getTestMessageUrl(info);
     if (previewUrl) {
       console.log(`Preview URL: ${previewUrl}`);
     }
-  } catch (error) {
+  }
+ catch (error) {
     console.error(`❌ Error sending email for subject "${mailOptions.subject}":`, error);
   }
 }
@@ -73,11 +78,13 @@ async function sendRegistrationConfirmation(
       classDescription: classDetails.description ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>` : "",
       classId: classDetails.class_id,
       classSpeaker: classDetails.speaker,
-      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH"),
-      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH"),
+      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
+      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
       classStartTime: classDetails.start_time.substring(0, 5),
       classEndTime: classDetails.end_time.substring(0, 5),
       classFormat: classDetails.format,
+      classLanguage: classDetails.language || "-",
+      classTargetGroup: classDetails.target_group || "-",
       classLinkSection: classDetails.format !== "ONSITE" ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>` : "",
       classLocationSection: classDetails.format !== "ONLINE" ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>` : "",
       classMaterialsSection: createMaterialsSection(classDetails.materials, backendUrl),
@@ -98,7 +105,8 @@ async function sendRegistrationConfirmation(
 async function sendAdminNotification(
   adminEmails,
   classDetails,
-  allRegisteredUsers
+  allRegisteredUsers,
+  newRegistrant
 ) {
   if (!adminEmails || adminEmails.length === 0) {
     console.log("No admin emails found to send notification.");
@@ -113,8 +121,8 @@ async function sendAdminNotification(
     const templateData = {
       classTitle: classDetails.title,
       classId: classDetails.class_id,
-      newRegistrantName: allRegisteredUsers[allRegisteredUsers.length - 1].name,
-      newRegistrantEmail: allRegisteredUsers[allRegisteredUsers.length - 1].email,
+      newRegistrantName: newRegistrant.name,
+      newRegistrantEmail: newRegistrant.email,
       registrantCount: allRegisteredUsers.length,
       userListHtml: userListHtml,
     };
@@ -168,7 +176,6 @@ async function sendAdminCancellationNotification(
   }
 }
 
-// เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งว่ามีคำขอเปิดห้องเรียนใหม่
 async function sendNewClassRequestAdminNotification(
   adminEmails,
   requestDetails
@@ -186,7 +193,7 @@ async function sendNewClassRequestAdminNotification(
       requesterName: requestDetails.requestedBy.name || 'ไม่พบชื่อ',
       requesterEmail: requestDetails.requestedBy.email || 'ไม่พบอีเมล',
       requestReason: requestDetails.reason || "-",
-      requestDate: new Date().toLocaleDateString("th-TH"),
+      requestDate: new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
     };
     const htmlContent = await loadTemplate('admin-new-request', templateData);
     await sendEmail({
@@ -202,7 +209,6 @@ async function sendNewClassRequestAdminNotification(
   }
 }
 
-// เพิ่มฟังก์ชันสำหรับส่งอีเมลยืนยันการยื่นคำขอ
 async function sendRequestSubmittedConfirmation(recipientEmail, requestDetails, requesterName) {
   try {
     const templateData = {
@@ -212,7 +218,7 @@ async function sendRequestSubmittedConfirmation(recipientEmail, requestDetails, 
     const htmlContent = await loadTemplate('request-submitted', templateData);
     await sendEmail({
       to: recipientEmail,
-      subject: `[AMSLIB] ได้รับคำขอเปิดห้องเรียนของคุณแล้ว: ${requestDetails.title}`,
+      subject: `ได้รับคำขอเปิดห้องเรียนของคุณแล้ว: ${requestDetails.title}`,
       html: htmlContent,
     });
   } catch (error) {
@@ -275,11 +281,13 @@ async function sendReminderEmail(recipientEmail, classDetails, studentName) {
       classDescription: classDetails.description ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>` : "",
       classId: classDetails.class_id,
       classSpeaker: classDetails.speaker,
-      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH"),
-      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH"),
+      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
+      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
       classStartTime: classDetails.start_time.substring(0, 5),
       classEndTime: classDetails.end_time.substring(0, 5),
       classFormat: classDetails.format,
+      classLanguage: classDetails.language || "-",
+      classTargetGroup: classDetails.target_group || "-",
       classLinkSection: classDetails.format !== "ONSITE" ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>` : "",
       classLocationSection: classDetails.format !== "ONLINE" ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>` : "",
       classMaterialsSection: createMaterialsSection(classDetails.materials, backendUrl),
@@ -293,6 +301,43 @@ async function sendReminderEmail(recipientEmail, classDetails, studentName) {
   } catch (error) {
     console.error("Error sending reminder email:", error);
   }
+}
+
+async function loadTemplate(templateName, data) {
+  const templatePath = path.join(__dirname, 'templates', `${templateName}.html`);
+  let html = await fs.readFile(templatePath, 'utf-8');
+  for (const key in data) {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    html = html.replace(regex, data[key]);
+  }
+  return html;
+}
+
+function createMaterialsSection(materialsJson, backendUrl) {
+  let materials = [];
+  try {
+    if (typeof materialsJson === 'string') {
+      materials = JSON.parse(materialsJson);
+    } else if (Array.isArray(materialsJson)) {
+      materials = materialsJson;
+    }
+  } catch (e) {
+    console.error("Could not parse materials JSON:", materialsJson);
+    return "";
+  }
+
+  if (!Array.isArray(materials) || materials.length === 0) {
+    return "";
+  }
+
+  const materialLinks = materials
+    .map(material => `<li><a href="${backendUrl}/uploads/materials/${encodeURIComponent(material.name || material)}">${material.name || material}</a></li>`)
+    .join('');
+
+  return `
+    <p><strong>เอกสารประกอบการเรียน:</strong></p>
+    <ul>${materialLinks}</ul>
+  `;
 }
 
 module.exports = {

@@ -79,11 +79,15 @@ const RequestDetailModal = ({ request, onClose }) => {
             {detailItem(
               "วันที่เสนอ",
               request.start_date
-                ? `${new Date(request.start_date).toLocaleDateString(
-                    "th-TH"
-                  )} - ${new Date(request.end_date).toLocaleDateString(
-                    "th-TH"
-                  )}`
+                ? `${new Date(request.start_date).toLocaleDateString("th-TH", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })} - ${new Date(request.end_date).toLocaleDateString("th-TH", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}`
                 : "-"
             )}
             {detailItem(

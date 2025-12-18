@@ -358,12 +358,12 @@ const ClassIndex = () => {
   return (
     <div className="flex h-screen w-screen flex-col lg:flex-row">
       <Sidebar />
-      <div className="flex-1 p-8 overflow-y-auto bg-gray-100">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-gray-100">
         <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
-          ห้องเรียนทั้งหมด
+          ภาพรวม
         </h1>
         <h2 className="font-bold mb-[10px] text-[1.25rem]">
-          รายการห้องเรียนที่ยังเปิดอยู่
+          ห้องเรียนที่เปิดสอนได้
         </h2>
         {loading ? (
           <p>กำลังโหลดข้อมูล...</p>
@@ -405,101 +405,55 @@ const ClassIndex = () => {
                         <span><strong>รูปแบบ:</strong> {cls.format}</span>
                       </div>
                       <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.077 17.077 0 003.293-3.643 19.024 19.098 0 01-2.06-3.056A1 1 0 013.266 6.05a17.204 17.204 0 001.78 2.802 16.76 16.76 0 01-.656-1.852H4a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 011 1v1h5.292a1 1 0 110 2H17v6a1 1 0 11-2 0v-6h-2.292a1 1 0 110-2H15V9a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                        <span><strong>ภาษา:</strong> {cls.language === 'TH' ? 'ไทย (TH)' : cls.language === 'EN' ? 'อังกฤษ (ENG)' : 'ไทยและอังกฤษ (TH & ENG)'}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
                         <span><strong>ผู้ลงทะเบียน:</strong> {(typeof cls.registered_users === "string" ? JSON.parse(cls.registered_users || "[]") : cls.registered_users || []).length} / {cls.max_participants === 999 ? "ไม่จำกัด" : cls.max_participants}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                        <span><strong>สร้างเมื่อ:</strong> {cls.created_at ? new Date(cls.created_at).toLocaleString("th-TH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"} น.</span>
+                        <span><strong>สร้างเมื่อ:</strong> {cls.created_at ? new Date(cls.created_at).toLocaleString("th-TH", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"} น.</span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-200">
                       <button
-                        title="ดูรายชื่อผู้ลงทะเบียน" // Icon buttons generally don't need focus removal unless specified
+                        title="ดูรายชื่อผู้ลงทะเบียน"
                         className="text-green-600 hover:text-green-800 rounded-full p-1"
                         onClick={() => handleOpenRegistrantsModal(cls)}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.653-.125-1.273-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.653.125-1.273.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.653-.125-1.273-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.653.125-1.273.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                       </button>
                       <button
-                        title="แก้ไข" // Icon buttons
+                        title="แก้ไข"
                         className="text-blue-600 hover:text-blue-800 rounded-full p-1"
                         onClick={() => handleEditClick(cls)}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                          <path
-                            fillRule="evenodd"
-                            d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
                       </button>
                       <button
-                        title="ลบ" // Icon buttons
+                        title="ลบ"
                         className="text-red-600 hover:text-red-800 rounded-full p-1"
                         onClick={() => handleDeleteClick(cls.class_id)}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg>
                       </button>
 
-                      <label
-                        htmlFor={`promote-${cls.class_id}`}
-                        className="flex items-center cursor-pointer px-5"
-                      >
+                      <label htmlFor={`promote-${cls.class_id}`} className="flex items-center cursor-pointer px-5">
                         <div className="relative">
-                          <input
-                            type="checkbox"
-                            id={`promote-${cls.class_id}`}
-                            className="sr-only peer"
-                            checked={cls.promoted === 1}
-                            onChange={(e) =>
-                              handlePromoteToggle(
-                                cls.class_id,
-                                e.target.checked
-                              )
-                            }
-                          />
+                          <input type="checkbox" id={`promote-${cls.class_id}`} className="sr-only peer" checked={cls.promoted === 1} onChange={(e) => handlePromoteToggle(cls.class_id, e.target.checked)} />
                           <div className="w-10 h-4 bg-gray-400 rounded-full shadow-inner"></div>
                           <div className="dot absolute w-6 h-6 bg-white rounded-full shadow -left-1 -top-1 transition-transform duration-300 ease-in-out peer-checked:translate-x-full peer-checked:bg-green-500"></div>
                         </div>
-                        <div className="ml-3 text-gray-700 font-medium">
-                          โปรโมทห้องเรียน
-                        </div>
+                        <div className="ml-3 text-gray-700 font-medium">โปรโมทห้องเรียน</div>
                       </label>
                       <button
                         title="จบการสอน"
-                        className="ml-auto bg-amber-500 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded focus:outline-none"
+                        className="sm:ml-auto bg-amber-500 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded focus:outline-none"
                         onClick={() => handleOpenCloseClassModal(cls)}
                       >
                         จบการสอน
@@ -511,9 +465,10 @@ const ClassIndex = () => {
             ) : (
               <p className="text-gray-500">ไม่มี</p>
             )}
-
+          </>
+        )}
             <h2 className="font-bold mb-[10px] text-[1.25rem] mt-10">
-              รายการห้องเรียนที่จบการสอนแล้ว
+              ห้องเรียนที่จบการสอนแล้ว
             </h2>
             <div className="mb-4 flex flex-wrap justify-between items-center gap-4">
               <div className="flex items-center gap-2 w-full sm:w-auto flex-grow">
@@ -597,12 +552,18 @@ const ClassIndex = () => {
                         <span><strong>รูปแบบ:</strong> {cls.format}</span>
                       </div>
                       <div className="flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.077 17.077 0 003.293-3.643 19.024 19.098 0 01-2.06-3.056A1 1 0 013.266 6.05a17.204 17.204 0 001.78 2.802 16.76 16.76 0 01-.656-1.852H4a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 011 1v1h5.292a1 1 0 110 2H17v6a1 1 0 11-2 0v-6h-2.292a1 1 0 110-2H15V9a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                        <span><strong>ภาษา:</strong> {cls.language === 'TH' ? 'ไทย (TH)' : cls.language === 'EN' ? 'อังกฤษ (ENG)' : 'ไทยและอังกฤษ (TH & ENG)'}</span>
+                      </div>
+                      <div className="flex items-start gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" /></svg>
                         <span><strong>ผู้ลงทะเบียน:</strong> {(typeof cls.registered_users === "string" ? JSON.parse(cls.registered_users || "[]") : cls.registered_users || []).length} / {cls.max_participants === 999 ? "ไม่จำกัด" : cls.max_participants}</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                        <span><strong>สร้างเมื่อ:</strong> {cls.created_at ? new Date(cls.created_at).toLocaleString("th-TH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"} น.</span>
+                        <span><strong>สร้างเมื่อ:</strong> {cls.created_at ? new Date(cls.created_at).toLocaleString("th-TH", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "N/A"} น.</span>
                       </div>
                     </div>
 
@@ -645,7 +606,7 @@ const ClassIndex = () => {
                           />
                         </svg>
                       </button>
-                      <div className="flex items-center ml-auto gap-x-2">
+                      <div className="flex items-center sm:ml-auto gap-x-2">
                         <button
                           title="ผลการประเมินความพึงพอใจ"
                           className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none"
@@ -669,10 +630,7 @@ const ClassIndex = () => {
               <p className="text-center text-gray-500 py-4">
                 ไม่พบห้องเรียนที่ตรงกับการค้นหา
               </p>
-            )}
-          </>
-        )}
-      </div>
+            )}</div>
       {isEditModalOpen && editingClass && (
         <ClassCreationModal
           isEditing={true}

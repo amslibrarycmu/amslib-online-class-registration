@@ -39,6 +39,7 @@ const initialFormState = {
   max_participants: "1",
   materials: [], // Changed from files to materials
   class_id: "",
+  language: "TH",
 };
 
 function formReducer(state, action) {
@@ -133,6 +134,7 @@ const ClassCreationModal = ({
         max_participants:
           initialData.max_participants || initialFormState.max_participants,
         materials: files.map((f) => (typeof f === "string" ? { name: f } : f)), // Set to materials
+        language: initialData.language || "TH",
       };
     } else {
       // For brand new classes, ensure end_date and end_time are cleared initially
@@ -438,6 +440,30 @@ const ClassCreationModal = ({
               placeholder="ระบุรายละเอียดในรายวิชาของคุณ (ถ้ามี)"
               className="w-full border border-gray-400 px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
             />
+          </div>
+
+          <div>
+            <label className="block font-medium mb-1">ภาษาที่ใช้ในการอบรม</label>
+            <div className="flex gap-2">
+              {[
+                { value: "TH", label: "ไทย (Thai)" },
+                { value: "EN", label: "อังกฤษ (English)" },
+                { value: "TH/EN", label: "ไทย & อังกฤษ (Both)" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => dispatch({ type: "SET_FIELD", payload: { name: "language", value: option.value } })}
+                  className={`flex-1 py-2 px-2 rounded-md border text-sm font-medium transition-colors ${
+                    formData.language === option.value
+                      ? "bg-purple-600 text-white border-purple-600 shadow-md"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>

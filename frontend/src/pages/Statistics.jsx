@@ -133,26 +133,41 @@ const Statistics = () => {
     });
   }, [stats, triggerSearchTerm, sortKey, sortOrder]);
 
+  // Helper function to map specific filter roles to general data roles
+  const statusMatchesRoles = (status, roles) => {
+    if (roles.length === 0) return true; // No filter, always match
+    if (roles.includes(status)) return true; // Direct match (e.g., "บุคลากร")
+
+    // If data has "นักศึกษา", match it if filter includes "นักศึกษาปริญญาตรี" or "นักศึกษาบัณฑิต"
+    if (status === "นักศึกษา" && (roles.includes("นักศึกษาปริญญาตรี") || roles.includes("นักศึกษาบัณฑิต"))) {
+      return true;
+    }
+    return false;
+  };
+
   const totalParticipants = useMemo(() => {
     let total = 0;
     filteredAndSortedStats.forEach((classStat) => {
       for (const status in classStat.demographics) {
-        total += classStat.demographics[status] || 0;
+        if (statusMatchesRoles(status, roles)) {
+          total += classStat.demographics[status] || 0;
+        }
       }
     });
     return total;
-  }, [filteredAndSortedStats]);
+  }, [filteredAndSortedStats, roles]);
 
   const aggregatedDemographics = useMemo(() => {
     const aggregated = {};
-    for (const classStat of filteredAndSortedStats) {
+    filteredAndSortedStats.forEach((classStat) => {
       for (const status in classStat.demographics) {
-        aggregated[status] =
-          (aggregated[status] || 0) + classStat.demographics[status];
+        if (statusMatchesRoles(status, roles)) {
+          aggregated[status] = (aggregated[status] || 0) + classStat.demographics[status];
+        }
       }
-    }
+    });
     return aggregated;
-  }, [filteredAndSortedStats]);
+  }, [filteredAndSortedStats, roles]);
 
   const aggregatedEvaluationData = useMemo(() => {
     const scoreKeys = ["content", "material", "duration", "format", "speaker"];
@@ -162,7 +177,18 @@ const Statistics = () => {
     let totalEvaluations = 0;
 
     filteredAndSortedStats.forEach((classStat) => {
-      if (classStat.total_evaluations > 0) {
+      let shouldInclude = true;
+      // Check if the class has participants matching the role filter
+      if (roles.length > 0) {
+        const hasMatchingRole = Object.keys(classStat.demographics).some(status => 
+          statusMatchesRoles(status, roles) && classStat.demographics[status] > 0
+        );
+        if (!hasMatchingRole) {
+          shouldInclude = false;
+        }
+      }
+
+      if (shouldInclude && classStat.total_evaluations > 0) {
         scoreKeys.forEach((key) => {
           totals[key] +=
             parseFloat(classStat[`avg_score_${key}`]) *
@@ -179,7 +205,7 @@ const Statistics = () => {
       result[`avg_score_${key}`] = totals[key] / totalEvaluations;
     }
     return result;
-  }, [filteredAndSortedStats]);
+  }, [filteredAndSortedStats, roles]);
 
   const overallAverageScore = useMemo(() => {
     if (!aggregatedEvaluationData) {
@@ -191,6 +217,20 @@ const Statistics = () => {
     }
     return scores.reduce((acc, score) => acc + score, 0) / scores.length;
   }, [aggregatedEvaluationData]);
+
+  const getClassAverageScore = (classStat) => {
+    const scoreKeys = ["content", "material", "duration", "format", "speaker"];
+    let total = 0;
+    let count = 0;
+    scoreKeys.forEach((key) => {
+      const val = parseFloat(classStat[`avg_score_${key}`]);
+      if (!isNaN(val)) {
+        total += val;
+        count++;
+      }
+    });
+    return count === 0 ? "N/A" : (total / count).toFixed(2);
+  };
 
   const renderActiveFilter = () => {
     switch (filterType) {
@@ -458,7 +498,7 @@ const Statistics = () => {
 
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
-                คะแนนเฉลี่ยรวม
+                คะแนนเฉลี่ยรวม (x̄)
               </h3>
               {loading ? (
                 <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
@@ -588,7 +628,7 @@ const Statistics = () => {
                     <div className="p-4 border-t border-gray-200 bg-white">
                       {Object.keys(classStat.demographics).length > 0 ? (
                         <div className="flex flex-col lg:flex-row lg:justify-around gap-4">
-                          <div className="flex flex-col gap-y-2 relative h-70 w-full lg:w-1/2 min-w-[300px]">
+                          <div className="flex flex-col gap-y-2 relative h-80 w-full lg:w-1/2 min-w-[300px]">
                             <span className="text-lg font-semibold">
                               จำนวนของผู้เข้าเรียน คือ{" "}
                               {Object.values(classStat.demographics).reduce(
@@ -601,11 +641,20 @@ const Statistics = () => {
                               demographics={classStat.demographics}
                             />
                           </div>
-                          <div className="relative h-70 w-full lg:w-1/2 min-w-[300px]">
+                          <div className="flex flex-col h-auto w-full lg:w-1/2 min-w-[300px]">
                             {classStat.total_evaluations > 0 ? (
-                              <CategoryBarChart data={classStat} />
+                              <>
+                                <div className="mb-2">
+                                  <span className="text-lg font-semibold text-teal-600">
+                                    คะแนนเฉลี่ย (x̄) = {getClassAverageScore(classStat)}
+                                  </span>
+                                </div>
+                                <div className="h-80 relative">
+                                  <CategoryBarChart data={classStat} />
+                                </div>
+                              </>
                             ) : (
-                              <div className="flex items-center justify-center h-full border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
+                              <div className="flex items-center justify-center h-80 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
                                 <p>ยังไม่มีผู้ประเมิน</p>
                               </div>
                             )}

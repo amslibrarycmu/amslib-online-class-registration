@@ -253,5 +253,98 @@ module.exports = (
     }
   });
 
+  // --- Requestable Topics Management (Requires Level 2) ---
+  router.get("/topics", requireAdminLevel(2), async (req, res, next) => {
+    try {
+      const [results] = await db.query("SELECT * FROM requestable_topics ORDER BY title ASC");
+      res.json(results);
+    } catch (err) {
+      console.error("❌ Error fetching requestable topics:", err);
+      next(err);
+    }
+  });
+
+  router.post("/topics", requireAdminLevel(2), async (req, res, next) => {
+    const { title } = req.body;
+    if (!title || title.trim() === "") {
+      return res.status(400).json({ message: "Topic title is required." });
+    }
+    try {
+      const [result] = await db.query("INSERT INTO requestable_topics (title) VALUES (?)", [title]);
+      logActivity(
+        req,
+        req.user.id,
+        req.user.name,
+        req.user.email,
+        "CREATE_REQUESTABLE_TOPIC",
+        "TOPIC",
+        result.insertId,
+        { topic_title: title }
+      );
+      res.status(201).json({ message: "Topic created successfully.", id: result.insertId });
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: "Topic with this title already exists." });
+      }
+      console.error("❌ Error creating requestable topic:", err);
+      next(err);
+    }
+  });
+
+  router.put("/topics/:id", requireAdminLevel(2), async (req, res, next) => {
+    const { id } = req.params;
+    const { title, is_active } = req.body;
+    
+    if (!title && is_active === undefined) {
+      return res.status(400).json({ message: "No update data provided." });
+    }
+
+    let sql = "UPDATE requestable_topics SET ";
+    const params = [];
+    const updates = [];
+
+    if (title !== undefined) {
+      updates.push("title = ?");
+      params.push(title);
+    }
+    if (is_active !== undefined) {
+      updates.push("is_active = ?");
+      params.push(is_active);
+    }
+
+    sql += updates.join(", ") + " WHERE id = ?";
+    params.push(id);
+
+    try {
+      const [result] = await db.query(sql, params);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Topic not found." });
+      }
+      logActivity(req, req.user.id, req.user.name, req.user.email, "UPDATE_REQUESTABLE_TOPIC", "TOPIC", id, { topic_title: title, is_active: is_active });
+      res.status(200).json({ message: "Topic updated successfully." });
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: "Topic with this title already exists." });
+      }
+      console.error("❌ Error updating requestable topic:", err);
+      next(err);
+    }
+  });
+
+  router.delete("/topics/:id", requireAdminLevel(2), async (req, res, next) => {
+    const { id } = req.params;
+    try {
+      const [result] = await db.query("DELETE FROM requestable_topics WHERE id = ?", [id]);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Topic not found." });
+      }
+      logActivity(req, req.user.id, req.user.name, req.user.email, "DELETE_REQUESTABLE_TOPIC", "TOPIC", id, { topic_id: id });
+      res.status(200).json({ message: "Topic deleted successfully." });
+    } catch (err) {
+      console.error("❌ Error deleting requestable topic:", err);
+      next(err);
+    }
+  });
+
   return router;
 };

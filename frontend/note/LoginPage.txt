@@ -24,7 +24,7 @@ const LoginPage = () => {
           width={250}
         />
         <p className="text-2xl font-semibold mb-6 px-15">
-          AMS Library Class Registration System
+          ระบบจัดการการอบรมเชิงปฏิบัติการ AMS Library Class
           <br />
           (HSL KM)
         </p>

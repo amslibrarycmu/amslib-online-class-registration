@@ -7,9 +7,9 @@ import profile from "../assets/abstract-user.png";
 
 // --- 🟢 1. กำหนดค่าคงที่ของ Admin Level ---
 const ADMIN_LEVELS = {
-  VIEWER: 1, // ผู้ช่วย (ดูสถิติ, ประวัติ, รายชื่อ)
-  MANAGER: 2, // ผู้จัดการเนื้อหา (จัดการห้องเรียน, คำขอ)
-  SUPER: 3, // ผู้ดูแลสูงสุด (จัดการสิทธิ์)
+  VIEWER: 1,
+  MANAGER: 2,
+  SUPER: 3,
 };
 
 const CameraIcon = () => (
@@ -76,12 +76,12 @@ export default function Sidebar() {
 
   // --- 🟢 2. ดึงค่า admin_level (ถ้าไม่มีให้เป็น 0) ---
   const adminLevel = user?.admin_level || 0;
-  
+
   // 🟢 แก้ไขเงื่อนไข: ต้องมี admin_level และ activeRole เป็น "ผู้ดูแลระบบ"
   const isAdminRoleActive = adminLevel > 0 && activeRole === "ผู้ดูแลระบบ";
-  
+
   // 🟢 หาชื่อบทบาทที่ถูกต้องเพื่อแสดงผล
-  const displayRole = isAdminRoleActive 
+  const displayRole = isAdminRoleActive
     ? ADMIN_LEVEL_ROLE_MAP[adminLevel] // ถ้าเป็นแอดมินและใช้บทบาทแอดมิน -> แสดงชื่อตาม Level
     : activeRole;
 
@@ -196,11 +196,11 @@ export default function Sidebar() {
         }`}
       >
         <div className="flex-grow">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-4">
             <img src={amsliblogo} width={200} className="mx-auto" alt="logo" />
           </div>
-          <p className="text-[16px] font-semibold text-black">
-            AMS Library Class Registration System (HSL KM)
+          <p className="text-[16px] font-semibold text-black my-6">
+            ระบบจัดการการอบรมเชิงปฏิบัติการ <br /> AMS Library Class
           </p>
           <div className="flex items-center justify-center gap-[15px] my-[10px]">
             <div className="relative">
@@ -242,7 +242,7 @@ export default function Sidebar() {
                     <SwitchRoleIcon />
                   </button>
                 )}
-              <span className="text-xs text-black py-1">({displayRole})</span>
+                <span className="text-xs text-black py-1">({displayRole})</span>
               </div>
               <span
                 className="font-semibold mt-1 cursor-pointer hover:underline"
@@ -276,8 +276,8 @@ export default function Sidebar() {
                 {/* === Level 1+ (ผู้สอน) === */}
                 {adminLevel >= ADMIN_LEVELS.VIEWER && (
                   <>
-                    <MenuLink to="/index" label="ห้องเรียนทั้งหมด" />
-                    <MenuLink to="/creations" label="สร้างห้องเรียน" />
+                    <MenuLink to="/index" label="ภาพรวม" />
+                    <MenuLink to="/creations" label="สร้าง" />
                   </>
                 )}
 
@@ -285,7 +285,8 @@ export default function Sidebar() {
                 {adminLevel >= ADMIN_LEVELS.MANAGER && (
                   <>
                     <MenuLink to="/statistics" label="สถิติ" />
-                    <MenuLink to="/admin/class-requests" label="จัดการคำขอ" />
+                    <MenuLink to="/admin/class-requests" label="ตรวจสอบคำขอ" />
+                    <MenuLink to="/topic-management" label="จัดการหัวข้อ" />
                   </>
                 )}
 
@@ -299,9 +300,9 @@ export default function Sidebar() {
               </>
             ) : (
               <>
-                <MenuLink to="/classes" label="ห้องเรียน" />
+                <MenuLink to="/classes" label="หัวข้อที่เปิดสอน" />
                 <MenuLink to="/past-classes" label="ประวัติการเข้าร่วม" />
-                <MenuLink to="/class-request" label="ยื่นคำขอเปิดห้องเรียน" />
+                <MenuLink to="/class-request" label="สร้างคำขอ" />
               </>
             )}
           </div>

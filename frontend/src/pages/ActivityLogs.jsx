@@ -26,11 +26,11 @@ const ACTION_TYPE_LABELS = {
   REGISTER_CLASS: "ลงทะเบียนเรียน",
   CANCEL_CLASS_REGISTRATION: "ยกเลิกการลงทะเบียน",
   SUBMIT_EVALUATION: "ส่งแบบประเมิน",
-  SUBMIT_CLASS_REQUEST: "ยื่นคำขอเปิดห้องเรียน",
-  UPDATE_CLASS_REQUEST: "แก้ไขคำขอเปิดห้องเรียน",
-  DELETE_CLASS_REQUEST: "ลบคำขอเปิดห้องเรียน",
-  APPROVE_CLASS_REQUEST: "อนุมัติคำขอเปิดห้องเรียน",
-  REJECT_CLASS_REQUEST: "ปฏิเสธคำขอเปิดห้องเรียน",
+  SUBMIT_CLASS_REQUEST: "สร้างคำขอ",
+  UPDATE_CLASS_REQUEST: "แก้ไขคำขอ",
+  DELETE_CLASS_REQUEST: "ลบคำขอ",
+  APPROVE_CLASS_REQUEST: "อนุมัติคำขอเพื่อเปิดห้องเรียน",
+  REJECT_CLASS_REQUEST: "ปฏิเสธคำขอเพื่อเปิดห้องเรียน",
 };
 
 const ActivityLogs = () => {
@@ -195,9 +195,9 @@ const ActivityLogs = () => {
       case "CANCEL_CLASS_REGISTRATION":
         return <>ยกเลิกการลงทะเบียน: {details.class_title || "N/A"}</>;
       case "SUBMIT_CLASS_REQUEST":
-        return <>ยื่นคำขอเปิดห้องเรียน: {details.request_title || "N/A"}</>;
+        return <>สร้างคำขอ: {details.request_title || "N/A"}</>;
       case "UPDATE_CLASS_REQUEST":
-        return <>แก้ไขคำขอเปิดห้องเรียน: {details.request_title || "N/A"}</>;
+        return <>แก้ไขคำขอ: {details.request_title || "N/A"}</>;
       case "APPROVE_CLASS_REQUEST":
         return <>อนุมัติคำขอเปิดห้องเรียน: {details.request_title || "N/A"}</>;
       case "REJECT_CLASS_REQUEST":

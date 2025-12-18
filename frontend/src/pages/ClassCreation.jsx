@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
-import ClassCreationModal from "../components/ClassCreationsModal";
+import ClassCreationModal from "./ClassCreationsModal";
 
 export default function ClassCreation() {
   const { user, activeRole, authFetch } = useAuth();
@@ -103,6 +103,7 @@ export default function ClassCreation() {
     newForm.append("location", formData.location);
     newForm.append("max_participants", formData.max_participants);
     newForm.append("target_groups", JSON.stringify(formData.target_groups));
+    newForm.append("language", formData.language);
     newForm.append("created_by_email", user.email);
   
     // Append files: separate new files from existing file names
@@ -148,7 +149,7 @@ export default function ClassCreation() {
     <div className="w-screen flex h-screen">
       <Sidebar />
       <div className="flex-1 p-8 overflow-y-auto bg-gray-100">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">สร้างห้องเรียน</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">สร้าง</h1>
         <div className="flex flex-col md:flex-row gap-8 justify-center mb-8">
           {/* Card for creating a new class */}
           <div
@@ -204,9 +205,9 @@ export default function ClassCreation() {
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </div>
-            <h2 className="font-bold text-lg text-gray-800">สร้างจากรายการเดิม</h2>
+            <h2 className="font-bold text-lg text-gray-800">สร้างใหม่จากรายการเดิม</h2>
             <p className="text-sm text-gray-500 mt-1">
-              ใช้ข้อมูลจากห้องเรียนที่เคยสร้างหรือจากคำขอที่อนุมัติแล้ว
+              ใช้ข้อมูลจากห้องเรียนที่เคยสร้าง <br />หรือจากคำขอที่อนุมัติแล้ว
             </p>
           </div>
         </div>

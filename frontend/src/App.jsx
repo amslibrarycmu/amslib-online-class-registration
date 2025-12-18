@@ -17,10 +17,12 @@ import ClassRequest from "./pages/ClassRequest";
 import AdminClassRequests from "./pages/AdminClassRequests";
 import UserManagement from "./pages/UserManagement";
 import ActivityLogs from "./pages/ActivityLogs";
+import TopicManagement from './pages/TopicManagement';
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LoginCallback from "./contexts/LoginCallback.jsx";
 import CompleteProfileModal from "./components/CompleteProfileModal.jsx";
+
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
@@ -146,6 +148,7 @@ function AppContent() {
             path="/admin/class-requests"
             element={<AdminClassRequests />}
           />
+          <Route path="/topic-management" element={<TopicManagement />} />
           <Route path="/user-management" element={<UserManagement />} />
           <Route path="/activity-logs" element={<ActivityLogs />} />
           <Route path="/" element={<Navigate to="/index" replace />} />

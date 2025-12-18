@@ -354,7 +354,7 @@ const ClassRequest = () => {
           reason={selectedRejectionReason}
         />
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-6">
-          ยื่นคำขอเปิดห้องเรียน
+          สร้างคำขอ
         </h1>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -657,7 +657,7 @@ const ClassRequest = () => {
                   ไม่พบคำขอ
                 </h3>
                 <p className="text-gray-500 mt-2">
-                  คุณยังไม่ได้ยื่นคำขอเปิดห้องเรียน
+                  คุณยังไม่ได้สร้างคำขอเกี่ยวกับหัวข้อที่คุณสนใจ
                 </p>
               </div>
             ) : (

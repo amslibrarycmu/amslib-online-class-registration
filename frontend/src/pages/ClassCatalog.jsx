@@ -275,7 +275,7 @@ const ClassCatalog = () => {
       />
       {/* Floating Action Button for Mobile */}
       {selectedClasses.length > 0 && (
-        <div className="fixed bottom-8 right-8 z-20 lg:hidden">
+        <div className="fixed bottom-4 right-4 z-20 lg:hidden">
           <button
             onClick={handleBulkRegister}
             disabled={isBulkRegistering}
@@ -288,20 +288,17 @@ const ClassCatalog = () => {
         </div>
       )}
 
-      <div className="flex-1 p-8 bg-gray-100 min-h-screen">
+      <div className="flex-1 p-4 md:p-8 bg-gray-100 min-h-screen">
         <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-800 text-center">
-          ห้องเรียน
+          หัวข้อที่เปิดสอน
         </h1>
 
         {/* --- TABS --- */}
         <div className="border-b border-gray-200 mb-6">
-          <div className="flex flex-wrap justify-between items-center gap-y-4">
-            <nav className="-mb-px flex flex-wrap space-x-8" aria-label="Tabs">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-y-4">
+            <nav className="-mb-px flex flex-wrap space-x-4 sm:space-x-8" aria-label="Tabs">
               <button onClick={() => setFilter('all')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filter === 'all' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                 ทั้งหมด ({classes.length})
-              </button>
-              <button onClick={() => setFilter('available')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filter === 'available' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-                ลงทะเบียนได้ ({availableCount})
               </button>
               <button onClick={() => setFilter('registered')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filter === 'registered' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                 ลงทะเบียนแล้ว ({registeredCount})
@@ -361,10 +358,11 @@ const ClassCatalog = () => {
                     <div
                       key={cls.class_id}
                       className="bg-white rounded-xl shadow-lg flex flex-col hover:shadow-xl transition-shadow duration-300 relative overflow-hidden cursor-pointer"
+                      onClick={() => handleOpenDescriptionModal(cls)}
                     >
                       <StatusBadge />
                       {isRegisterable && (
-                        <div className="absolute top-2 right-2 z-10 m-4">
+                        <div className="absolute top-4 right-4 z-10">
                           <input
                             type="checkbox"
                             className="h-6 w-6 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
@@ -375,7 +373,7 @@ const ClassCatalog = () => {
                         </div>
                       )}
                       <div className="p-6 flex-grow flex flex-col">
-                        <h2 className="text-xl font-bold text-purple-800 mb-2 pr-16 break-words">
+                        <h2 className="text-xl font-bold text-purple-800 mb-2 pr-12 break-words">
                           {cls.title}
                         </h2>
                         <p className="text-xs text-gray-400 mb-4">
@@ -457,6 +455,12 @@ const ClassCatalog = () => {
                               <strong>รูปแบบ:</strong> {cls.format}
                             </span>
                           </div>
+                          <div className="flex items-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.077 17.077 0 003.293-3.643 19.024 19.098 0 01-2.06-3.056A1 1 0 013.266 6.05a17.204 17.204 0 001.78 2.802 16.76 16.76 0 01-.656-1.852H4a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 011 1v1h5.292a1 1 0 110 2H17v6a1 1 0 11-2 0v-6h-2.292a1 1 0 110-2H15V9a1 1 0 011-1z" clipRule="evenodd" />
+                            </svg>
+                            <span><strong>ภาษา:</strong> {cls.language === 'TH' ? 'ไทย' : cls.language === 'EN' ? 'อังกฤษ' : 'ไทยและอังกฤษ'}</span>
+                          </div>
                           {cls.format === "ONSITE" && cls.location && (
                             <div className="flex items-start gap-2">
                               <svg
@@ -494,7 +498,10 @@ const ClassCatalog = () => {
                           )}
                           <div className="flex items-start gap-2">
                             <button
-                              onClick={() => handleOpenDescriptionModal(cls)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDescriptionModal(cls);
+                              }}
                               className="text-purple-700 font-semibold hover:underline hover:text-purple-900 transition-colors"
                             >
                               ดูรายละเอียดเพิ่มเติม
@@ -513,10 +520,12 @@ const ClassCatalog = () => {
                               </span>
                             </div>
                             <button
-                              onClick={() =>
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 isRegistered
                                   ? handleCancelRegistration(cls.class_id)
                                   : handleRegister(cls.class_id)
+                                }
                               }
                               title={registerButtonTooltip}
                               disabled={
@@ -532,12 +541,12 @@ const ClassCatalog = () => {
                                   : isRegistered
                                   ? "bg-yellow-500 hover:bg-yellow-600"
                                   : isFull
-                                  ? "bg-red-500 cursor-not-allowed"
+                                  ? "bg-gray-400 cursor-not-allowed"
                                   : "bg-blue-600 hover:bg-blue-700"
                               }`}
                             >
                               {!isInTargetGroup
-                                ? "ไม่ตรงกลุ่มเป้าหมาย"
+                                ? "ไม่สามารถลงทะเบียนได้"
                                 : cls.status === "closed"
                                 ? "จบการสอนแล้ว"
                                 : isRegistered

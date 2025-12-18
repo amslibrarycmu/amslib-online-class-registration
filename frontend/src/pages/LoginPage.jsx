@@ -59,10 +59,9 @@ const LoginPage = () => {
           className="mx-auto mb-4"
           width={250}
         />
-        <p className="text-2xl font-semibold mb-6 px-15">
-          AMS Library Class Registration System
-          <br />
-          (HSL KM)
+        <p className="text-2xl font-semibold mb-6 px-15 leading-10">
+          ระบบจัดการการอบรมเชิงปฏิบัติการ  <br /> AMS Library Class
+          <br />  
         </p>
         <div className="flex flex-col items-center gap- w-80 mx-auto mb-4">
           <button

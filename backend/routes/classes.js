@@ -70,8 +70,8 @@ module.exports = (
 
   // GET /api/classes/unique-titles
   router.get("/unique-titles", async (req, res, next) => {
-    const sql =
-      "SELECT DISTINCT title FROM classes WHERE status = 'closed' AND title IS NOT NULL AND title != '' ORDER BY title ASC";
+    // 🟢 แก้ไข: ดึงจากตาราง requestable_topics แทน
+    const sql = "SELECT title FROM requestable_topics WHERE is_active = TRUE ORDER BY title ASC";
     try {
       const [results] = await db.query(sql);
       const titles = results.map((r) => r.title);
@@ -161,6 +161,7 @@ module.exports = (
         location,
         max_participants,
         target_groups,
+        language,
       } = req.body;
 
       if (!title || title.trim() === "") {
@@ -190,8 +191,8 @@ module.exports = (
         : [];
       const classId = await generateUniqueClassId();
       const sql = `
-      INSERT INTO classes (class_id, title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location, max_participants, target_groups, materials, created_by_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO classes (class_id, title, speaker, start_date, end_date, start_time, end_time, description, format, join_link, location, max_participants, target_groups, materials, created_by_email, language)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
       const params = [
         classId,
@@ -209,6 +210,7 @@ module.exports = (
         target_groups,
         JSON.stringify(materialFileNames),
         created_by_email,
+        language || "TH",
       ];
 
       try {
@@ -260,6 +262,7 @@ module.exports = (
         target_groups,
         location,
         existingFiles,
+        language,
       } = req.body;
       const newMaterialFiles = req.files
         ? req.files.map((file) => file.filename)
@@ -284,7 +287,7 @@ module.exports = (
       let sql = `
       UPDATE classes SET title = ?, speaker = ?, start_date = ?, end_date = ?,
       start_time = ?, end_time = ?, description = ?, format = ?,
-      join_link = ?, location = ?, max_participants = ?, target_groups = ?
+      join_link = ?, location = ?, max_participants = ?, target_groups = ?, language = ?
     `;
       const params = [
         title,
@@ -299,6 +302,7 @@ module.exports = (
         location || "",
         max_participants,
         target_groups,
+        language || "TH",
       ];
 
       sql += ", materials = ? WHERE class_id = ?";
@@ -466,7 +470,7 @@ module.exports = (
       );
       const adminEmails = adminResults.map((admin) => admin.email);
       if (adminEmails.length > 0)
-        sendAdminNotification(adminEmails, emailClassDetails, userResults);
+        sendAdminNotification(adminEmails, emailClassDetails, userResults, { name, email });
     } catch (err) {
       await connection.rollback();
       console.error("Error during registration:", err);
