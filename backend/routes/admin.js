@@ -142,7 +142,7 @@ module.exports = (
       const requestDetails = requestResults[0];
 
       if (action === "approve") {
-        await sendRequestApprovedNotification(requestDetails.requested_by_email, requestDetails);
+        // 🟢 แบบใหม่: ยังไม่ส่งอีเมลที่นี่ จะไปส่งเมื่อสร้างห้องเรียนจริงใน classes.js
         logActivity(req, req.user.id, req.user.name, req.user.email, "APPROVE_CLASS_REQUEST", "REQUEST", requestId, { request_title: requestDetails.title, approved_by: req.user.email });
       } else {
         await sendRequestRejectedNotification(requestDetails.requested_by_email, requestDetails, reason);

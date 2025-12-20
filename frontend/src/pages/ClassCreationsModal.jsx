@@ -40,6 +40,7 @@ const initialFormState = {
   materials: [], // Changed from files to materials
   class_id: "",
   language: "TH",
+  request_id: null, // 🟢 เพิ่มฟิลด์สำหรับเก็บ ID คำขอ
 };
 
 function formReducer(state, action) {
@@ -124,6 +125,7 @@ const ClassCreationModal = ({
 
       preparedData = {
         ...initialData,
+        request_id: initialData.request_id || null, // 🟢 รับค่า request_id มาเก็บไว้
         class_id: (mode === 'duplicate' || mode === 'fromRequest') ? randomId() : initialData.class_id,
         speaker: speakers,
         start_date: formatDate(initialData.start_date),

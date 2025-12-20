@@ -182,35 +182,23 @@ const Statistics = () => {
     const totals = {};
     scoreKeys.forEach((key) => (totals[key] = 0));
 
-    let totalEvaluations = 0;
+    let classesWithEvaluationsCount = 0;
 
     filteredAndSortedStats.forEach((classStat) => {
-      let shouldInclude = true;
-      // Check if the class has participants matching the role filter
-      if (roles.length > 0) {
-        const hasMatchingRole = Object.keys(classStat.demographics).some(status => 
-          statusMatchesRoles(status, roles) && classStat.demographics[status] > 0
-        );
-        if (!hasMatchingRole) {
-          shouldInclude = false;
-        }
-      }
-
-      if (shouldInclude && classStat.total_evaluations > 0) {
+      if (classStat.total_evaluations > 0) {
         scoreKeys.forEach((key) => {
           totals[key] +=
-            parseFloat(classStat[`avg_score_${key}`]) *
-            classStat.total_evaluations;
+            parseFloat(classStat[`avg_score_${key}`]) || 0;
         });
-        totalEvaluations += classStat.total_evaluations;
+        classesWithEvaluationsCount++;
       }
     });
 
-    if (totalEvaluations === 0) return null;
+    if (classesWithEvaluationsCount === 0) return null;
 
     const result = {};
     for (const key of scoreKeys) {
-      result[`avg_score_${key}`] = totals[key] / totalEvaluations;
+      result[`avg_score_${key}`] = totals[key] / classesWithEvaluationsCount;
     }
     return result;
   }, [filteredAndSortedStats, roles]);

@@ -74,6 +74,7 @@ export default function ClassCreation() {
 
   const handleCreateFromRequestClick = (request) => {
     const requestAsClassData = {
+      request_id: request.request_id, // 🟢 เก็บ ID คำขอไว้
       title: request.title,
       speaker: request.speaker ? [request.speaker] : [],
       start_date: request.start_date,
@@ -105,6 +106,11 @@ export default function ClassCreation() {
     newForm.append("target_groups", JSON.stringify(formData.target_groups));
     newForm.append("language", formData.language);
     newForm.append("created_by_email", user.email);
+
+    // 🟢 ถ้าสร้างจากคำขอ ให้ส่ง request_id ไปด้วยเพื่อให้ Backend ส่งอีเมลแจ้งเตือน
+    if (formData.request_id) {
+      newForm.append("request_id", formData.request_id);
+    }
   
     // Append files: separate new files from existing file names
     formData.materials.forEach((file) => {

@@ -27,7 +27,8 @@ module.exports = (
   upload,
   sendRegistrationConfirmation,
   sendAdminNotification,
-  sendAdminCancellationNotification
+  sendAdminCancellationNotification,
+  sendRequestApprovedNotification // 🟢 เพิ่มฟังก์ชันส่งอีเมลแจ้งอนุมัติคำขอ
 ) => {
   router.get("/", async (req, res) => {
     const { email, roles } = req.user; // Get user info from JWT payload
@@ -162,6 +163,7 @@ module.exports = (
         max_participants,
         target_groups,
         language,
+        request_id, // 🟢 รับ request_id จาก Body
       } = req.body;
 
       if (!title || title.trim() === "") {
@@ -226,6 +228,19 @@ module.exports = (
           newClassId,
           { class_title: title }
         );
+
+        // 🟢 ถ้ามีการส่ง request_id มา แสดงว่าสร้างห้องเรียนนี้เพื่อตอบรับคำขอ
+        if (request_id && request_id !== "null" && request_id !== "undefined") {
+          // 1. เปลี่ยนสถานะคำขอเป็น completed เพื่อให้หายจากรายการที่รอสร้างในหน้า ClassCreation
+          await db.query("UPDATE class_requests SET status = 'completed' WHERE request_id = ?", [request_id]);
+
+          const [reqResults] = await db.query("SELECT * FROM class_requests WHERE request_id = ?", [request_id]);
+          if (reqResults.length > 0 && typeof sendRequestApprovedNotification === 'function') {
+            // 2. ส่งอีเมลแจ้งผู้ขอว่าคำขอได้รับการอนุมัติและสร้างห้องเรียนแล้ว (ตรวจสอบว่าเป็น function ก่อนเรียกใช้)
+            await sendRequestApprovedNotification(reqResults[0].requested_by_email, reqResults[0]);
+          }
+        }
+
         res
           .status(201)
           .json({

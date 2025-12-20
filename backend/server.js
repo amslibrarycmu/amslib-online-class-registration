@@ -221,7 +221,8 @@ app.use(
     upload,
     sendRegistrationConfirmation,
     sendAdminNotification,
-    sendAdminCancellationNotification
+    sendAdminCancellationNotification,
+    sendRequestApprovedNotification
   )
 );
 app.use(
