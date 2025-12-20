@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
-import ClassCreationModal from "../components/ClassCreationsModal";
+import ClassCreationModal from "./ClassCreationsModal";
 import RegistrantsModal from "../components/RegistrantsModal";
 import CloseClassModal from "../components/CloseClassModal";
 import EvaluationResultsModal from "../components/EvaluationResultsModal";
@@ -360,7 +360,7 @@ const ClassIndex = () => {
       <Sidebar />
       <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-gray-100">
         <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
-          ภาพรวม
+          ห้องเรียน
         </h1>
         <h2 className="font-bold mb-[10px] text-[1.25rem]">
           ห้องเรียนที่เปิดสอนได้
@@ -633,8 +633,7 @@ const ClassIndex = () => {
             )}</div>
       {isEditModalOpen && editingClass && (
         <ClassCreationModal
-          isEditing={true}
-          isDuplicating={false}
+          mode="edit"
           initialData={editingClass}
           onClose={handleCloseModal}
           onSubmit={handleUpdateClass}

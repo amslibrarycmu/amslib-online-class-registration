@@ -565,7 +565,7 @@ const Statistics = () => {
 
           {/* Summary Cards Container */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 จำนวนผู้เข้าเรียนทั้งหมด
               </h3>
@@ -579,7 +579,7 @@ const Statistics = () => {
               <p className="text-gray-500 mt-1">คน</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 คะแนนเฉลี่ยรวม (x̄)
               </h3>
@@ -592,10 +592,10 @@ const Statistics = () => {
                     : "N/A"}
                 </p>
               )}
-              <p className="text-gray-500 mt-1">จาก 5</p>
+              <p className="text-gray-500 mt-1"></p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col justify-center items-center">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 จบการสอนแล้ว
               </h3>
@@ -606,7 +606,7 @@ const Statistics = () => {
                   {filteredAndSortedStats.length}
                 </p>
               )}
-              <p className="text-gray-500 mt-1">ห้อง</p>
+              <p className="text-gray-500 mt-1">ครั้ง</p>
             </div>
           </div>
         </div>

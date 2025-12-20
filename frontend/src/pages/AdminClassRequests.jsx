@@ -395,7 +395,7 @@ const AdminClassRequests = () => {
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
         <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 text-center">
-          จัดการคำขอ
+          ตรวจสอบคำขอ
         </h1>
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
           <RejectionReasonModal

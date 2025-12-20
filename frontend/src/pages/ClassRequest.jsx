@@ -33,34 +33,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const ReasonModal = ({ isOpen, onClose, reason }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div className="p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">
-            เหตุผลที่ไม่อนุมัติ
-          </h3>
-          <p className="text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded-md border">
-            {reason}
-          </p>
-        </div>
-        <div className="bg-gray-100 px-4 py-3 sm:px-6 flex flex-row-reverse rounded-b-lg">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
-          >
-            ปิด
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const ClassRequest = () => {
   const { user, authFetch } = useAuth();
   const [topic, setTopic] = useState("");
@@ -74,13 +46,9 @@ const ClassRequest = () => {
   const [myRequests, setMyRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [isViewing, setIsViewing] = useState(false);
-  const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [editingRequestId, setEditingRequestId] = useState(null);
-  // --- 🟢 START: New states for topic dropdown ---
   const [classTitles, setClassTitles] = useState([]);
   const [otherTopic, setOtherTopic] = useState("");
-  // --- 🟢 END: New states ---
-  const [selectedRejectionReason, setSelectedRejectionReason] = useState("");
 
   const startDateRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -294,16 +262,6 @@ const ClassRequest = () => {
     setIsViewing(false); // Ensure form is editable
   };
 
-  const handleViewReason = (reason) => {
-    setSelectedRejectionReason(reason);
-    setIsReasonModalOpen(true);
-  };
-
-  const handleCloseReasonModal = () => {
-    setIsReasonModalOpen(false);
-    setSelectedRejectionReason("");
-  };
-
   const handleStartDateChange = (e) => {
     const newStartDate = e.target.value;
     setStartDate(newStartDate);
@@ -348,11 +306,6 @@ const ClassRequest = () => {
     <div className="flex h-screen w-screen">
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
-        <ReasonModal
-          isOpen={isReasonModalOpen}
-          onClose={handleCloseReasonModal}
-          reason={selectedRejectionReason}
-        />
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-6">
           สร้างคำขอ
         </h1>
@@ -672,33 +625,7 @@ const ClassRequest = () => {
                         <h3 className="text-lg font-semibold text-purple-700">
                           {request.title}
                         </h3>
-                        <div className="flex items-center">
-                          <StatusBadge status={request.status} />
-                          {request.status === "rejected" && // Check if the request was rejected
-                            request.admin_comment && ( // Use admin_comment instead of rejection_reason
-                              <button
-                                onClick={() =>
-                                  handleViewReason(request.admin_comment)
-                                }
-                                className="text-orange-500 hover:text-gray-700 rounded-full transition-colors"
-                                style={{ padding: "0" }}
-                                title="ดูเหตุผลที่ไม่อนุมัติ"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-5 w-5"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </button>
-                            )}
-                        </div>
+                        <StatusBadge status={request.status} />
                       </div>
                       <p className="text-xs text-gray-500 mb-2">
                         ส่งเมื่อ{" "}
@@ -713,6 +640,11 @@ const ClassRequest = () => {
                           }
                         )} น.
                       </p>
+                      {request.status === "rejected" && request.admin_comment && (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-md text-sm text-red-700">
+                          <span className="font-bold">เหตุผล:</span> {request.admin_comment}
+                        </div>
+                      )}
                       <div className="flex justify-end items-center gap-2 mt-3 pt-3 border-t border-gray-200">
                         <button
                           onClick={() => handleRequestClick(request)}

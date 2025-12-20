@@ -276,7 +276,7 @@ export default function Sidebar() {
                 {/* === Level 1+ (ผู้สอน) === */}
                 {adminLevel >= ADMIN_LEVELS.VIEWER && (
                   <>
-                    <MenuLink to="/index" label="ภาพรวม" />
+                    <MenuLink to="/index" label="ห้องเรียน" />
                     <MenuLink to="/creations" label="สร้าง" />
                   </>
                 )}
