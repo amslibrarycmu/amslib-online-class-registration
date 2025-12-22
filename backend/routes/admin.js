@@ -232,10 +232,16 @@ module.exports = (
           }
           if (!Array.isArray(roles)) roles = [];
 
-          // 🟢 Logic สำคัญ: เลือกบทบาทที่ไม่ใช่ "ผู้ดูแลระบบ" ก่อน
-          const generalRole = roles.find(r => r !== "ผู้ดูแลระบบ");
-          
-          userRoleMap[user.email] = generalRole || (roles.length > 0 ? roles[0] : "Unknown");
+          // 🟢 เลือกบทบาทที่ตรงกับตัวกรอง (ถ้ามี) หรือเลือกบทบาททั่วไปที่ไม่ใช่แอดมิน
+          let displayRole = null;
+          if (rolesToFilter.length > 0) {
+            displayRole = roles.find(r => rolesToFilter.includes(r));
+          }
+          if (!displayRole) {
+            displayRole = roles.find(r => r !== "ผู้ดูแลระบบ");
+          }
+
+          userRoleMap[user.email] = displayRole || (roles.length > 0 ? roles[0] : "Unknown");
         });
       }
 

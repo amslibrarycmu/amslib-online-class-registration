@@ -182,23 +182,32 @@ const Statistics = () => {
     const totals = {};
     scoreKeys.forEach((key) => (totals[key] = 0));
 
-    let classesWithEvaluationsCount = 0;
+    let totalWeight = 0;
 
     filteredAndSortedStats.forEach((classStat) => {
       if (classStat.total_evaluations > 0) {
+        // 🟢 คำนวณจำนวนผู้เข้าร่วมในห้องนี้ตาม Role ที่เลือก เพื่อใช้เป็นน้ำหนัก (Weight)
+        let classParticipants = 0;
+        for (const status in classStat.demographics) {
+          if (statusMatchesRoles(status, roles)) {
+            classParticipants += classStat.demographics[status] || 0;
+          }
+        }
+
         scoreKeys.forEach((key) => {
           totals[key] +=
-            parseFloat(classStat[`avg_score_${key}`]) || 0;
+            (parseFloat(classStat[`avg_score_${key}`]) || 0) *
+            classParticipants;
         });
-        classesWithEvaluationsCount++;
+        totalWeight += classParticipants;
       }
     });
 
-    if (classesWithEvaluationsCount === 0) return null;
+    if (totalWeight === 0) return null;
 
     const result = {};
     for (const key of scoreKeys) {
-      result[`avg_score_${key}`] = totals[key] / classesWithEvaluationsCount;
+      result[`avg_score_${key}`] = totals[key] / totalWeight;
     }
     return result;
   }, [filteredAndSortedStats, roles]);
@@ -230,9 +239,7 @@ const Statistics = () => {
 
   // ฟังก์ชันคำนวณสถิติใหม่สำหรับรายวิชาตามตัวกรอง (Client-side calculation)
   const getFilteredClassStats = (classStat) => {
-    const rawEvaluations = detailedClassData[classStat.class_id];
-    
-    // 1. กรอง Demographics (Pie Chart) จากข้อมูลสรุปที่มีอยู่แล้ว
+    // 🟢 ใช้ข้อมูลที่ Backend กรองมาให้แล้วใน classStat ได้เลย เพื่อความแม่นยำและรวดเร็ว
     const filteredDemographics = {};
     for (const status in classStat.demographics) {
       if (statusMatchesRoles(status, roles)) {
@@ -240,43 +247,12 @@ const Statistics = () => {
       }
     }
 
-    // 2. คำนวณคะแนนเฉลี่ย (Bar Chart) จาก Raw Data (ถ้ามี)
-    let filteredAvgScores = {};
-    let filteredTotalEvals = 0;
-
-    // ตรวจสอบว่ามีข้อมูล Raw Data จริงหรือไม่
-    if (Array.isArray(rawEvaluations) && rawEvaluations.length > 0) {
-      const scoreKeys = ["content", "material", "duration", "format", "speaker"];
-      // กรอง Evaluation ตาม Role
-      const matchingEvals = rawEvaluations.filter(ev => {
-        if (roles.length === 0) return true;
-        if (!ev.user_roles || !Array.isArray(ev.user_roles)) return false;
-        return ev.user_roles.some(r => roles.includes(r));
-      });
-
-      filteredTotalEvals = matchingEvals.length;
-      scoreKeys.forEach(key => {
-        const sum = matchingEvals.reduce((acc, ev) => acc + (parseFloat(ev[`score_${key}`]) || 0), 0);
-        filteredAvgScores[`avg_score_${key}`] = filteredTotalEvals > 0 ? sum / filteredTotalEvals : 0;
-      });
-    } else if (rawEvaluations !== undefined) {
-      // กรณีโหลดเสร็จแล้ว (ไม่ใช่ undefined) แต่ได้ Array ว่าง [] (อาจเกิดจาก Error หรือไม่มีข้อมูลจริง)
-      // ถ้าข้อมูลสรุปบอกว่ามีคนประเมิน (total > 0) และเราไม่ได้กรอง Role (roles.length == 0)
-      // ให้ใช้ข้อมูลสรุป (classStat) มาแสดงแทน เพื่อป้องกันการขึ้นว่า "ยังไม่มีผู้ประเมิน"
-      if (classStat.total_evaluations > 0 && roles.length === 0) {
-        return { 
-          demographics: filteredDemographics, 
-          avgScores: classStat, // ใช้คะแนนเฉลี่ยรวมจากสรุป
-          totalEvaluations: classStat.total_evaluations, 
-          isLoading: false 
-        };
-      }
-    } else {
-      // ถ้ายังไม่มี Raw Data (เป็น undefined) ให้แสดงสถานะ Loading
-      return { demographics: filteredDemographics, avgScores: classStat, totalEvaluations: classStat.total_evaluations, isLoading: true };
-    }
-
-    return { demographics: filteredDemographics, avgScores: filteredAvgScores, totalEvaluations: filteredTotalEvals, isLoading: false };
+    return { 
+      demographics: filteredDemographics, 
+      avgScores: classStat, 
+      totalEvaluations: classStat.total_evaluations, 
+      isLoading: false 
+    };
   };
 
   const renderActiveFilter = () => {
