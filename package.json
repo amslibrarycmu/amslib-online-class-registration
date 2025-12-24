@@ -2,5 +2,8 @@
   "dependencies": {
     "jwt-decode": "^4.0.0",
     "mysql2": "^3.15.3"
+  },
+  "devDependencies": {
+    "env-cmd": "^11.0.0"
   }
 }

@@ -1,0 +1,30 @@
+# --- General Settings ---
+PORT=5000
+
+# --- Database Configuration (Production) ---
+DB_NAME=amslibclass
+DB_USER=library_ams
+DB_PASSWORD=pQ*.wDp!rZyB5D.F
+DB_PORT=3306
+DB_HOST=localhost
+
+# --- Email Configuration ---
+EMAIL_SERVICE=gmail
+EMAIL_FROM_ADDRESS=amslibref@gmail.com
+EMAIL_AUTH_USER=amslibref@gmail.com
+EMAIL_AUTH_PASS=spyxaentzgheksqu
+
+# --- Microsoft Entra ID (Production) ---
+MS_ENTRA_ID_CLIENT_ID=01f925c9-7b33-42e3-81fa-0374de0bf42a
+MS_ENTRA_ID_CLIENT_SECRET=o4L8Q~e85JyMjmrUya-kCBzyqKHr5nUaSpB_7aVd
+MS_ENTRA_ID_TENANT_ID=cf81f1df-de59-4c29-91da-a2dfd04aa751
+MS_ENTRA_ID_REDIRECT_URI=https://library.ams.cmu.ac.th/amslibclass/api/auth/callback
+
+# --- JWT Secret Key ---
+JWT_SECRET=amscmu5071_PROD_SECURE_KEY
+
+# --- URL Configuration (Production) ---
+# VITE_API_URL: URL จริงของระบบ (ไม่ต้องใส่ /api ต่อท้าย เพราะโค้ดจะเติมให้เอง)
+VITE_API_URL=https://library.ams.cmu.ac.th/amslibclass
+# FRONTEND_URL: URL จริงของหน้าเว็บ
+FRONTEND_URL=https://library.ams.cmu.ac.th/amslibclass

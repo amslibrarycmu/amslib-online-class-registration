@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import DemographicsPieChart from "../components/DemographicsPieChart";
 import CategoryBarChart from "../components/CategoryBarChart";
-import { useStatisticsData } from "../components/UseStatisticsData";
+import { FetchStatisticsData } from "../components/FetchStatisticsData";
 import StatisticsFilterModal from "../components/StatisticsFilterModal";
 
 const Statistics = () => {
@@ -48,7 +48,7 @@ const Statistics = () => {
   );
 
   // --- เรียกใช้ Hook ด้วย Object ของ filters ที่ผ่านการ Memoize แล้ว ---
-  const { stats, loading, error } = useStatisticsData(
+  const { stats, loading, error } = FetchStatisticsData(
     user,
     activeRole,
     filters
@@ -300,7 +300,7 @@ const Statistics = () => {
     // ถ้ากดขยายและยังไม่มีข้อมูล Raw Data ให้ไปดึงมา
     if (isExpanding && !detailedClassData[classId]) {
       try {
-        const res = await authFetch(`http://localhost:5000/api/classes/${classId}/evaluations`);
+        const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}/evaluations`);
         if (res.ok) {
           const data = await res.json();
           // The error suggests 'data' is not an array. It's likely an object like { evaluations: [...] }.

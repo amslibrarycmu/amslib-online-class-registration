@@ -66,7 +66,7 @@ const ClassRequest = () => {
   useEffect(() => {
     const fetchTitles = async () => {
       try {
-        const response = await authFetch(`http://localhost:5000/api/classes/unique-titles`);
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/unique-titles`);
         if (response.ok) {
           const data = await response.json();
           setClassTitles(data);
@@ -87,7 +87,7 @@ const ClassRequest = () => {
     }
     setLoadingRequests(true);
     try {
-      const response = await authFetch(`http://localhost:5000/api/requests`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/requests`);
       if (!response.ok) {
         throw new Error("Failed to fetch class requests.");
       }
@@ -144,8 +144,8 @@ const ClassRequest = () => {
 
     const isEditing = !!editingRequestId;
     const url = isEditing
-      ? `http://localhost:5000/api/requests/${editingRequestId}`
-      : "http://localhost:5000/api/requests";
+      ? `${import.meta.env.VITE_API_URL}/api/requests/${editingRequestId}`
+      : `${import.meta.env.VITE_API_URL}/api/requests`;
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -182,7 +182,7 @@ const ClassRequest = () => {
 
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/requests/${request_id}`,
+        `${import.meta.env.VITE_API_URL}/api/requests/${request_id}`,
         {
           method: "DELETE",
         }

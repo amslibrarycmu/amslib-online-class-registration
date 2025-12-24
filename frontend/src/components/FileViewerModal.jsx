@@ -11,7 +11,7 @@ const FileViewerModal = ({ isOpen, onClose, files, classTitle }) => {
           {files.map((file, index) => (
             <li key={index} className="text-gray-700">
               <a 
-                href={`http://localhost:5000/uploads/materials/${file}`}
+                href={`${import.meta.env.VITE_API_URL}/uploads/materials/${file}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:text-blue-700 hover:underline"

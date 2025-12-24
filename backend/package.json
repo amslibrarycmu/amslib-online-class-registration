@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "env-cmd -f z-env/dev-env.txt vite",
+    "build:prod": "env-cmd -f z-env/ftp-env.txt vite build"
   },
   "keywords": [],
   "author": "",

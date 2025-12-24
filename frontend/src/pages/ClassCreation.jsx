@@ -25,7 +25,7 @@ export default function ClassCreation() {
     }
     try {
       setLoading(true);
-      const response = await authFetch(`http://localhost:5000/api/classes`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes`);
       const data = await response.json();
       setClassesList(data);
     } catch (error) {
@@ -40,7 +40,7 @@ export default function ClassCreation() {
     if (activeRole !== "ผู้ดูแลระบบ") return;
     try {
       setLoading(true);
-      const response = await authFetch("http://localhost:5000/api/admin/class-requests?status=approved");
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/admin/class-requests?status=approved`);
       const data = await response.json();
       setApprovedRequests(data);
     } catch (error) {
@@ -123,7 +123,7 @@ export default function ClassCreation() {
       }
     });
     try {
-      const res = await authFetch("http://localhost:5000/api/classes", {
+      const res = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes`, {
         method: "POST",
         body: newForm,
       });

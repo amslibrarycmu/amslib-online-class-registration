@@ -119,7 +119,7 @@ export default function Sidebar() {
     const nextIndex = (currentIndex + 1) % user.roles.length;
     const newRole = user.roles[nextIndex];
     if (!isSwitchingRole) {
-      authFetch("http://localhost:5000/api/log-activity", {
+      authFetch(`${import.meta.env.VITE_API_URL}/api/log-activity`, {
         method: "POST",
         body: {
           user_id: user.id,
@@ -144,7 +144,7 @@ export default function Sidebar() {
   const displayImageSrc = localPreview
     ? localPreview // 1. ถ้ามีรูปเพิ่งอัปโหลด ให้ใช้เลย
     : user?.photo // 2. ถ้าไม่มี ให้ใช้รูปจาก Server
-    ? `http://localhost:5000/api/users/photo/${user.photo}?t=${imageVersion}`
+    ? `${import.meta.env.VITE_API_URL}/api/users/photo/${user.photo}?t=${imageVersion}`
     : profile; // 3. ถ้าไม่มีอะไรเลย ใช้รูป Default
 
   // --- 🟢 Helper Component สำหรับสร้างลิงก์เมนู ---
@@ -248,7 +248,7 @@ export default function Sidebar() {
                 className="font-semibold mt-1 cursor-pointer hover:underline"
                 style={{ color: "black" }}
                 onClick={() => {
-                  authFetch("http://localhost:5000/api/log-activity", {
+                  authFetch(`${import.meta.env.VITE_API_URL}/api/log-activity`, {
                     method: "POST",
                     body: {
                       user_id: user.id,

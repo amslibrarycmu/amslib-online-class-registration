@@ -47,7 +47,7 @@ const LoginPage = () => {
   }, [user, navigate]);
 
   const handleCmuLogin = () => {
-    window.location.href = "http://localhost:5000/api/auth/login";
+    window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/login`;
   };
 
   return (

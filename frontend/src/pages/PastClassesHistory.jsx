@@ -24,7 +24,7 @@ const PastClassesHistory = () => {
     if (!user) return;
     try {
       // Use authFetch and a more secure endpoint if available, but this one works for now
-      const response = await authFetch(`http://localhost:5000/api/classes/registered/closed`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/registered/closed`);
 
       if (!response.ok) throw new Error("Failed to fetch past classes.");
       const data = await response.json();
@@ -47,7 +47,7 @@ const PastClassesHistory = () => {
     if (!user) return;
     try {
       // Use authFetch and the correct endpoint
-      const response = await authFetch(`http://localhost:5000/api/evaluations/user-status`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/evaluations/user-status`);
       if (!response.ok) throw new Error("Failed to fetch evaluation status.");
       const data = await response.json();
       setEvaluatedClasses(new Set(data));

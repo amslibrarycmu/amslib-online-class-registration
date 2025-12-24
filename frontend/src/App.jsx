@@ -60,7 +60,7 @@ function AppContent() {
       if (newUserTempData && newUserTempData.tempToken) {
         // --- New User Registration Flow ---
         apiResponse = await fetch(
-          "http://localhost:5000/api/auth/complete-registration",
+          `${import.meta.env.VITE_API_URL}/api/auth/complete-registration`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -88,7 +88,7 @@ function AppContent() {
         };
 
         apiResponse = await authFetch(
-          `http://localhost:5000/api/users/update-profile`,
+          `${import.meta.env.VITE_API_URL}/api/users/update-profile`,
           {
             method: "PUT",
             body: payload,

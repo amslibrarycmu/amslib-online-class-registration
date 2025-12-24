@@ -40,7 +40,7 @@ const AdminAppointmentModal = ({ isOpen, onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      const response = await authFetch(`http://localhost:5000/api/users/search?q=${query}`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/search?q=${query}`);
       setSearchPerformed(true); // 🟢 2. ตั้งค่าว่ามีการค้นหาเกิดขึ้นแล้ว
       if (!response.ok) throw new Error("Search failed");
       const data = await response.json();
@@ -66,7 +66,7 @@ const AdminAppointmentModal = ({ isOpen, onClose, onSuccess }) => {
     }
     setProcessing(true);
     try {
-      const response = await authFetch("http://localhost:5000/api/users/admins/appoint", {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/admins/appoint`, {
         method: "POST",
         body: {
           user_id: selectedUser.id,

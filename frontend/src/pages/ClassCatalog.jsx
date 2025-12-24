@@ -55,7 +55,7 @@ const ClassCatalog = () => {
   const fetchPromotedClasses = async () => {
     try {
       setLoading(true);
-      const response = await authFetch("http://localhost:5000/api/classes/promoted");
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/promoted`);
       if (!response.ok) {
         throw new Error("Failed to fetch classes.");
       }
@@ -88,7 +88,7 @@ const ClassCatalog = () => {
       return;
     }
     try {
-      const response = await authFetch(`http://localhost:5000/api/classes/${classId}/register`, {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}/register`, {
         method: "POST",
       });
       const data = await response.json();
@@ -119,7 +119,7 @@ const ClassCatalog = () => {
       return;
     }
     try {
-      const response = await authFetch(`http://localhost:5000/api/classes/${classId}/cancel`, {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}/cancel`, {
         method: "POST",
       });
       const data = await response.json();
@@ -178,7 +178,7 @@ const ClassCatalog = () => {
       }
 
       try {
-        const response = await authFetch(`http://localhost:5000/api/classes/${classId}/register`, {
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}/register`, {
           method: "POST",
         });
         const data = await response.json();

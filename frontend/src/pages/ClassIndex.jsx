@@ -117,7 +117,7 @@ const ClassIndex = () => {
     }
     try {
       setLoading(true);
-      const response = await authFetch(`http://localhost:5000/api/classes`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes`);
       const data = await response.json();
       setClasses(data); // Keep original fetched data if needed elsewhere
     } catch (error) {
@@ -150,7 +150,7 @@ const ClassIndex = () => {
   // Handlers for the registrants modal
   const handleOpenRegistrantsModal = async (cls) => {
     try {
-      const response = await authFetch(`http://localhost:5000/api/classes/${cls.class_id}/registrants`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${cls.class_id}/registrants`);
       if (!response.ok) {
         throw new Error("Failed to fetch registrants");
       }
@@ -201,7 +201,7 @@ const ClassIndex = () => {
     }
 
     try {
-      const response = await authFetch(`http://localhost:5000/api/classes/${classId}/close`, {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}/close`, {
         method: "POST",
         body: closeForm,
       });
@@ -247,7 +247,7 @@ const ClassIndex = () => {
     updateForm.append("existingFiles", JSON.stringify(existingFiles));
     updateForm.append("user_email", user.email);
     try {
-      const response = await authFetch(`http://localhost:5000/api/classes/${classId}`, {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}`, {
         method: "PUT",
         body: updateForm,
       });
@@ -272,7 +272,7 @@ const ClassIndex = () => {
   const handleDeleteClick = async (classId) => {
     if (window.confirm("คุณต้องการลบห้องเรียนนี้หรือไม่?")) {
       try {
-        const response = await authFetch(`http://localhost:5000/api/classes/${classId}`, {
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}`, {
           method: "DELETE",
         });
         if (response.ok) {
@@ -290,7 +290,7 @@ const ClassIndex = () => {
 
   const handleEvaluationResultsClick = async (cls) => {
     try {
-      const response = await authFetch(`http://localhost:5000/api/classes/${cls.class_id}/evaluations`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${cls.class_id}/evaluations`);
       if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลผลการประเมินได้");
       const data = await response.json();
       setEvaluationData(data);
@@ -310,7 +310,7 @@ const ClassIndex = () => {
   const handlePromoteToggle = async (classId, isPromoted) => {
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/classes/${classId}/promote`,
+        `${import.meta.env.VITE_API_URL}/api/classes/${classId}/promote`,
         {
           method: "PUT",
           headers: {

@@ -70,7 +70,7 @@ async function sendRegistrationConfirmation(
 ) {
   try {
     // Use environment variable for backend URL, with a fallback for development
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = process.env.BACKEND_URL;
 
     const templateData = {
       studentName: studentName,
@@ -273,7 +273,7 @@ async function sendRequestRejectedNotification( // Make this async as well for c
 async function sendReminderEmail(recipientEmail, classDetails, studentName) {
   try {
     // Use environment variable for backend URL, with a fallback for development
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = process.env.BACKEND_URL;
 
     const templateData = {
       studentName: studentName,

@@ -17,7 +17,7 @@ const AdminPanel = () => {
             try {
                 setLoading(true);
                 // Assuming this endpoint fetches all classes for admin
-                const response = await fetch(`http://localhost:5000/api/classes?email=${encodeURIComponent(user.email)}&roles=${encodeURIComponent(activeRole || '')}`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/classes?email=${encodeURIComponent(user.email)}&roles=${encodeURIComponent(activeRole || '')}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch classes.');
                 }

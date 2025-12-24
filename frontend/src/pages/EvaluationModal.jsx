@@ -60,7 +60,7 @@ const EvaluationModal = ({
     setSubmitting(true);
 
     try {
-      const response = await authFetch("http://localhost:5000/api/evaluations", {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/evaluations`, {
         method: "POST",
         body: {
           ...scores,

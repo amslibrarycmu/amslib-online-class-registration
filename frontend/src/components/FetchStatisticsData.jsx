@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
  * @param {object} filters - An object containing filter criteria.
  * @returns {{stats: Array, loading: boolean, error: Error|null}}
  */
-export const useStatisticsData = (user, activeRole, filters) => {
+export const FetchStatisticsData = (user, activeRole, filters) => {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,7 +47,7 @@ export const useStatisticsData = (user, activeRole, filters) => {
           params.append('roles', JSON.stringify(roles));
         }
 
-        const response = await authFetch(`http://localhost:5000/api/admin/statistics/class-demographics?${params.toString()}`);
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/admin/statistics/class-demographics?${params.toString()}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         setStats(data);

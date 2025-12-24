@@ -51,7 +51,7 @@ const ProfilePictureModal = ({ isOpen, onClose, onUpdateSuccess }) => {
       formData.append("email", user.email);
 
       const response = await authFetch(
-        "http://localhost:5000/api/users/profile-picture",
+        `${import.meta.env.VITE_API_URL}/api/users/profile-picture`,
         {
           method: "PUT",
           body: formData,
@@ -84,7 +84,7 @@ const ProfilePictureModal = ({ isOpen, onClose, onUpdateSuccess }) => {
       setIsDeleting(true);
       try {
         const response = await authFetch(
-          "http://localhost:5000/api/users/profile-picture",
+          `${import.meta.env.VITE_API_URL}/api/users/profile-picture`,
           {
             method: "DELETE",
             params: { email: user.email },

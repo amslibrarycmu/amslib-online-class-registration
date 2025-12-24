@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import UserDetailsModal from "../components/UserDetailsModal";
-// Constants for action types
 const ACTION_TYPE_LABELS = {
   LOGIN_SUCCESS: "เข้าสู่ระบบ",
   LOGOUT: "ออกจากระบบ",
@@ -89,7 +88,7 @@ const ActivityLogs = () => {
       try {
         if (pageNum === 1) {
           // Log only on the first page load of a filter/search
-          authFetch("http://localhost:5000/api/log-activity", {
+          authFetch(`${import.meta.env.VITE_API_URL}/api/log-activity`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -106,7 +105,7 @@ const ActivityLogs = () => {
         const query = new URLSearchParams({
           page: pageNum, limit, search: currentSearch, actionType: currentActionType,
         }).toString();
-        const response = await authFetch(`http://localhost:5000/api/admin/activity-logs?${query}`);
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/admin/activity-logs?${query}`);
         if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลประวัติการใช้งานได้");
         const data = await response.json();
         setTotalLogs(data.total);
@@ -133,7 +132,7 @@ const ActivityLogs = () => {
     if (!userId) return;
     try {
       setLoading(true);
-      const response = await authFetch(`http://localhost:5000/api/users/${userId}`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}`);
       if (!response.ok) {
         throw new Error("ไม่พบข้อมูลผู้ใช้");
       }
@@ -217,7 +216,7 @@ const ActivityLogs = () => {
       }).toString();
 
       const response = await authFetch(
-        `http://localhost:5000/api/admin/activity-logs/all?${query}`
+        `${import.meta.env.VITE_API_URL}/api/admin/activity-logs/all?${query}`
       );
       if (!response.ok) {
         throw new Error("ไม่สามารถดึงข้อมูลสำหรับ Export ได้");

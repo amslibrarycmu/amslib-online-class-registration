@@ -244,7 +244,7 @@ const AdminClassRequests = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authFetch(`http://localhost:5000/api/admin/class-requests`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/admin/class-requests`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -274,7 +274,7 @@ const AdminClassRequests = () => {
     setIsProcessing(true);
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/admin/class-requests/${requestId}`,
+        `${import.meta.env.VITE_API_URL}/api/admin/class-requests/${requestId}`,
         {
           method: "POST",
           headers: {
@@ -303,7 +303,7 @@ const AdminClassRequests = () => {
     setIsProcessing(true);
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/admin/class-requests/${requestToReject}`,
+        `${import.meta.env.VITE_API_URL}/api/admin/class-requests/${requestToReject}`,
         {
           method: "POST",
           headers: {
@@ -346,7 +346,7 @@ const AdminClassRequests = () => {
     if (!userId) return;
     try {
       setLoading(true);
-      const response = await authFetch(`http://localhost:5000/api/users/${userId}`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}`);
       if (!response.ok) {
         throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
       }

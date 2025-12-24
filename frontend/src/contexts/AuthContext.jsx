@@ -190,7 +190,7 @@ export const logFrontendActivity = (user, action_type, details = {}) => {
   const token = localStorage.getItem("token");
   if (!token) return;
 
-  fetch("http://localhost:5000/api/log-activity", {
+  fetch(`${import.meta.env.VITE_API_URL}/api/log-activity`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

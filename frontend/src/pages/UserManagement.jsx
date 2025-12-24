@@ -37,7 +37,7 @@ const UserManagement = () => {
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await authFetch("http://localhost:5000/api/users/admins");
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/admins`);
       if (!response.ok) throw new Error("Failed to fetch admins");
       const data = await response.json();
       // Sort admins: current user first, then by level, then by name
@@ -76,7 +76,7 @@ const UserManagement = () => {
 
     setLoading(true);
     try {
-      const response = await authFetch(`http://localhost:5000/api/users?search=${query.trim()}`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users?search=${query.trim()}`);
       if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
       const data = await response.json();
       setAllUsers(data);
@@ -110,7 +110,7 @@ const UserManagement = () => {
     if (window.confirm(`คุณต้องการเปลี่ยนระดับของผู้ใช้นี้เป็น "${ADMIN_LEVEL_MAP[newLevel]}" ใช่หรือไม่?`)) {
       setProcessing(true);
       try {
-        const response = await authFetch(`http://localhost:5000/api/users/admins/${userId}/level`, {
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/admins/${userId}/level`, {
           method: 'PUT',
           body: { admin_level: newLevel },
         });
@@ -133,7 +133,7 @@ const UserManagement = () => {
      if (window.confirm(`คุณต้องการถอนสิทธิ์ผู้ดูแลระบบของ "${userName}" ใช่หรือไม่? การกระทำนี้จะลบผู้ใช้ออกจากตารางสิทธิ์เท่านั้น`)) {
       setProcessing(true);
       try {
-        const response = await authFetch(`http://localhost:5000/api/users/admins/${userId}`, {
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/admins/${userId}`, {
           method: 'DELETE',
         });
         if (!response.ok) {
@@ -155,7 +155,7 @@ const UserManagement = () => {
     if (!adminId) return;
     setProcessing(true);
     try {
-      const response = await authFetch(`http://localhost:5000/api/users/${adminId}`);
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${adminId}`);
       if (!response.ok) {
         throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
       }
@@ -181,7 +181,7 @@ const UserManagement = () => {
 
     setProcessing(true);
     try {
-      const response = await authFetch(`http://localhost:5000/api/users/${userToToggle.id}/status`, {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userToToggle.id}/status`, {
         method: 'PUT', body: { is_active: newStatus },
       });
       if (!response.ok) throw new Error('Failed to update user status.');
@@ -203,7 +203,7 @@ const UserManagement = () => {
 
     setProcessing(true);
     try {
-      const response = await authFetch(`http://localhost:5000/api/users/${userToDelete.id}`, { method: 'DELETE' });
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userToDelete.id}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete user.');
       setAllUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
       alert("ลบผู้ใช้สำเร็จ");

@@ -33,7 +33,7 @@ const TopicManagement = () => {
     setError(null);
     try {
       const response = await authFetch(
-        "http://localhost:5000/api/admin/topics"
+        `${import.meta.env.VITE_API_URL}/api/admin/topics`
       );
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -63,7 +63,7 @@ const TopicManagement = () => {
     setIsSubmitting(true);
     try {
       const response = await authFetch(
-        "http://localhost:5000/api/admin/topics",
+        `${import.meta.env.VITE_API_URL}/api/admin/topics`,
         {
           method: "POST",
           headers: {
@@ -100,7 +100,7 @@ const TopicManagement = () => {
     setIsSubmitting(true);
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/admin/topics/${topicId}`,
+        `${import.meta.env.VITE_API_URL}/api/admin/topics/${topicId}`,
         {
           method: "PUT",
           headers: {
@@ -135,7 +135,7 @@ const TopicManagement = () => {
     }
     try {
       const response = await authFetch(
-        `http://localhost:5000/api/admin/topics/${topicId}`,
+        `${import.meta.env.VITE_API_URL}/api/admin/topics/${topicId}`,
         {
           method: "PUT",
           headers: {
@@ -161,7 +161,7 @@ const TopicManagement = () => {
     }
     setIsSubmitting(true); // Use isSubmitting to disable buttons
     try {
-      const response = await authFetch(`http://localhost:5000/api/admin/topics/${topicId}`, {
+      const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/admin/topics/${topicId}`, {
         method: "DELETE",
       });
       if (!response.ok) {
