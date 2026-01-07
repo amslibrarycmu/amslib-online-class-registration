@@ -6,7 +6,7 @@ DB_NAME=amslibclass
 DB_USER=library_ams
 DB_PASSWORD=pQ*.wDp!rZyB5D.F
 DB_PORT=3306
-DB_HOST=localhost
+DB_HOST=mysql
 
 # --- Email Configuration ---
 EMAIL_SERVICE=gmail
@@ -28,3 +28,5 @@ JWT_SECRET=amscmu5071_PROD_SECURE_KEY
 VITE_API_URL=https://library.ams.cmu.ac.th/amslibclass
 # FRONTEND_URL: URL จริงของหน้าเว็บ
 FRONTEND_URL=https://library.ams.cmu.ac.th/amslibclass
+# BACKEND_URL: URL สำหรับเข้าถึงไฟล์บน Backend (ใช้ในระบบอีเมล)
+BACKEND_URL=https://library.ams.cmu.ac.th/amslibclass

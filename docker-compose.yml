@@ -4,6 +4,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: amslib_mysql
+    restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
@@ -28,8 +29,10 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: amslib_backend
+    restart: always
     ports:
       - "5000:5000"
+      - "5000:80"
     environment:
       NODE_ENV: ${NODE_ENV}
       DB_HOST: mysql
@@ -45,15 +48,15 @@ services:
       MS_ENTRA_ID_CLIENT_SECRET: ${MS_ENTRA_ID_CLIENT_SECRET}
       MS_ENTRA_ID_TENANT_ID: ${MS_ENTRA_ID_TENANT_ID}
       MS_ENTRA_ID_REDIRECT_URI: ${MS_ENTRA_ID_REDIRECT_URI}
-      FRONTEND_URL: http://localhost:5173 # เพิ่ม FRONTEND_URL สำหรับการ Redirect ใน auth.js
+      FRONTEND_URL: ${FRONTEND_URL}
     depends_on:
       mysql:
         condition: service_healthy
     volumes:
-      - ./backend:/app/backend
-      - /app/backend/node_modules
-      - ./backend/uploads:/app/backend/uploads
+      - amslib_uploads:/app/backend/uploads
     command: npm start
+      - amslib_uploads:/var/www/html/uploads
 
 volumes:
   mysql_data:
+  amslib_uploads:

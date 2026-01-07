@@ -12,8 +12,9 @@ const sourcePath = path.join(__dirname, 'z-env', sourceFile);
 
 // รายชื่อไฟล์ปลายทางที่ต้องการให้ .env ไปปรากฏ
 const targets = [
-  path.join(__dirname, 'backend', '.env'),
-  path.join(__dirname, 'frontend', '.env')
+  path.resolve(__dirname, '.env'),
+  path.resolve(__dirname, 'backend', '.env'),
+  path.resolve(__dirname, 'frontend', '.env')
 ];
 
 console.log(`🚀 กำลังสลับไปใช้โหมด: ${mode.toUpperCase()} (${sourceFile})`);

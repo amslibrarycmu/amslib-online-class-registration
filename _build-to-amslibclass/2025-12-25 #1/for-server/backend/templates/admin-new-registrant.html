@@ -1,0 +1,16 @@
+<p><strong>[แจ้งเตือนเกี่ยวกับการลงทะเบียน]</strong></p>
+<p>
+  มีผู้ลงทะเบียนเรียนล่าสุด:
+  <strong style="color: #fb2c36">{{classId}} </strong>
+  <strong style="color: #6b11b0">{{classTitle}} </strong>
+</p>
+<p>
+  ผู้ลงทะเบียน คือ
+  <strong>{{newRegistrantName}} ({{newRegistrantEmail}})</strong>
+</p>
+<hr />
+<h3>รายชื่อผู้ลงทะเบียนทั้งหมดในขณะนี้ ({{registrantCount}} คน):</h3>
+<ul>
+  {{userListHtml}}
+</ul>
+<hr />

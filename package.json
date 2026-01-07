@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "env:prod": "node switch-env.js prod",
+    "env:dev": "node switch-env.js dev"
+  },
   "dependencies": {
     "jwt-decode": "^4.0.0",
     "mysql2": "^3.15.3"
