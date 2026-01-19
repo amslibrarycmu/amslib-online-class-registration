@@ -7,7 +7,6 @@
 .env
 frontend/.env
 backend/.env
-backend/env.txt
 
 # Log files
 *.log

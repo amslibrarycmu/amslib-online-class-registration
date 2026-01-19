@@ -8,13 +8,13 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER} 
+      MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./backend/schema:/docker-entrypoint-initdb.d 
+      - ./backend/schema:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
@@ -37,7 +37,7 @@ services:
       NODE_ENV: ${NODE_ENV}
       DB_HOST: mysql
       DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD} 
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       EMAIL_SERVICE: ${EMAIL_SERVICE}
