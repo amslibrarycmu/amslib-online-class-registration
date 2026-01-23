@@ -2,9 +2,8 @@ const express = require("express");
 const router = express.Router();
 
 module.exports = (db, logActivity) => {
-  // Get all class IDs the currently logged-in user has evaluated
-  router.get("/user-status", async (req, res) => {
-    const { email } = req.user; // Get email from the JWT payload
+  router.get("/user-status", async (req, res, next) => {
+    const { email } = req.user;
     const sql = "SELECT DISTINCT class_id FROM evaluations WHERE user_email = ?";
     try {
       const [results] = await db.query(sql, [email]);
@@ -12,19 +11,22 @@ module.exports = (db, logActivity) => {
       return res.json(classIds);
     } catch (err) {
       console.error(`Error fetching evaluations for user ${email}:`, err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
-  // Submit a new evaluation
-  router.post("/", async (req, res) => {
+  router.post("/", async (req, res, next) => {
     const {
       class_id, score_content, score_material,
       score_duration, score_format, score_speaker, comment,
     } = req.body;
-    const { email: user_email } = req.user; // Get email from JWT
-    if (!class_id || score_content === undefined) {
-      return res.status(400).json({ error: "Missing required evaluation data." });
+    const { email: user_email } = req.user;
+
+    const scores = [score_content, score_material, score_duration, score_format, score_speaker];
+    if (!class_id || scores.some(s => s === undefined || isNaN(s))) {
+      return res.status(400).json({ 
+        error: "กรุณากรอกข้อมูลการประเมินให้ครบถ้วนและถูกต้อง" 
+      });
     }
 
     try {
@@ -55,7 +57,7 @@ module.exports = (db, logActivity) => {
       res.status(201).json({ message: "Evaluation submitted successfully." });
     } catch (err) {
       console.error("Error submitting evaluation:", err);
-      return res.status(500).json({ error: "Failed to submit evaluation." });
+      next(err);
     }
   });
 

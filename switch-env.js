@@ -8,7 +8,7 @@ if (!['dev', 'prod'].includes(mode)) {
 }
 
 const sourceFile = mode === 'prod' ? 'ftp-env.txt' : 'dev-env.txt';
-const sourcePath = path.join(__dirname, 'z-env', sourceFile);
+const sourcePath = path.join(__dirname, 'envfiles', sourceFile);
 
 // รายชื่อไฟล์ปลายทางที่ต้องการให้ .env ไปปรากฏ
 const targets = [

@@ -3,7 +3,7 @@ const router = express.Router();
 
 module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendRequestSubmittedConfirmation) => {
   // GET /api/requests - ดึงข้อมูลคำขอของผู้ใช้ที่ล็อกอินอยู่
-  router.get("/", async (req, res) => {
+  router.get("/", async (req, res, next) => {
     const { email } = req.user; // ดึงอีเมลจาก JWT token ที่ผ่านการ verify แล้ว
     const sql = `
       SELECT request_id, title, created_at, updated_at, status, start_date, end_date, start_time, end_time, admin_comment, speaker, reason, format 
@@ -16,11 +16,11 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
       res.json(results);
     } catch (err) {
       console.error("❌ Error fetching class requests:", err);
-      return res.status(500).json({ message: "Database server error." });
+      next(err);
     }
   });
 
-  router.post("/", async (req, res) => {
+  router.post("/", async (req, res, next) => {
     const {
       title, reason, startDate, endDate, startTime, endTime, format, speaker
     } = req.body;
@@ -66,11 +66,11 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
       res.status(201).json({ message: "Class request submitted successfully!" });
     } catch (err) {
       console.error("❌ Error submitting class request:", err);
-      return res.status(500).json({ message: "Database server error.", error: err });
+      next(err);
     }
   });
 
-  router.put("/:requestId", async (req, res) => {
+  router.put("/:requestId", async (req, res, next) => {
     const { requestId } = req.params;
     const {
       title, reason, startDate, endDate, startTime, endTime, format, speaker
@@ -109,11 +109,11 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
       res.status(200).json({ message: "Class request updated successfully!" });
     } catch (err) {
       console.error("❌ Error updating class request:", err);
-      return res.status(500).json({ message: "Database server error.", error: err });
+      next(err);
     }
   });
 
-  router.delete("/:requestId", async (req, res) => {
+  router.delete("/:requestId", async (req, res, next) => {
     const { requestId } = req.params;
     const sql = "DELETE FROM class_requests WHERE request_id = ?";
 
@@ -139,7 +139,7 @@ module.exports = (db, logActivity, sendNewClassRequestAdminNotification, sendReq
       res.status(200).json({ message: "Class request deleted successfully!" });
     } catch (err) {
       console.error("❌ Error deleting class request:", err);
-      return res.status(500).json({ message: "Database server error." });
+      next(err);
     }
   });
 

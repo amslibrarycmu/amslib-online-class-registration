@@ -1,15 +1,15 @@
-version: "3.8"
-
 services:
   mysql:
     image: mysql:8.0
     container_name: amslib_mysql
     restart: always
+    env_file:
+      - ./envfiles/dev-env.txt
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root_pass}
+      MYSQL_DATABASE: ${DB_NAME:-amslibclass}
+      MYSQL_USER: ${DB_USER:-library_ams}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-user_pass}
     ports:
       - "3306:3306"
     volumes:
@@ -23,40 +23,38 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+    image: amslib-backend:latest
     container_name: amslib_backend
+    env_file:
+      - ./envfiles/dev-env.txt
     restart: always
     ports:
       - "5000:5000"
-      - "5000:80"
-    environment:
-      NODE_ENV: ${NODE_ENV}
-      DB_HOST: mysql
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE: ${DB_NAME}
-      JWT_SECRET: ${JWT_SECRET}
-      EMAIL_SERVICE: ${EMAIL_SERVICE}
-      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
-      EMAIL_AUTH_USER: ${EMAIL_AUTH_USER}
-      EMAIL_AUTH_PASS: ${EMAIL_AUTH_PASS}
-      MS_ENTRA_ID_CLIENT_ID: ${MS_ENTRA_ID_CLIENT_ID}
-      MS_ENTRA_ID_CLIENT_SECRET: ${MS_ENTRA_ID_CLIENT_SECRET}
-      MS_ENTRA_ID_TENANT_ID: ${MS_ENTRA_ID_TENANT_ID}
-      MS_ENTRA_ID_REDIRECT_URI: ${MS_ENTRA_ID_REDIRECT_URI}
-      FRONTEND_URL: ${FRONTEND_URL}
     depends_on:
       mysql:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1G
     volumes:
       - amslib_uploads:/app/backend/uploads
-    command: npm start
-      - amslib_uploads:/var/www/html/uploads
+      - amslib_materials:/app/backend/uploads/materials
+    # หากต้องการให้ PHP เข้าถึงไฟล์ที่ Node.js อัปโหลดได้ 
+    # ควรใช้ Shared Volume ร่วมกันในลักษณะนี้
 
 volumes:
   mysql_data:
   amslib_uploads:
+  amslib_materials:

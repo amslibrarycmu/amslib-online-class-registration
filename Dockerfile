@@ -1,22 +1,37 @@
-# ใช้ Node.js เวอร์ชั่น 18-alpine เป็น Base Image เพื่อให้ Image มีขนาดเล็ก
-FROM node:18-alpine
+# ----------------------------------------------------
+# Stage 1: Build Frontend (React + Vite)
+# ----------------------------------------------------
+FROM node:18-alpine AS build-stage
+WORKDIR /app/frontend
 
-# กำหนด Working Directory ภายใน Container
+# 1. Copy package files ของ Frontend และ Install dependencies
+COPY frontend/package*.json ./
+RUN npm install
+
+# 2. Copy Code Frontend ทั้งหมด และสั่ง Build
+COPY frontend/ .
+RUN npm run build
+# (Vite จะสร้างไฟล์ผลลัพธ์ไว้ที่ /app/frontend/dist)
+
+# ----------------------------------------------------
+# Stage 2: Setup Backend & Merge
+# ----------------------------------------------------
+FROM node:18-alpine
 WORKDIR /app
 
-# Copy package.json และ package-lock.json สำหรับ Backend
-# และติดตั้ง Dependencies
-COPY backend/package*.json ./backend/
+# 1. Setup Backend: Copy package files และ Install dependencies (เฉพาะ Production)
+COPY backend/package*.json ./
+RUN npm install --omit=dev
 
-# ติดตั้งเฉพาะ production dependencies เพื่อลดขนาด image
-RUN npm install --prefix ./backend --only=production
+# 2. Copy Code Backend ทั้งหมด
+COPY backend/ .
 
-# Copy โค้ดส่วนที่เหลือของ Backend ไปยัง Container
-COPY backend/ ./backend/
+# 3. ⭐️ นำไฟล์ React ที่ Build เสร็จจาก Stage 1 มาวางไว้ในโฟลเดอร์ public ของ Backend
+COPY --from=build-stage /app/frontend/dist ./public
 
-# เปิด Port 5000 สำหรับแอปพลิเคชัน Node.js
+# 4. ตั้งค่า Environment Variable (Default Port)
+ENV PORT=5000
+
+# 5. เปิด Port และสั่งรัน
 EXPOSE 5000
-WORKDIR /app/backend
-
-# คำสั่งที่จะรันเมื่อ Container เริ่มทำงาน (ตามที่กำหนดใน package.json)
 CMD ["npm", "start"]

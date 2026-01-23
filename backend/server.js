@@ -4,14 +4,13 @@ const mysql = require("mysql2");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const cron = require("node-cron");
 const axios = require("axios");
 
 // --- Import Route Files ---
 const userRoutes = require("./routes/users");
-// const authRoutes = require("./routes/auth"); // This will be added back
+const authRoutes = require("./routes/auth");
 const adminRoutes = require("./routes/admin");
 const classRoutes = require("./routes/classes");
 const requestRoutes = require("./routes/requests");
@@ -40,36 +39,38 @@ if (!fs.existsSync(materialsDir)) {
 
 const app = express();
 
+// ตรวจสอบ Environment Variables ที่สำคัญ
+if (!process.env.FRONTEND_URL) {
+  console.warn("⚠️ Warning: FRONTEND_URL is not defined in environment variables.");
+}
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL || "*",
   credentials: true
 }));
 app.use(express.json());
 
-// Serve static files from the 'uploads' directory
+// ---------------------------------------------------------------------
+// ✅ 1. Serve Static Files (สำคัญมากสำหรับ Docker Deploy)
+// ---------------------------------------------------------------------
+// เสิร์ฟไฟล์ที่อัปโหลด (รูปภาพ/เอกสาร)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// เสิร์ฟไฟล์ React Frontend (HTML/CSS/JS) ที่ Docker Build มาวางไว้ที่ public
+app.use(express.static(path.join(__dirname, "public")));
+
 
 // --- Middleware for Security Headers ---
 const setSecurityHeaders = (req, res, next) => {
-  // Prevent Clickjacking
   res.setHeader("X-Frame-Options", "DENY");
-  // Enable XSS Protection in older browsers
   res.setHeader("X-XSS-Protection", "1; mode=block");
-  // Prevent MIME sniffing
   res.setHeader("X-Content-Type-Options", "nosniff");
-  // Control referrer information
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-
-  // *** Prevent API Caching ***
-  // Instructs browsers and proxies not to cache anything.
   res.setHeader(
     "Cache-Control",
     "no-store, no-cache, must-revalidate, private"
   );
-  // For older browsers
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
-
   next();
 };
 app.use(setSecurityHeaders);
@@ -79,7 +80,6 @@ const storage = multer.diskStorage({
     cb(null, "uploads");
   },
   filename: (req, file, cb) => {
-    // Decode filename from latin1 to utf8 to handle Thai characters correctly
     const decodedOriginalName = Buffer.from(
       file.originalname,
       "latin1"
@@ -96,7 +96,7 @@ const dbPool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
-  connectTimeout: 20000, // เพิ่ม Timeout เป็น 20 วินาที
+  connectTimeout: 20000,
   charset: "utf8mb4",
 });
 
@@ -141,7 +141,6 @@ function logActivity(
   });
 }
 
-// API สำหรับบันทึก Activity จาก Frontend โดยเฉพาะ
 app.post("/api/log-activity", (req, res) => {
   const {
     user_id,
@@ -153,8 +152,6 @@ app.post("/api/log-activity", (req, res) => {
     details,
   } = req.body;
 
-  // ในระบบจริง ควรมีการตรวจสอบสิทธิ์ผู้ใช้ที่นี่ก่อนทำการบันทึก
-  // แต่สำหรับตอนนี้ เราจะเชื่อข้อมูลที่ส่งมาจาก Frontend ไปก่อน
   logActivity(
     req,
     user_id,
@@ -169,12 +166,10 @@ app.post("/api/log-activity", (req, res) => {
   res.status(200).json({ message: "Activity logged" });
 });
 
-// --- End Activity Logging ---
-
-// --- Middleware for JWT Verification and Authorization ---
+// --- Middleware for JWT Verification ---
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
     return res
@@ -186,14 +181,12 @@ const verifyToken = (req, res, next) => {
     if (err) {
       return res.status(403).json({ message: "Forbidden: Invalid token." });
     }
-    req.user = user; // Attach user payload to the request object
-
+    req.user = user;
     next();
   });
 };
 
 const adminOnly = (req, res, next) => {
-  // This middleware now runs *after* verifyToken, so req.user is available.
   if (req.user && req.user.roles && req.user.roles.includes("ผู้ดูแลระบบ")) {
     next();
   } else {
@@ -203,12 +196,37 @@ const adminOnly = (req, res, next) => {
   }
 };
 
-// --- Use Routes ---
-// The authRoutes for MS Entra ID login needs to be added here
-const authRoutes = require("./routes/auth");
+// --- API: Microsoft Graph Photo Proxy ---
+app.get("/api/user-photo", async (req, res) => {
+  const msToken = req.headers["x-ms-token"];
+
+  if (!msToken) {
+    return res.status(400).json({ message: "Microsoft Access Token is required" });
+  }
+
+  try {
+    const response = await axios.get(
+      "https://graph.microsoft.com/v1.0/me/photo/$value",
+      {
+        headers: { Authorization: `Bearer ${msToken}` },
+        responseType: "arraybuffer",
+      }
+    );
+
+    res.setHeader("Content-Type", response.headers["content-type"]);
+    res.send(response.data);
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      return res.status(404).json({ message: "No photo found" });
+    }
+    console.error("Error fetching photo from Graph:", error.message);
+    res.status(500).json({ message: "Failed to fetch photo" });
+  }
+});
+
+// --- Use Routes (API) ---
 app.use("/api/auth", authRoutes(db, logActivity));
 
-// app.use("/api/auth", authRoutes(db, logActivity));
 app.use(
   "/api/users",
   verifyToken,
@@ -216,7 +234,7 @@ app.use(
 );
 app.use(
   "/api/classes",
-  verifyToken, // Add protection to all class routes
+  verifyToken,
   classRoutes(
     db,
     logActivity,
@@ -230,7 +248,7 @@ app.use(
 );
 app.use(
   "/api/requests",
-  verifyToken, // Add protection
+  verifyToken,
   requestRoutes(
     db,
     logActivity,
@@ -246,36 +264,37 @@ app.use(
   adminRoutes(
     db,
     logActivity,
-    adminOnly, // Pass the middleware function itself
+    adminOnly,
     sendRequestApprovedNotification,
     sendRequestRejectedNotification
   )
 );
 
-// --- Centralized Error Handling Middleware ---
-// This should be the LAST middleware added.
-app.use((err, req, res, next) => {
-  // Log the full error to the console for debugging
-  console.error("❌ An unhandled error occurred:", err);
+// ---------------------------------------------------------------------
+// ✅ 2. React Router Fallback (สำคัญมากสำหรับ SPA)
+// ---------------------------------------------------------------------
+// ต้องวางไว้หลัง API Routes ทั้งหมด แต่ก่อน Error Handling
+// เพื่อให้ URL ที่ไม่ใช่ API ถูกส่งไปให้ React จัดการ (เช่น /login, /admin-panel)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
+
+// --- Error Handling ---
+app.use((err, req, res, next) => {
+  console.error("❌ An unhandled error occurred:", err);
   const statusCode = err.statusCode || 500;
   const response = {
     message: "เกิดข้อผิดพลาดในระบบเซิร์ฟเวอร์",
   };
-
-  // In development, send detailed error information for easier debugging
   if (process.env.NODE_ENV !== "production") {
     response.error = err.message;
     response.stack = err.stack;
   }
-
   res.status(statusCode).json(response);
 });
 
-/**
- * Schedules a daily task to send reminders for classes occurring the next day.
- * This cron job runs every day at 12:00 PM (noon).
- */
+// --- Cron Jobs ---
 function scheduleDailyReminders() {
   cron.schedule(
     "00 12 * * *",
@@ -370,15 +389,14 @@ function scheduleDailyReminders() {
     },
     {
       scheduled: true,
-      timezone: "Asia/Bangkok", // Ensure the job runs based on Thai time
+      timezone: "Asia/Bangkok",
     }
   );
 }
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const PORT = parseInt(process.env.PORT, 10) || 5000;
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  // Schedule the daily reminder job
   scheduleDailyReminders();
   console.log(
     "✅ Daily reminder job scheduled to run at 12:00 PM (Asia/Bangkok)."

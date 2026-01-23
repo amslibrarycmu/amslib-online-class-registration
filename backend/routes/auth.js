@@ -4,7 +4,10 @@ const { ConfidentialClientApplication } = require("@azure/msal-node");
 const jwt = require("jsonwebtoken");
 
 module.exports = (db, logActivity) => {
-  // --- Initialize MSAL Client Application once ---
+  if (!process.env.JWT_SECRET) {
+    console.error("❌ FATAL ERROR: JWT_SECRET is not defined.");
+  }
+
   const pca = new ConfidentialClientApplication({
     auth: {
       clientId: process.env.MS_ENTRA_ID_CLIENT_ID,
@@ -16,11 +19,8 @@ module.exports = (db, logActivity) => {
   const redirectUri = process.env.MS_ENTRA_ID_REDIRECT_URI;
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
-  // Route to initiate login
   router.get("/login", (req, res) => {
     const authCodeUrlParameters = {
-      // Explicitly request both standard OIDC scopes and the necessary Graph API scope.
-      // This ensures we get an ID token and an access token with the right permissions.
       scopes: ["openid", "profile", "email", "User.Read"],
       redirectUri: redirectUri,
     };
@@ -36,14 +36,11 @@ module.exports = (db, logActivity) => {
       });
   });
 
-  // Route for handling the redirect from Microsoft
   router.get("/callback", async (req, res) => {
-    // Handle authentication errors from Microsoft
     if (req.query.error) {
       console.error(
         `Error from Microsoft: ${req.query.error}: ${req.query.error_description}`
       );
-      // Redirect back to login with an error message
       return res.redirect(
         `${frontendUrl}/login?error=${encodeURIComponent(
           req.query.error_description || "Authentication failed"
@@ -53,7 +50,6 @@ module.exports = (db, logActivity) => {
 
     const tokenRequest = {
       code: req.query.code,
-      // Use the standard Microsoft Graph API scope
       scopes: ["openid", "profile", "email", "User.Read"],
       redirectUri: redirectUri,
     };
@@ -61,8 +57,6 @@ module.exports = (db, logActivity) => {
     try {
       const response = await pca.acquireTokenByCode(tokenRequest);
       const { accessToken, account } = response;
-
-      // Use the accessToken to get the user's profile from Microsoft Graph API
       const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -100,11 +94,9 @@ module.exports = (db, logActivity) => {
         );
       }
 
-      // Use the standard fields from the Microsoft Graph API response
       const email = graphData.mail || graphData.userPrincipalName || account.username;
       const name = graphData.displayName || account.name;
 
-      // Check if user exists in our database
       const userQuery = `
         SELECT u.*, ap.admin_level 
         FROM users u
@@ -118,7 +110,6 @@ module.exports = (db, logActivity) => {
       if (users.length > 0) {
         user = users[0];
         
-        // Handle roles parsing safely
         if (typeof user.roles === 'string') {
             try {
                 user.roles = JSON.parse(user.roles || "[]");
@@ -128,24 +119,19 @@ module.exports = (db, logActivity) => {
         } else if (!Array.isArray(user.roles)) {
             user.roles = [];
         }
-
-        // --- Existing User Flow ---
-        // Create a JWT for our application
         const jwtPayload = {
           id: user.id,
           email: user.email,
           name: user.name,
-          roles: user.roles, 
-          admin_level: user.admin_level, // เพิ่ม admin_level เข้าไปใน Token
+          roles: user.roles,
+          admin_level: user.admin_level !== null ? parseInt(user.admin_level) : null,
           profile_completed: !!user.profile_completed,
-          // 🟢 ใส่ photo ลงไปใน Token เพื่อให้ Frontend จำค่าได้แม้จะ Refresh
           photo: user.photo, 
         };
         const appToken = jwt.sign(jwtPayload, process.env.JWT_SECRET, {
           expiresIn: "1d",
         });
 
-        // Log the successful login activity
         logActivity(
           req,
           user.id,
@@ -158,12 +144,10 @@ module.exports = (db, logActivity) => {
         );
 
         const tokenParam = encodeURIComponent(appToken);
-        // Redirect to the callback page with the permanent token
         return res.redirect(
           `${frontendUrl}/login-callback?token=${tokenParam}`
         );
       } else {
-        // --- New User Flow ---
         const tempPayload = {
           email,
           name,
@@ -179,11 +163,14 @@ module.exports = (db, logActivity) => {
       }
     } catch (error) {
       console.error("Error acquiring token or fetching user data:", error);
-      res.status(500).send("Error during authentication callback");
+      const errorMessage = encodeURIComponent("Authentication failed during callback");
+      return res.redirect(
+        `${frontendUrl}/login?error=${errorMessage}`
+      );
     }
   });
 
-  // Route for completing the registration for a new user
+
   router.post("/complete-registration", async (req, res) => {
     const { temp_token, roles, phone, pdpa } = req.body;
 
@@ -234,15 +221,13 @@ module.exports = (db, logActivity) => {
         }
       );
 
-      // 5. Create a final, permanent JWT for the new user
       const finalPayload = {
         id: newUserId,
         email: email,
         name: name,
         roles: roles || [],
         profile_completed: true,
-        admin_level: null, // 🟢 ผู้ใช้ใหม่จะยังไม่มี level
-        // 🟢 ใส่ photo เป็น null สำหรับ user ใหม่
+        admin_level: null,
         photo: null,
       };
       const finalToken = jwt.sign(finalPayload, process.env.JWT_SECRET, {

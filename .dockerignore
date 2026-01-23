@@ -1,6 +1,8 @@
-node_modules
+**/node_modules
+**/dist
 npm-debug.log
-frontend
+# frontend (ลบออกเพื่อให้ Docker มองเห็นโฟลเดอร์สำหรับ Build)
 .git
 .gitignore
 envfiles
+.env

@@ -15,8 +15,9 @@ module.exports = (
     const { page = 1, limit = 25, search = "", actionType = "" } = req.query;
     const offset = (page - 1) * limit;
 
-    let sql = "SELECT SQL_CALC_FOUND_ROWS * FROM activity_logs";
+    let sql = "SELECT * FROM activity_logs";
     const whereClauses = [];
+    const countParams = [];
     const params = [];
 
     if (search) {
@@ -28,6 +29,8 @@ module.exports = (
       whereClauses.push("action_type = ?");
       params.push(actionType);
     }
+    
+    countParams.push(...params);
 
     if (whereClauses.length > 0) {
       sql += " WHERE " + whereClauses.join(" AND ");
@@ -37,11 +40,15 @@ module.exports = (
     params.push(parseInt(limit), parseInt(offset));
 
     try {
+      // ดึงข้อมูล Logs
       const [results] = await db.query(sql, params);
-      const [[{ total }]] = await db.query("SELECT FOUND_ROWS() as total");
+      
+      // ดึงจำนวนทั้งหมดแยกต่างหาก (ประสิทธิภาพดีกว่าใน MySQL 8.0)
+      const [countResult] = await db.query("SELECT COUNT(*) as total FROM activity_logs" + (whereClauses.length > 0 ? " WHERE " + whereClauses.join(" AND ") : ""), countParams);
+      
       return res.json({
         logs: results,
-        total: total,
+        total: countResult[0].total,
       });
     } catch (err) {
       console.error("Error fetching activity logs:", err);
@@ -103,13 +110,14 @@ module.exports = (
       return res.json(results);
     } catch (err) {
       console.error("❌ Error fetching admin class requests:", err);
-      return res.status(500).json({ message: "Database server error." });
+      next(err);
     }
   });
 
   router.post("/class-requests/:requestId", requireAdminLevel(2), async (req, res, next) => {
     const { requestId } = req.params;
-    const { action, reason, admin_email } = req.body;
+    const { action, reason } = req.body;
+    const admin_email = req.user.email; // ใช้จาก Token เพื่อความปลอดภัย
 
     if (!["approve", "reject"].includes(action)) {
       return res.status(400).json({ message: "Invalid action." });

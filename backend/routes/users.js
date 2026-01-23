@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
+const jwt = require("jsonwebtoken");
 
 // นำเข้า Middleware
 const { requireAdminLevel } = require("../middleware/auth");
@@ -24,7 +25,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
   // --- 🟢 ZONE 1: Specific Routes (วางไว้บนสุด ห้ามย้ายลงล่าง!) 🟢 ---
 
   // GET /api/users/me - ดึงข้อมูลตัวเอง
-  router.get("/me", async (req, res) => {
+  router.get("/me", async (req, res, next) => {
     if (!req.user || !req.user.email) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -41,12 +42,12 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       res.json(results[0]);
     } catch (err) {
       console.error(`Error fetching me:`, err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
   // GET /api/users/admins - ดึงรายชื่อแอดมินทั้งหมด
-  router.get("/admins", requireAdminLevel(3), async (req, res) => {
+  router.get("/admins", requireAdminLevel(3), async (req, res, next) => {
     const sql = `
       SELECT u.id as user_id, u.name, u.email, u.photo, ap.admin_level
       FROM users u
@@ -58,12 +59,12 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       res.json(results);
     } catch (err) {
       console.error("Error fetching admins:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
   // 🟢 GET /api/users/search - ค้นหาผู้ใช้ทั้งหมด พร้อมระบุสถานะแอดมิน
-  router.get("/search", requireAdminLevel(3), async (req, res) => {
+  router.get("/search", requireAdminLevel(3), async (req, res, next) => {
     const { q } = req.query;
     if (!q || q.trim() === "") return res.json([]);
     
@@ -83,12 +84,12 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       res.json(results.map(r => ({...r, is_admin: !!r.is_admin})));
     } catch (err) {
       console.error("Error searching users:", err);
-      res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
   // POST /api/users/admins/appoint - แต่งตั้งแอดมิน
-  router.post("/admins/appoint", requireAdminLevel(3), async (req, res) => {
+  router.post("/admins/appoint", requireAdminLevel(3), async (req, res, next) => {
     const { user_id, admin_level } = req.body;
     if (!user_id || !admin_level) return res.status(400).json({ message: "Missing data" });
 
@@ -108,12 +109,12 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       res.status(201).json({ message: "Appointed successfully" });
     } catch (err) {
       console.error("Error appointing:", err);
-      res.status(500).json({ message: "Database error" });
+      next(err);
     }
   });
 
   // PUT /api/users/admins/:userId/level - เปลี่ยนระดับ
-  router.put("/admins/:userId/level", requireAdminLevel(3), async (req, res) => {
+  router.put("/admins/:userId/level", requireAdminLevel(3), async (req, res, next) => {
     const { userId } = req.params;
     const { admin_level } = req.body;
     try {
@@ -123,12 +124,12 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       logActivity(req, req.user.id, req.user.name, req.user.email, "CHANGE_ADMIN_LEVEL", "USER", userId, { new_level: admin_level });
       res.json({ message: "Level updated" });
     } catch (err) {
-      res.status(500).json({ message: "Database error" });
+      next(err);
     }
   });
 
   // DELETE /api/users/admins/:userId - ถอนสิทธิ์
-  router.delete("/admins/:userId", requireAdminLevel(3), async (req, res) => {
+  router.delete("/admins/:userId", requireAdminLevel(3), async (req, res, next) => {
     const { userId } = req.params;
     if (parseInt(userId) === req.user.id) return res.status(400).json({ message: "Cannot remove yourself" });
 
@@ -145,7 +146,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       logActivity(req, req.user.id, req.user.name, req.user.email, "REVOKE_ADMIN", "USER", userId, {});
       res.json({ message: "Admin removed" });
     } catch (err) {
-      res.status(500).json({ message: "Database error" });
+      next(err);
     }
   });
 
@@ -155,15 +156,14 @@ module.exports = (db, logActivity, adminOnly, upload) => {
   // --- 🟢 ZONE 2: General Routes 🟢 ---
 
   // GET /api/users (All)
-  router.get("/", requireAdminLevel(3), async (req, res) => {
+  router.get("/", requireAdminLevel(3), async (req, res, next) => {
     const { search = "" } = req.query;
     let sql = "SELECT id, name, email, roles, is_active, photo, phone, pdpa, created_at, updated_at FROM users";
     const params = [];
 
     if (search) {
-      // 🟢 แก้ไข: ใช้ LIKE สำหรับการค้นหาทั้งชื่อและอีเมล
       sql += " WHERE name LIKE ? OR email LIKE ?";
-      params.push(`${search}%`, `${search}%`);
+      params.push(`%${search}%`, `%${search}%`);
     }
     sql += " ORDER BY name ASC";
     try {
@@ -171,12 +171,12 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       res.json(results);
     } catch (err) {
       console.error("Error fetching users:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
   // ⚠️ Route นี้ต้องอยู่ล่างสุดในกลุ่ม GET เพราะมันดักทุกอย่างที่เป็น /:id
-  router.get("/:id", adminOnly, async (req, res) => {
+  router.get("/:id", adminOnly, async (req, res, next) => {
     const { id } = req.params;
     const sql = "SELECT id, name, email, roles, is_active, photo, phone, pdpa, created_at, updated_at FROM users WHERE id = ?";
     try {
@@ -185,23 +185,23 @@ module.exports = (db, logActivity, adminOnly, upload) => {
       res.json(results[0]);
     } catch (err) {
       console.error("Error fetching user:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
   // --- ZONE 3: Update/Delete Routes ---
 
-  router.put("/:id/roles", requireAdminLevel(3), async (req, res) => {
+  router.put("/:id/roles", requireAdminLevel(3), async (req, res, next) => {
       const { id } = req.params; const { roles } = req.body;
       if (!Array.isArray(roles)) return res.status(400).json({ error: "Roles must be array" });
       try {
           await db.query("UPDATE users SET roles = ? WHERE id = ?", [JSON.stringify(roles), id]);
           const [users] = await db.query(`SELECT u.*, ap.admin_level FROM users u LEFT JOIN admin_permissions ap ON u.id = ap.user_id WHERE u.id = ?`, [id]);
           res.json(users[0]);
-      } catch(e) { res.status(500).json({error: "DB Error"}); }
+      } catch(e) { next(e); }
   });
 
-  router.put("/:id/status", requireAdminLevel(3), async (req, res) => {
+  router.put("/:id/status", requireAdminLevel(3), async (req, res, next) => {
       const { id } = req.params; const { is_active } = req.body;
       try {
           if (is_active === false) {
@@ -211,34 +211,32 @@ module.exports = (db, logActivity, adminOnly, upload) => {
           }
           await db.query("UPDATE users SET is_active = ? WHERE id = ?", [is_active, id]);
           res.json({message: "Status updated"});
-      } catch(e) { res.status(500).json({error: "DB Error"}); }
+      } catch(e) { next(e); }
   });
 
-  router.put("/update-profile", async (req, res) => {
+  router.put("/update-profile", async (req, res, next) => {
       const { id, email } = req.user; const { name, roles, phone, pdpa, original_name, name_updated_by_user } = req.body;
       try {
           await db.query("UPDATE users SET name=?, roles=?, phone=?, pdpa=?, original_name=?, name_updated_by_user=?, profile_completed=1 WHERE id=?", 
               [name, JSON.stringify(Array.isArray(roles)?roles:[roles]), phone, pdpa?1:0, original_name, name_updated_by_user?1:0, id]);
           const [u] = await db.query(`SELECT u.*, ap.admin_level FROM users u LEFT JOIN admin_permissions ap ON u.id = ap.user_id WHERE u.email = ?`, [email]);
-          const jwt = require("jsonwebtoken");
           const t = jwt.sign({ ...u[0], photo: u[0].photo, admin_level: u[0].admin_level||null }, process.env.JWT_SECRET, { expiresIn: "1d" });
           res.json({ user: u[0], token: t });
-      } catch(e) { res.status(500).json({error: "DB Error"}); }
+      } catch(e) { next(e); }
   });
 
-  router.put("/profile-picture", upload.single("photo"), async (req, res) => {
+  router.put("/profile-picture", upload.single("photo"), async (req, res, next) => {
       const { email } = req.body; const photo = req.file ? req.file.filename : null;
       if (!email || !photo) return res.status(400).json({ message: "Email and photo required." });
       try {
           await db.query("UPDATE users SET photo = ?, profile_completed = 1 WHERE email = ?", [photo, email]);
           const [u] = await db.query(`SELECT u.*, ap.admin_level FROM users u LEFT JOIN admin_permissions ap ON u.id = ap.user_id WHERE u.email = ?`, [email]);
-          const jwt = require("jsonwebtoken");
           const t = jwt.sign({ ...u[0], photo, admin_level: u[0].admin_level||null }, process.env.JWT_SECRET, { expiresIn: "1d" });
           res.json({ user: u[0], token: t });
-      } catch(e) { res.status(500).json({ message: "DB Error" }); }
+      } catch(e) { next(e); }
   });
 
-  router.delete("/profile-picture", async (req, res) => {
+  router.delete("/profile-picture", async (req, res, next) => {
       const { email } = req.query;
       if (!email) return res.status(400).json({ message: "Email required" });
       try {
@@ -246,13 +244,12 @@ module.exports = (db, logActivity, adminOnly, upload) => {
           if(rows[0]?.photo) fs.unlink(path.join(__dirname, "..", "uploads", rows[0].photo), ()=>{});
           await db.query("UPDATE users SET photo=NULL WHERE email=?", [email]);
           const [u] = await db.query(`SELECT u.*, ap.admin_level FROM users u LEFT JOIN admin_permissions ap ON u.id = ap.user_id WHERE u.email = ?`, [email]);
-          const jwt = require("jsonwebtoken");
           const t = jwt.sign({ ...u[0], photo: null, admin_level: u[0].admin_level||null }, process.env.JWT_SECRET, { expiresIn: "1d" });
           res.json({ user: u[0], token: t });
-      } catch(e) { res.status(500).json({ message: "DB Error" }); }
+      } catch(e) { next(e); }
   });
 
-  router.delete("/:id", requireAdminLevel(3), async (req, res) => {
+  router.delete("/:id", requireAdminLevel(3), async (req, res, next) => {
       const { id } = req.params;
       try {
           const [chk] = await db.query("SELECT COUNT(*) as c FROM admin_permissions");
@@ -264,7 +261,7 @@ module.exports = (db, logActivity, adminOnly, upload) => {
           
           await db.query("DELETE FROM users WHERE id=?", [id]);
           res.json({ message: "User deleted" });
-      } catch(e) { res.status(500).json({ error: "DB Error" }); }
+      } catch(e) { next(e); }
   });
 
   return router;

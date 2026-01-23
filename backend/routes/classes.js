@@ -3,7 +3,6 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 
-// Custom storage for materials to handle Thai filenames correctly
 const materialsStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/materials");
@@ -28,14 +27,13 @@ module.exports = (
   sendRegistrationConfirmation,
   sendAdminNotification,
   sendAdminCancellationNotification,
-  sendRequestApprovedNotification // 🟢 เพิ่มฟังก์ชันส่งอีเมลแจ้งอนุมัติคำขอ
+  sendRequestApprovedNotification
 ) => {
-  router.get("/", async (req, res) => {
-    const { email, roles } = req.user; // Get user info from JWT payload
+  router.get("/", async (req, res, next) => {
+    const { email, roles } = req.user;
     let sql;
     let params = [];
 
-    // 🟢 ใช้ admin_level ในการตรวจสอบสิทธิ์
     if (req.user && req.user.admin_level > 0) {
       sql = "SELECT * FROM classes ORDER BY created_at DESC";
     } else {
@@ -48,11 +46,10 @@ module.exports = (
       res.json(results);
     } catch (err) {
       console.error("Error fetching classes:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
-  // Helper function to generate a unique 6-digit class ID
   const generateUniqueClassId = async () => {
     let classId;
     let isUnique = false;
@@ -69,9 +66,7 @@ module.exports = (
     return classId;
   };
 
-  // GET /api/classes/unique-titles
   router.get("/unique-titles", async (req, res, next) => {
-    // 🟢 แก้ไข: ดึงจากตาราง requestable_topics แทน (เพื่อให้ตรงกับหน้าจัดการหัวข้อ)
     const sql = "SELECT title FROM requestable_topics WHERE is_active = TRUE ORDER BY title ASC";
     try {
       const [results] = await db.query(sql);
@@ -83,7 +78,7 @@ module.exports = (
     }
   });
 
-  router.get("/promoted", async (req, res) => {
+  router.get("/promoted", async (req, res, next) => {
     const sql =
       "SELECT * FROM classes WHERE promoted = 1 AND status != 'closed' ORDER BY start_date ASC";
     try {
@@ -91,14 +86,14 @@ module.exports = (
       res.json(results);
     } catch (err) {
       console.error("Error fetching promoted classes:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
   router.get(
     "/:classId/registrants",
     requireAdminLevel(1),
-    async (req, res) => {
+    async (req, res, next) => {
       const { classId } = req.params;
       const findClassSql =
         "SELECT registered_users FROM classes WHERE class_id = ?";
@@ -109,22 +104,18 @@ module.exports = (
           return res.status(404).json({ message: "Class not found." });
         }
 
-        // Handle potential DB corruption gracefully
         let registeredEmails = [];
         try {
           if (typeof results[0].registered_users === "string") {
-            // Try parsing if it's a string
             registeredEmails = JSON.parse(results[0].registered_users);
           } else {
-            // It's likely already an object/array or null
             registeredEmails = results[0].registered_users || [];
           }
         } catch (e) {
           console.error("Error parsing registered_users:", e);
-          registeredEmails = []; // Fallback to empty
+          registeredEmails = [];
         }
 
-        // Ensure it's an array
         if (!Array.isArray(registeredEmails)) {
           registeredEmails = [];
         }
@@ -139,7 +130,7 @@ module.exports = (
         res.json(userResults);
       } catch (err) {
         console.error("Error fetching registrants:", err);
-        return res.status(500).json({ message: "Database server error." });
+        next(err);
       }
     }
   );
@@ -148,7 +139,7 @@ module.exports = (
     "/",
     requireAdminLevel(1),
     upload.array("files"),
-    async (req, res) => {
+    async (req, res, next) => {
       const {
         title,
         speaker,
@@ -163,7 +154,7 @@ module.exports = (
         max_participants,
         target_groups,
         language,
-        request_id, // 🟢 รับ request_id จาก Body
+        request_id,
       } = req.body;
 
       if (!title || title.trim() === "") {
@@ -229,14 +220,10 @@ module.exports = (
           { class_title: title }
         );
 
-        // 🟢 ถ้ามีการส่ง request_id มา แสดงว่าสร้างห้องเรียนนี้เพื่อตอบรับคำขอ
         if (request_id && request_id !== "null" && request_id !== "undefined") {
-          // 1. เปลี่ยนสถานะคำขอเป็น completed เพื่อให้หายจากรายการที่รอสร้างในหน้า ClassCreation
           await db.query("UPDATE class_requests SET status = 'completed' WHERE request_id = ?", [request_id]);
-
           const [reqResults] = await db.query("SELECT * FROM class_requests WHERE request_id = ?", [request_id]);
           if (reqResults.length > 0 && typeof sendRequestApprovedNotification === 'function') {
-            // 2. ส่งอีเมลแจ้งผู้ขอว่าคำขอได้รับการอนุมัติและสร้างห้องเรียนแล้ว (ตรวจสอบว่าเป็น function ก่อนเรียกใช้)
             await sendRequestApprovedNotification(reqResults[0].requested_by_email, reqResults[0]);
           }
         }
@@ -250,9 +237,7 @@ module.exports = (
           });
       } catch (err) {
         console.error("❌ Error creating class:", err);
-        return res
-          .status(500)
-          .json({ message: "เซิร์ฟเวอร์ผิดพลาด", error: err });
+        next(err);
       }
     }
   );
@@ -261,7 +246,7 @@ module.exports = (
     "/:classId",
     requireAdminLevel(1),
     upload.array("files"),
-    async (req, res) => {
+    async (req, res, next) => {
       const { classId } = req.params;
       const {
         title,
@@ -360,14 +345,12 @@ module.exports = (
         res.status(200).json({ message: "Class updated successfully" });
       } catch (err) {
         console.error("❌ Error updating class:", err);
-        return res
-          .status(500)
-          .json({ message: "Database server error", error: err });
+        next(err);
       }
     }
   );
 
-  router.delete("/:classId", requireAdminLevel(1), async (req, res) => {
+  router.delete("/:classId", requireAdminLevel(1), async (req, res, next) => {
     const { classId } = req.params;
     try {
       const [findResults] = await db.query(
@@ -397,12 +380,11 @@ module.exports = (
       res.status(200).json({ message: "Class deleted successfully" });
     } catch (err) {
       console.error("Error deleting class:", err);
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
-  // --- 🟢 REGISTER (Fix JSON Stringify) 🟢 ---
-  router.post("/:classId/register", async (req, res) => {
+  router.post("/:classId/register", async (req, res, next) => {
     const { classId } = req.params;
     const { name, email } = req.user;
 
@@ -415,10 +397,9 @@ module.exports = (
         [classId]
       );
       if (results.length === 0)
-        throw { status: 404, message: "Class not found." };
+        throw { statusCode: 404, message: "Class not found." };
 
       const course = results[0];
-      // Ensure it's an array
       let registeredUsers = course.registered_users;
       if (typeof registeredUsers === "string") {
         try {
@@ -433,19 +414,17 @@ module.exports = (
         course.max_participants !== 999 &&
         registeredUsers.length >= course.max_participants
       ) {
-        throw { status: 409, message: "This class is already full." };
+        throw { statusCode: 409, message: "This class is already full." };
       }
 
       if (registeredUsers.includes(email)) {
         throw {
-          status: 409,
+          statusCode: 409,
           message: "You are already registered for this class.",
         };
       }
 
       registeredUsers.push(email);
-
-      // 🟢 Fix: Explicitly stringify the array
       await connection.query(
         "UPDATE classes SET registered_users = ? WHERE class_id = ?",
         [JSON.stringify(registeredUsers), classId]
@@ -465,14 +444,12 @@ module.exports = (
       );
       res.status(200).json({ message: "ลงทะเบียนสำเร็จแล้ว" });
 
-      // Notifications...
       const emailClassDetails = { ...course };
       try {
         emailClassDetails.speaker = JSON.parse(emailClassDetails.speaker).join(
           ", "
         );
       } catch (e) {
-        /* Ignore */
       }
       sendRegistrationConfirmation(email, emailClassDetails, name);
 
@@ -489,16 +466,12 @@ module.exports = (
     } catch (err) {
       await connection.rollback();
       console.error("Error during registration:", err);
-      const status = err.status || 500;
-      const message = err.message || "Database server error.";
-      return res.status(status).json({ message });
+      next(err);
     } finally {
       connection.release();
     }
   });
-
-  // --- 🟢 CANCEL (Fix JSON Stringify) 🟢 ---
-  router.post("/:classId/cancel", async (req, res) => {
+  router.post("/:classId/cancel", async (req, res, next) => {
     const { classId } = req.params;
     const { email } = req.user;
 
@@ -511,10 +484,9 @@ module.exports = (
         [classId]
       );
       if (results.length === 0)
-        throw { status: 404, message: "Class not found." };
+        throw { statusCode: 404, message: "Class not found." };
 
       const course = results[0];
-      // Ensure it's an array
       let registeredUsers = course.registered_users;
       if (typeof registeredUsers === "string") {
         try {
@@ -527,7 +499,7 @@ module.exports = (
 
       if (!registeredUsers.includes(email)) {
         throw {
-          status: 409,
+          statusCode: 409,
           message: "You are not registered for this class.",
         };
       }
@@ -536,7 +508,6 @@ module.exports = (
         (userEmail) => userEmail !== email
       );
 
-      // 🟢 Fix: Explicitly stringify the array
       await connection.query(
         "UPDATE classes SET registered_users = ? WHERE class_id = ?",
         [JSON.stringify(updatedUsers), classId]
@@ -556,7 +527,6 @@ module.exports = (
       );
       res.status(200).json({ message: "ยกเลิกการลงทะเบียนสำเร็จแล้ว" });
 
-      // Notifications...
       const [userResults] = await db.query(
         "SELECT name FROM users WHERE email = ?",
         [email]
@@ -569,7 +539,6 @@ module.exports = (
           ", "
         );
       } catch (e) {
-        /* Ignore */
       }
       const [adminResults] = await db.query(
         "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')"
@@ -595,19 +564,13 @@ module.exports = (
     } catch (err) {
       await connection.rollback();
       console.error("Error during cancellation:", err);
-      const status = err.status || 500;
-      const message = err.message || "Database server error.";
-      return res.status(status).json({ message });
+      next(err);
     } finally {
       connection.release();
     }
   });
 
-  // ... (Other routes: /registered/closed, /close, /promote, /evaluations - Keep as is) ...
-  // เพื่อความกระชับ ผมไม่ได้แปะส่วนล่างที่เหลือซึ่งไม่ต้องแก้ไข แต่ในไฟล์จริงคุณต้องเก็บไว้เหมือนเดิมครับ
-  // (ถ้าคุณก๊อปปี้ไปวาง อย่าลืมส่วนท้ายไฟล์ด้วยนะครับ หรือถ้าจะให้ผมส่งแบบเต็ม 100% บอกได้เลยครับ)
-
-  router.get("/registered/closed", async (req, res) => {
+  router.get("/registered/closed", async (req, res, next) => {
     const { email } = req.user;
     const sql = `SELECT * FROM classes WHERE status = 'closed' AND JSON_CONTAINS(registered_users, ?)`;
     try {
@@ -615,7 +578,7 @@ module.exports = (
       res.status(200).json(results);
     } catch (err) {
       console.error("❌ Error fetching registered closed classes:", err);
-      return res.status(500).json({ message: "Database server error." });
+      next(err);
     }
   });
 
@@ -623,7 +586,7 @@ module.exports = (
     "/:classId/close",
     uploadMaterials.array("materials"),
     requireAdminLevel(1),
-    async (req, res) => {
+    async (req, res, next) => {
       const { classId } = req.params;
       const { video_link, existing_materials } = req.body;
       const isEditing = req.body.is_editing === "true";
@@ -664,12 +627,12 @@ module.exports = (
             message: "Class closed and materials uploaded successfully",
           });
       } catch (err) {
-        return res.status(500).json({ message: "Database server error" });
+        next(err);
       }
     }
   );
 
-  router.put("/:classId/promote", requireAdminLevel(1), async (req, res) => {
+  router.put("/:classId/promote", requireAdminLevel(1), async (req, res, next) => {
     const { classId } = req.params;
     const { promoted } = req.body;
     try {
@@ -693,14 +656,14 @@ module.exports = (
         .status(200)
         .json({ message: "Promotion status updated successfully" });
     } catch (err) {
-      return res.status(500).json({ error: "Database error" });
+      next(err);
     }
   });
 
   router.get(
     "/:classId/evaluations",
     requireAdminLevel(1),
-    async (req, res) => {
+    async (req, res, next) => {
       const classId = req.params.classId;
       const sql = `SELECT u.name, u.roles, e.score_content, e.score_material, e.score_duration, e.score_format, e.score_speaker, e.comments FROM evaluations e JOIN users u ON e.user_email = u.email COLLATE utf8mb4_unicode_ci WHERE e.class_id = ?`;
       try {
@@ -724,7 +687,7 @@ module.exports = (
         const suggestions = results.map((r) => r.comments).filter(Boolean);
         res.json({ evaluations, suggestions });
       } catch (err) {
-        return res.status(500).json({ error: "Database error" });
+        next(err);
       }
     }
   );

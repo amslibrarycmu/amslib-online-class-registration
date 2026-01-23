@@ -28,4 +28,4 @@ JWT_SECRET=amscmu5071_LOCAL_KEY
 # VITE_API_URL: ชี้ไปที่ Backend Port 5000
 VITE_API_URL=http://localhost:5000
 # FRONTEND_URL: ชี้ไปที่ Vite Dev Server Port 5173
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:5000

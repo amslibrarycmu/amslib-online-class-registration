@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS `class_requests`;
 DROP TABLE IF EXISTS `classes`;
 DROP TABLE IF EXISTS `evaluations`;
 DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `requestable_topics`;
 
 -- =================================================================
 -- Step 3: Create tables in the correct order of dependency.
@@ -132,6 +133,14 @@ CREATE TABLE `activity_logs` (
   PRIMARY KEY (`log_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- Table: requestable_topics
+CREATE TABLE requestable_topics (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
 -- =================================================================
 -- Step 4: Insert seed data into the newly created tables.
@@ -139,6 +148,7 @@ CREATE TABLE `activity_logs` (
 
 -- Seed data for `users` table
 INSERT INTO `users` (`id`, `name`, `email`, `roles`, `is_active`, `phone`, `pdpa`, `photo`, `profile_completed`, `original_name`, `name_updated_by_user`, `created_at`, `updated_at`) VALUES
+(999,'KANTAPHON PROMKAM','kantaphon.promkam@cmu.ac.th','["บุคลากร", "ผู้ดูแลระบบ"]',1,'0931459730',1,NULL,1,'KANTAPHON PROMKAM',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (1,'ขนิษฐา วงค์ลังกา','k.wonglangka@gmail.com','["บุคลากร"]',0,'0984473082',1,NULL,0,'ขนิษฐา วงค์ลังกา',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (2,'ณัฐสุขา หรินทรเวช','natsucha_h@cmu.ac.th','["นักศึกษาบัณฑิต"]',0,'0649635453',1,NULL,0,'ณัฐสุขา หรินทรเวช',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (3,'สาวิตรี ศรีรินทร์','sawitree.sri@cmu.ac.th','["บุคลากร"]',0,'0918586285',1,NULL,0,'สาวิตรี ศรีรินทร์',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
@@ -413,13 +423,29 @@ INSERT INTO `evaluations` (`evaluation_id`, `class_id`, `user_email`, `score_con
 (73,'988615','mallika.k@cmu.ac.th',5,5,5,5,5,NULL,'2025-09-16 17:35:35'),
 (74,'988615','jittraporn.c@email.com',5,5,5,5,5,NULL,'2025-09-16 17:35:35');
 
+-- Seed data for `requestable_topics` table
+INSERT INTO `requestable_topics` (`id`, `title`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'CMU VPN (Virtual Private Network) : การใช้โปรแกรมเชื่อมต่อเครือข่ายจากภายนอกมหาวิทยาลัย', 1, NOW(), NOW()),
+(2, 'Create Presentation With CANVA : การสร้างรูปแบบการนำเสนอด้วย Canva', 1, NOW(), NOW()),
+(3, 'Create Video With CANVA : การสร้างวีดิโอด้วย Canva', 1, NOW(), NOW()),
+(4, 'EndNote 20 : โปรแกรมจัดการบรรณานุกรมสำเร็จรูปและการเขียนอ้างอิงเอกสารทางวิชาการ', 1, NOW(), NOW()),
+(5, 'EndNote 21 : โปรแกรมจัดการบรรณานุกรมสำเร็จรูปและการเขียนอ้างอิงเอกสารทางวิชาการ', 1, NOW(), NOW()),
+(6, 'Information Seeking : การค้นหาหนังสืออิเล็กทรอนิกส์ บทความ งานวิจัย และวิทยานิพนธ์จากฐานข้อมูลอิเล็กทรอนิกส์', 1, NOW(), NOW()),
+(7, 'Journal Matrics : การวัดคุณภาพวารสารวิชาการ', 1, NOW(), NOW()),
+(8, 'Microsoft Excel : How to cleaning data', 1, NOW(), NOW()),
+(9, 'Microsoft One Drive : การเพิ่มประสิทธิภาพการทำงานด้วย Microsoft One drive', 1, NOW(), NOW()),
+(10, 'PRIMO : การสืบค้นทรัพยากรสารสนเทศของห้องสมุด', 1, NOW(), NOW()),
+(11, 'Turnitin : การตรวจสอบการคัดลอกผลงานทางวิชาการ', 1, NOW(), NOW()),
+(12, 'การนำเสนอข้อมูลด้วย Power BI', 1, NOW(), NOW()),
+(13, 'การเขียนอ้างอิงรูปแบบ APA 7', 1, NOW(), NOW()),
+(14, 'การใช้ Microsoft Word ในการจัดทำภาคนิพนธ์', 1, NOW(), NOW()); 
+
 -- Seed data for `admin_permissions` table
 -- This will grant admin level 1 to the specified user after the user has been created.
 INSERT INTO admin_permissions (user_id, admin_level)
 SELECT id, 1 
 FROM users 
 WHERE email = 'kantaphon.promkam@cmu.ac.th';
-
 
 -- =================================================================
 -- Step 5: Re-enable foreign key checks.
