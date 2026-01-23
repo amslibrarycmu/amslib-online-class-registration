@@ -441,9 +441,9 @@ INSERT INTO `requestable_topics` (`id`, `title`, `is_active`, `created_at`, `upd
 (14, 'การใช้ Microsoft Word ในการจัดทำภาคนิพนธ์', 1, NOW(), NOW()); 
 
 -- Seed data for `admin_permissions` table
--- This will grant admin level 1 to the specified user after the user has been created.
+-- This will grant admin level 3 to the specified user after the user has been created.
 INSERT INTO admin_permissions (user_id, admin_level)
-SELECT id, 1 
+SELECT id, 3 
 FROM users 
 WHERE email = 'kantaphon.promkam@cmu.ac.th';
 
