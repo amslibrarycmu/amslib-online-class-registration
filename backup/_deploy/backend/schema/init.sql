@@ -4,9 +4,7 @@
 -- It is designed to be run by the docker-entrypoint-initdb.d mechanism.
 -- =================================================================
 
--- =================================================================
 -- Step 1: Disable foreign key checks to avoid errors during table creation.
--- =================================================================
 SET FOREIGN_KEY_CHECKS = 0;
 SET NAMES 'utf8mb4';
 
@@ -24,6 +22,7 @@ DROP TABLE IF EXISTS `requestable_topics`;
 -- =================================================================
 -- Step 3: Create tables in the correct order of dependency.
 -- =================================================================
+
 -- Table: users (must be created before admin_permissions)
 CREATE TABLE `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -59,7 +58,6 @@ CREATE TABLE `classes` (
   `class_id` varchar(10) NOT NULL,
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
-  `language` varchar(50) DEFAULT NULL,
   `speaker` json DEFAULT NULL,
   `format` varchar(50) DEFAULT NULL,
   `join_link` varchar(255) DEFAULT NULL,
@@ -147,9 +145,10 @@ CREATE TABLE requestable_topics (
 -- =================================================================
 -- Step 4: Insert seed data into the newly created tables.
 -- =================================================================
+
 -- Seed data for `users` table
 INSERT INTO `users` (`id`, `name`, `email`, `roles`, `is_active`, `phone`, `pdpa`, `photo`, `profile_completed`, `original_name`, `name_updated_by_user`, `created_at`, `updated_at`) VALUES
-(0,'KANTAPHON PROMKAM','kantaphon.promkam@cmu.ac.th','["บุคลากร", "ผู้ดูแลระบบ"]',1,'0931459730',1,NULL,1,'KANTAPHON PROMKAM',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
+(999,'KANTAPHON PROMKAM','kantaphon.promkam@cmu.ac.th','["บุคลากร", "ผู้ดูแลระบบ"]',1,'0931459730',1,NULL,1,'KANTAPHON PROMKAM',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (1,'ขนิษฐา วงค์ลังกา','k.wonglangka@gmail.com','["บุคลากร"]',0,'0984473082',1,NULL,0,'ขนิษฐา วงค์ลังกา',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (2,'ณัฐสุขา หรินทรเวช','natsucha_h@cmu.ac.th','["นักศึกษาบัณฑิต"]',0,'0649635453',1,NULL,0,'ณัฐสุขา หรินทรเวช',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),
 (3,'สาวิตรี ศรีรินทร์','sawitree.sri@cmu.ac.th','["บุคลากร"]',0,'0918586285',1,NULL,0,'สาวิตรี ศรีรินทร์',0,'2025-10-24 12:06:34','2025-10-24 14:41:20'),

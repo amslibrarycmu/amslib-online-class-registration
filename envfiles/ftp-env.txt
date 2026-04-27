@@ -2,12 +2,12 @@
 PORT=5000
 
 # --- Database Configuration (Production) ---
-DB_NAME=amslibclass
-DB_DATABASE=amslibclass
-DB_USER=library_ams
+DB_HOST=10.110.6.20
+DB_NAME=library
+DB_DATABASE=library
+DB_USER=library
 DB_PASSWORD=pQ*.wDp!rZyB5D.F
 DB_PORT=3306
-DB_HOST=mysql
 
 # --- Email Configuration ---
 EMAIL_SERVICE=gmail
@@ -25,9 +25,9 @@ MS_ENTRA_ID_REDIRECT_URI=https://library.ams.cmu.ac.th/library/amslibclass/api/a
 JWT_SECRET=amscmu5071_PROD_SECURE_KEY
 
 # --- URL Configuration (Production) ---
-# VITE_API_URL: URL จริงของระบบ (ไม่ต้องใส่ /api ต่อท้าย เพราะโค้ดจะเติมให้เอง)
+# VITE_API_URL:
 VITE_API_URL=https://library.ams.cmu.ac.th/library/amslibclass
-# FRONTEND_URL: URL จริงของหน้าเว็บ
+# FRONTEND_URL:
 FRONTEND_URL=https://library.ams.cmu.ac.th/library/amslibclass
-# BACKEND_URL: URL สำหรับเข้าถึงไฟล์บน Backend (ใช้ในระบบอีเมล)
+# BACKEND_URL:
 BACKEND_URL=https://library.ams.cmu.ac.th/library/amslibclass

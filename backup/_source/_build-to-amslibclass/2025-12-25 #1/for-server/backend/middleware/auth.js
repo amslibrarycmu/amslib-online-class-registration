@@ -6,8 +6,9 @@
 const requireAdminLevel = (requiredLevel) => {
   return (req, res, next) => {
     if (req.user && req.user.admin_level && req.user.admin_level >= requiredLevel) {
-      next();
+      next(); // User has the required level, proceed.
     } else {
+      // User does not have permission.
       res.status(403).json({ message: `Forbidden: Admin level ${requiredLevel} or higher required.` });
     }
   };

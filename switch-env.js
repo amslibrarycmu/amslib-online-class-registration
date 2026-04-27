@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const mode = process.argv[2]; // รับค่า 'dev' หรือ 'prod'
+const mode = process.argv[2];
 if (!['dev', 'prod'].includes(mode)) {
   console.error('❌ กรุณาระบุโหมด: node switch-env.js <dev|prod>');
   process.exit(1);
@@ -10,7 +10,6 @@ if (!['dev', 'prod'].includes(mode)) {
 const sourceFile = mode === 'prod' ? 'ftp-env.txt' : 'dev-env.txt';
 const sourcePath = path.join(__dirname, 'envfiles', sourceFile);
 
-// รายชื่อไฟล์ปลายทางที่ต้องการให้ .env ไปปรากฏ
 const targets = [
   path.resolve(__dirname, '.env'),
   path.resolve(__dirname, 'backend', '.env'),

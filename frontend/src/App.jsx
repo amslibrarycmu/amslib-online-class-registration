@@ -39,8 +39,6 @@ function AppContent() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // This effect now checks for either a new user's temporary data
-  // or an existing user with an incomplete profile.
   useEffect(() => {
     if (newUserTempData) {
       setIsProfileModalOpen(true);
@@ -54,11 +52,10 @@ function AppContent() {
   const handleProfileSubmit = async (formData) => {
     setIsSubmitting(true);
     try {
-      let apiResponse; // Declare response variable here to make it available throughout the try block
+      let apiResponse; 
       let finalUser;
 
       if (newUserTempData && newUserTempData.tempToken) {
-        // --- New User Registration Flow ---
         apiResponse = await fetch(
           `${import.meta.env.VITE_API_URL}/api/auth/complete-registration`,
           {
@@ -76,12 +73,11 @@ function AppContent() {
         }
 
         const { user: newUser, token: finalToken } = await apiResponse.json();
-        finalUser = newUser; // Set the finalUser for navigation
-        login(newUser, finalToken); // Log in with the final token
+        finalUser = newUser;
+        login(newUser, finalToken);
         setIsProfileModalOpen(false);
-        clearNewUserTempData(); // Clear temp data from context
+        clearNewUserTempData();
       } else if (user) {
-        // --- Existing User Update Flow ---
         const payload = {
           ...formData,
           original_name: user.name,
@@ -101,15 +97,13 @@ function AppContent() {
         }
 
         const { user: updatedUser, token: newToken } = await apiResponse.json();
-        finalUser = updatedUser; // Set the finalUser for navigation
-        login(updatedUser, newToken); // Re-login with updated user data
+        finalUser = updatedUser;
+        login(updatedUser, newToken);
         setIsProfileModalOpen(false);
       } else {
         throw new Error("No user session or temporary token found.");
       }
 
-      // After successful login/update, the user object in context is updated.
-      // We can now navigate based on the latest roles.
       if (
         Array.isArray(finalUser?.roles) &&
         finalUser?.roles.includes("ผู้ดูแลระบบ")
@@ -130,7 +124,7 @@ function AppContent() {
     <>
       <CompleteProfileModal
         isOpen={isProfileModalOpen}
-        user={user || newUserTempData} // Pass either existing user or new user temp data
+        user={user || newUserTempData}
         onSubmit={handleProfileSubmit}
         isSubmitting={isSubmitting}
       />
@@ -161,7 +155,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router basename={import.meta.env.BASE_URL?.replace(/\/$/, "") || "/"}>
+      <Router basename="/library/amslibclass">
         <AppContent />
       </Router>
     </AuthProvider>
