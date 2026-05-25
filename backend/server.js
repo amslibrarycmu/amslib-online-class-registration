@@ -8,12 +8,6 @@ require("dotenv").config(); // Load environment variables from .env file
 const jwt = require("jsonwebtoken");
 const cron = require("node-cron");
 const axios = require("axios");
-const userRoutes = require("./backend/routes/users.js");
-const authRoutes = require("./backend/routes/auth.js");
-const adminRoutes = require("./backend/routes/admin.js");
-const classRoutes = require("./backend/routes/classes.js");
-const requestRoutes = require("./backend/routes/requests.js");
-const evaluationRoutes = require("./backend/routes/evaluations.js");
 const userRoutes = require("./routes/users.js");
 const authRoutes = require("./routes/auth.js");
 const adminRoutes = require("./routes/admin.js");
@@ -30,11 +24,8 @@ const {
   sendRequestRejectedNotification,
   sendReminderEmail,
   sendRequestSubmittedConfirmation,
-} = require("./backend/email.js");
 } = require("./email.js");
 
-const uploadsDir = path.join(__dirname, "uploads");
-const materialsDir = path.join(__dirname, "uploads/materials");
 const uploadsDir = path.join(__dirname, "..", "uploads"); // Adjust path to project root's uploads folder
 const materialsDir = path.join(__dirname, "..", "uploads/materials"); // Adjust path
 
@@ -54,17 +45,14 @@ if (!process.env.FRONTEND_URL) {
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "*",
     origin: process.env.FRONTEND_URL, // Should be specific in production, remove "|| *"
     credentials: true,
   }),
 );
 app.use(express.json());
 
-app.use("/library/amslibclass/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/library/amslibclass", express.static(path.join(__dirname, "dist")));
 app.use("/library/amslibclass/uploads", express.static(path.join(__dirname, "..", "uploads"))); // Adjust path
-app.use("/library/amslibclass", express.static(path.join(__dirname, "..", "frontend", "dist"))); // Adjust path to frontend's dist folder
+app.use("/library/amslibclass", express.static(path.join(__dirname, "..", "dist"))); // Adjust path to frontend's dist folder
 
 const setSecurityHeaders = (req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
@@ -80,7 +68,7 @@ app.use(setSecurityHeaders);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads");
+    cb(null, path.join(__dirname, "..", "uploads")); // แก้ไขเส้นทางให้ถูกต้อง
   },
   filename: (req, file, cb) => {
     const decodedOriginalName = Buffer.from(file.originalname, "latin1").toString("utf8");
@@ -91,7 +79,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 const dbPool = mysql.createPool({
-  host: process.env.DB_HOST || "10.110.6.20",
+  host: process.env.DB_HOST || "mysql",
   port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -104,7 +92,7 @@ const db = dbPool.promise();
 
 db.getConnection()
   .then((connection) => {
-    console.log("✅ เชื่อมต่อกับ MySQL (10.110.6.20)");
+    console.log(`✅ เชื่อมต่อกับ MySQL (${process.env.DB_HOST || "10.110.6.20"})`);
     connection.release();
   })
   .catch((err) => {
@@ -179,12 +167,12 @@ app.use("/api/requests", verifyToken, requestRoutes(db, logActivity, sendNewClas
 app.use("/api/evaluations", verifyToken, evaluationRoutes(db, logActivity));
 app.use("/api/admin", verifyToken, adminOnly, adminRoutes(db, logActivity, adminOnly, sendRequestApprovedNotification, sendRequestRejectedNotification));
 
-app.get("/library/amslibclass/*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+app.get("/library/amslibclass/*", (req, res) => { // Catch-all for SPA routing
+  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });
 
-app.get("/library/amslibclass", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+app.get("/library/amslibclass", (req, res) => { // Base path for SPA
+  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });
 
 app.use((err, req, res, next) => {
@@ -199,7 +187,50 @@ app.use((err, req, res, next) => {
 });
 
 function scheduleDailyReminders() {
-  cron.schedule("00 12 * * *", async () => {
+  // กำหนดให้ทำงานทุกวันเวลา 12:00 PM (เที่ยง) ตามโซนเวลา Asia/Bangkok
+  cron.schedule("0 12 * * *", async () => {
+    console.log("Running daily reminder check...");
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDateString = tomorrow.toISOString().split('T')[0]; // รูปแบบ YYYY-MM-DD
+
+    try {
+      // ค้นหาคลาสที่เริ่มในวันพรุ่งนี้
+      const [classes] = await db.query(
+        `SELECT class_id, title, description, speaker, start_date, end_date, start_time, end_time, format, join_link, location, materials, registered_users, language
+         FROM classes
+         WHERE start_date = ? AND status != 'closed'`,
+        [tomorrowDateString]
+      );
+
+      for (const classDetails of classes) {
+        let registeredUsers = classDetails.registered_users;
+        if (typeof registeredUsers === "string") {
+          try {
+            registeredUsers = JSON.parse(registeredUsers);
+          } catch (e) {
+            registeredUsers = [];
+          }
+        }
+        if (!Array.isArray(registeredUsers)) registeredUsers = [];
+
+        // เตรียมรายละเอียดคลาสสำหรับอีเมล (เช่น แยกวิทยากร)
+        const emailClassDetails = { ...classDetails };
+        try {
+          emailClassDetails.speaker = JSON.parse(emailClassDetails.speaker).join(", ");
+        } catch (e) { /* ไม่ต้องทำอะไรหากการแยกวิทยากรล้มเหลว */ }
+
+        for (const userEmail of registeredUsers) {
+          const [user] = await db.query("SELECT name FROM users WHERE email = ?", [userEmail]);
+          if (user.length > 0) {
+            await sendReminderEmail(userEmail, emailClassDetails, user[0].name);
+          }
+        }
+      }
+      console.log("Daily reminder check completed.");
+    } catch (error) {
+      console.error("Error during daily reminder cron job:", error);
+    }
   }, { scheduled: true, timezone: "Asia/Bangkok" });
 }
 
@@ -208,3 +239,5 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
   scheduleDailyReminders();
 });
+
+module.exports = app;

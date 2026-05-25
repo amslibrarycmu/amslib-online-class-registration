@@ -27,7 +27,7 @@ RUN npm install --omit=dev
 COPY backend/ .
 
 # 3. ⭐️ นำไฟล์ React ที่ Build เสร็จจาก Stage 1 มาวางไว้ในโฟลเดอร์ public ของ Backend
-COPY --from=build-stage /app/frontend/dist ./public
+COPY --from=build-stage /app/frontend/dist ./dist
 
 # 4. ตั้งค่า Environment Variable (Default Port)
 ENV PORT=5000

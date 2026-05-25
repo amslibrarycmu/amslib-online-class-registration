@@ -18,15 +18,15 @@ EMAIL_AUTH_PASS=spyxaentzgheksqu
 MS_ENTRA_ID_CLIENT_ID=01f925c9-7b33-42e3-81fa-0374de0bf42a
 MS_ENTRA_ID_CLIENT_SECRET=o4L8Q~e85JyMjmrUya-kCBzyqKHr5nUaSpB_7aVd
 MS_ENTRA_ID_TENANT_ID=cf81f1df-de59-4c29-91da-a2dfd04aa751
-MS_ENTRA_ID_REDIRECT_URI=http://10.110.6.20:8109/library/amslibclass/api/auth/callback 
+MS_ENTRA_ID_REDIRECT_URI=https://library.ams.cmu.ac.th/library/amslibclass/api/auth/callback
 
 # --- JWT Secret Key ---
 JWT_SECRET=amscmu5071_PROD_SECURE_KEY
 
 # --- URL Configuration (Production) ---
 # VITE_API_URL:
-VITE_API_URL=http://10.110.6.20:8109/library/amslibclass
+VITE_API_URL=https://library.ams.cmu.ac.th/library/amslibclass
 # FRONTEND_URL:
-FRONTEND_URL=http://10.110.6.20:8109/library/amslibclass
+FRONTEND_URL=https://library.ams.cmu.ac.th/library/amslibclass
 # BACKEND_URL:
-BACKEND_URL=http://10.110.6.20:8109/library/amslibclass
+BACKEND_URL=https://library.ams.cmu.ac.th/library/amslibclass

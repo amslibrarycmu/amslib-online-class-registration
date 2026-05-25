@@ -51,12 +51,6 @@ async function sendEmail(mailOptions) {
       from: `"ระบบจัดการการอบรมเชิงปฏิบัติการ AMS Library Class" <${process.env.EMAIL_FROM_ADDRESS}>`,
       ...mailOptions,
     });
-
-    console.log(`✅ Email sent for subject "${mailOptions.subject}"`); // ลบ messageId ออก
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`Preview URL: ${previewUrl}`);
-    }
   }
  catch (error) {
     console.error(`❌ Error sending email for subject "${mailOptions.subject}":`, error);

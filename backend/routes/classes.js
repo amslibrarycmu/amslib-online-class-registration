@@ -5,7 +5,7 @@ const path = require("path");
 
 const materialsStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/materials");
+    cb(null, path.join(__dirname, "..", "..", "uploads", "materials"));
   },
   filename: (req, file, cb) => {
     const decodedOriginalName = Buffer.from(
