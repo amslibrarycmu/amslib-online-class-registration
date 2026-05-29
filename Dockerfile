@@ -1,7 +1,7 @@
 # ----------------------------------------------------
 # Stage 1: Build Frontend (React + Vite)
 # ----------------------------------------------------
-FROM node:18-alpine AS build-stage
+FROM node:20-alpine AS build-stage
 WORKDIR /app/frontend
 
 # 1. Copy package files ของ Frontend และ Install dependencies
@@ -16,8 +16,11 @@ RUN npm run build
 # ----------------------------------------------------
 # Stage 2: Setup Backend & Merge
 # ----------------------------------------------------
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
 
 # 1. Setup Backend: Copy package files และ Install dependencies (เฉพาะ Production)
 COPY backend/package*.json ./

@@ -4,7 +4,10 @@ const mysql = require("mysql2");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-require("dotenv").config(); // Load environment variables from .env file
+
+require("dotenv").config({
+  path: path.resolve(__dirname, "..", `.env.${process.env.NODE_ENV || "development"}`),
+});
 const jwt = require("jsonwebtoken");
 const cron = require("node-cron");
 const axios = require("axios");
@@ -26,8 +29,8 @@ const {
   sendRequestSubmittedConfirmation,
 } = require("./email.js");
 
-const uploadsDir = path.join(__dirname, "..", "uploads"); // Adjust path to project root's uploads folder
-const materialsDir = path.join(__dirname, "..", "uploads/materials"); // Adjust path
+const uploadsDir = path.join(__dirname, "uploads"); // Correct path for Docker
+const materialsDir = path.join(__dirname, "uploads", "materials"); // Correct path for Docker
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
@@ -51,8 +54,8 @@ app.use(
 );
 app.use(express.json());
 
-app.use("/library/amslibclass/uploads", express.static(path.join(__dirname, "..", "uploads"))); // Adjust path
-app.use("/library/amslibclass", express.static(path.join(__dirname, "..", "dist"))); // Adjust path to frontend's dist folder
+app.use("/library/amslibclass/uploads", express.static(path.join(__dirname, "uploads"))); // Correct path for Docker
+app.use("/library/amslibclass", express.static(path.join(__dirname, "dist"))); // Correct path for Docker
 
 const setSecurityHeaders = (req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
@@ -68,7 +71,7 @@ app.use(setSecurityHeaders);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, "..", "uploads")); // แก้ไขเส้นทางให้ถูกต้อง
+    cb(null, path.join(__dirname, "uploads")); // Correct path for Docker
   },
   filename: (req, file, cb) => {
     const decodedOriginalName = Buffer.from(file.originalname, "latin1").toString("utf8");
@@ -83,7 +86,7 @@ const dbPool = mysql.createPool({
   port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  database: process.env.DB_DATABASE,
   connectTimeout: 20000,
   charset: "utf8mb4",
 });
@@ -168,11 +171,11 @@ app.use("/api/evaluations", verifyToken, evaluationRoutes(db, logActivity));
 app.use("/api/admin", verifyToken, adminOnly, adminRoutes(db, logActivity, adminOnly, sendRequestApprovedNotification, sendRequestRejectedNotification));
 
 app.get("/library/amslibclass/*", (req, res) => { // Catch-all for SPA routing
-  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 app.get("/library/amslibclass", (req, res) => { // Base path for SPA
-  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 app.use((err, req, res, next) => {
@@ -236,8 +239,11 @@ function scheduleDailyReminders() {
 
 const PORT = parseInt(process.env.PORT, 10) || 5000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  scheduleDailyReminders();
+  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || "development"} mode.`);
+  // Only run cron job in development or production, not in test environments
+  if (process.env.NODE_ENV !== "test") {
+    scheduleDailyReminders();
+  }
 });
 
 module.exports = app;

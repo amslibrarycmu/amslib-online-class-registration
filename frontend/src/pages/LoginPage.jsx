@@ -47,7 +47,7 @@ const LoginPage = () => {
   }, [user, navigate]);
 
   const handleCmuLogin = () => {
-    window.location.href = "http://localhost:8080/library/amslibclass/api/auth/login";
+    window.location.href = window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/login`;
   };
 
   return (
