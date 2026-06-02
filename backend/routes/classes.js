@@ -453,16 +453,13 @@ module.exports = (
       }
       sendRegistrationConfirmation(email, emailClassDetails, name);
 
-      const [userResults] = await db.query(
-        "SELECT name, email FROM users WHERE email IN (?)",
-        [registeredUsers]
-      );
       const [adminResults] = await db.query(
         "SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')"
       );
       const adminEmails = adminResults.map((admin) => admin.email);
-      if (adminEmails.length > 0)
-        sendAdminNotification(adminEmails, emailClassDetails, userResults, { name, email });
+      if (adminEmails.length > 0) {
+        sendAdminNotification(adminEmails, emailClassDetails, { name, email });
+      }
     } catch (err) {
       await connection.rollback();
       console.error("Error during registration:", err);
@@ -546,19 +543,10 @@ module.exports = (
       const adminEmails = adminResults.map((admin) => admin.email);
 
       if (adminEmails.length > 0) {
-        const [remainingUserResults] =
-          updatedUsers.length > 0
-            ? await db.query(
-                "SELECT name, email FROM users WHERE email IN (?)",
-                [updatedUsers]
-              )
-            : [[]];
         sendAdminCancellationNotification(
           adminEmails,
-          cancelingUserName,
-          email,
           emailClassDetails,
-          remainingUserResults
+          { name: cancelingUserName, email: email }
         );
       }
     } catch (err) {

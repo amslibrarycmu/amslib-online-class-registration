@@ -1,338 +1,106 @@
 const nodemailer = require("nodemailer");
-const fs = require('fs').promises;
-const path = require('path');
 
-let testAccount = null;
 
-async function createTransporter() {
-  if (process.env.NODE_ENV !== "production") {
-    if (!testAccount) {
-      testAccount = await nodemailer.createTestAccount();
-      console.log("Ethereal test account created.");
-    }
-    return nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-    });
-  }
-
-  // This part will only run if NODE_ENV is "production"
-  let transportOptions;
-  if (process.env.EMAIL_SERVICE) {
-    // Option 1: Use a well-known service (e.g., "gmail")
-    transportOptions = {
-      service: process.env.EMAIL_SERVICE,
-      auth: {
-        user: process.env.EMAIL_AUTH_USER,
-        pass: process.env.EMAIL_AUTH_PASS,
-      },
-    };
-  } else {
-    // Option 2: Use custom SMTP settings for other providers
-    transportOptions = {
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || "587", 10),
-      secure: process.env.EMAIL_SECURE === "true", // `secure:true` for port 465, `secure:false` for port 587
-      auth: {
-        user: process.env.EMAIL_AUTH_USER,
-        pass: process.env.EMAIL_AUTH_PASS,
-      },
-    };
-  }
-  return nodemailer.createTransport(transportOptions);
-}
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE,
+  auth: {
+    user: process.env.EMAIL_AUTH_USER,
+    pass: process.env.EMAIL_AUTH_PASS,
+  },
+});
 
 async function sendEmail(mailOptions) {
   try {
-    const transporter = await createTransporter(); // 1. สร้าง transporter
-    const info = await transporter.sendMail({ // 2. ส่งอีเมล
-      from: `"ระบบจัดการการอบรมเชิงปฏิบัติการ AMS Library Class" <${process.env.EMAIL_FROM_ADDRESS}>`,
+    const optionsWithFrom = {
       ...mailOptions,
-    });
-  }
- catch (error) {
-    console.error(`❌ Error sending email for subject "${mailOptions.subject}":`, error);
-  }
-}
-
-async function sendRegistrationConfirmation(
-  recipientEmail,
-  classDetails,
-  studentName
-) {
-  try {
-    // Use environment variable for backend URL, with a fallback for development
-    const backendUrl = process.env.BACKEND_URL;
-
-    const templateData = {
-      studentName: studentName,
-      classTitle: classDetails.title,
-      classDescription: classDetails.description ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>` : "",
-      classId: classDetails.class_id,
-      classSpeaker: classDetails.speaker,
-      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
-      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
-      classStartTime: classDetails.start_time.substring(0, 5),
-      classEndTime: classDetails.end_time.substring(0, 5),
-      classFormat: classDetails.format,
-      classLanguage: classDetails.language || "-",
-      classTargetGroup: classDetails.target_group || "-",
-      classLinkSection: classDetails.format !== "ONSITE" ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>` : "",
-      classLocationSection: classDetails.format !== "ONLINE" ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>` : "",
-      classMaterialsSection: createMaterialsSection(classDetails.materials, backendUrl),
+      from: `"AMSLIB Class Registration" <${process.env.EMAIL_FROM_ADDRESS}>`,
     };
 
-    const htmlContent = await loadTemplate('registration-confirmation', templateData);
-
-    await sendEmail({
-      to: recipientEmail,
-      subject: `ยืนยันการลงทะเบียน ${classDetails.title}`,
-      html: htmlContent,
-    });
+    console.log(`[Email] Attempting to send email to: ${optionsWithFrom.to}`);
+    const info = await transporter.sendMail(optionsWithFrom);
+    console.log(`[Email] ✅ Message sent successfully to ${optionsWithFrom.to}. Message ID: ${info.messageId}`);
   } catch (error) {
-    console.error("Error sending registration confirmation email:", error);
+    console.error(`[Email] ❌ Failed to send email to ${mailOptions.to}.`, error);
   }
 }
 
-async function sendAdminNotification(
-  adminEmails,
-  classDetails,
-  allRegisteredUsers,
-  newRegistrant
-) {
-  if (!adminEmails || adminEmails.length === 0) {
-    console.log("No admin emails found to send notification.");
-    return;
-  }
+const sendRegistrationConfirmation = async (userEmail, classDetails, userName) => {
+  const mailOptions = {
+    to: userEmail,
+    subject: `ยืนยันการลงทะเบียนเรียน: ${classDetails.title}`,
+    html: `<p>สวัสดีคุณ ${userName},</p>
+           <p>คุณได้ลงทะเบียนเรียนในหัวข้อ "${classDetails.title}" สำเร็จแล้ว</p>
+           <p>รายละเอียดเพิ่มเติมสามารถดูได้ที่เว็บไซต์</p>`,
+  };
+  await sendEmail(mailOptions);
+};
 
-  const userListHtml = allRegisteredUsers
-    .map((user) => `<li>${user.name} (${user.email})</li>`)
-    .join("");
+const sendAdminNotification = async (adminEmails, classDetails, user) => {
+  const mailOptions = {
+    to: adminEmails,
+    subject: `[Admin] มีผู้ใช้ลงทะเบียนเรียน: ${classDetails.title}`,
+    html: `<p>ผู้ใช้ ${user.name} (${user.email}) ได้ลงทะเบียนเรียนในหัวข้อ "${classDetails.title}"</p>`,
+  };
+  await sendEmail(mailOptions);
+};
 
-  try {
-    const templateData = {
-      classTitle: classDetails.title,
-      classId: classDetails.class_id,
-      newRegistrantName: newRegistrant.name,
-      newRegistrantEmail: newRegistrant.email,
-      registrantCount: allRegisteredUsers.length,
-      userListHtml: userListHtml,
+const sendAdminCancellationNotification = async (adminEmails, classDetails, user) => {
+    const mailOptions = {
+      to: adminEmails,
+      subject: `[Admin] มีผู้ใช้ยกเลิกการลงทะเบียน: ${classDetails.title}`,
+      html: `<p>ผู้ใช้ ${user.name} (${user.email}) ได้ยกเลิกการลงทะเบียนในหัวข้อ "${classDetails.title}"</p>`,
     };
-    const htmlContent = await loadTemplate('admin-new-registrant', templateData);
-    await sendEmail({
-      to: adminEmails.join(", "),
-      subject: `[ระบบแจ้งเตือน] มีผู้ลงทะเบียนใหม่ในห้องเรียน ชื่อ ${classDetails.title}`,
-      html: htmlContent,
-    });
-  } catch (error) {
-    console.error("Error sending admin notification email:", error);
-  }
-}
+    await sendEmail(mailOptions);
+};
 
-async function sendAdminCancellationNotification(
-  adminEmails,
-  studentName,
-  studentEmail,
-  classDetails,
-  remainingUsers
-) {
-  if (!adminEmails || adminEmails.length === 0) {
-    console.log("No admin emails found to send cancellation notification.");
-    return;
-  }
-
-  const userListHtml = remainingUsers
-    .map((user) => `<li>${user.name} (${user.email})</li>`)
-    .join("");
-
-  try {
-    const templateData = {
-      classTitle: classDetails.title,
-      classId: classDetails.class_id,
-      cancelingUserName: studentName,
-      cancelingUserEmail: studentEmail,
-      remainingUserCount: remainingUsers.length,
-      userListHtml: userListHtml,
+const sendNewClassRequestAdminNotification = async (adminEmails, requestDetails, user) => {
+    const mailOptions = {
+      to: adminEmails,
+      subject: `[Admin] มีคำขอเปิดคลาสเรียนใหม่: ${requestDetails.title}`,
+      html: `<p>ผู้ใช้ ${user.name} (${user.email}) ได้ส่งคำขอเปิดคลาสเรียนใหม่ในหัวข้อ "${requestDetails.title}"</p>
+             <p>รายละเอียด: ${requestDetails.description}</p>`,
     };
-    const htmlContent = await loadTemplate('admin-cancellation', templateData);
-    await sendEmail({
-      to: adminEmails.join(", "),
-      subject: `[ระบบแจ้งเตือน] มีผู้ยกเลิกลงทะเบียนจากห้องเรียน ชื่อ ${classDetails.title}`,
-      html: htmlContent,
-    });
-  } catch (error) {
-    console.error(
-      "Error sending admin cancellation notification email:",
-      error
-    );
-  }
-}
+    await sendEmail(mailOptions);
+};
 
-async function sendNewClassRequestAdminNotification(
-  adminEmails,
-  requestDetails
-) {
-  if (!adminEmails || adminEmails.length === 0) {
-    console.log(
-      "No admin emails found to send new class request notification."
-    );
-    return;
-  }
-
-  try {
-    const templateData = {
-      requestTitle: requestDetails.title || 'ไม่มีชื่อเรื่อง',
-      requesterName: requestDetails.requestedBy.name || 'ไม่พบชื่อ',
-      requesterEmail: requestDetails.requestedBy.email || 'ไม่พบอีเมล',
-      requestReason: requestDetails.reason || "-",
-      requestDate: new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
+const sendRequestApprovedNotification = async (userEmail, requestDetails) => {
+    const mailOptions = {
+      to: userEmail,
+      subject: `คำขอเปิดคลาสเรียนของคุณได้รับการอนุมัติแล้ว: ${requestDetails.title}`,
+      html: `<p>คำขอเปิดคลาสเรียนในหัวข้อ "${requestDetails.title}" ของคุณได้รับการอนุมัติแล้ว และจะถูกจัดเป็นคลาสเรียนเร็วๆ นี้</p>`,
     };
-    const htmlContent = await loadTemplate('admin-new-request', templateData);
-    await sendEmail({
-      to: adminEmails.join(", "),
-      subject: `[ระบบแจ้งเตือน] มีคำขอเปิดห้องเรียนใหม่ ชื่อ "${requestDetails.title}"`,
-      html: htmlContent,
-    });
-  } catch (error) {
-    console.error(
-      "Error sending new class request admin notification email:",
-      error
-    );
-  }
-}
+    await sendEmail(mailOptions);
+};
 
-async function sendRequestSubmittedConfirmation(recipientEmail, requestDetails, requesterName) {
-  try {
-    const templateData = {
-      requesterName: requesterName,
-      requestTitle: requestDetails.title,
+const sendRequestRejectedNotification = async (userEmail, requestDetails, reason) => {
+    const mailOptions = {
+      to: userEmail,
+      subject: `คำขอเปิดคลาสเรียนของคุณถูกปฏิเสธ: ${requestDetails.title}`,
+      html: `<p>คำขอเปิดคลาสเรียนในหัวข้อ "${requestDetails.title}" ของคุณถูกปฏิเสธ</p>
+             <p>เหตุผล: ${reason}</p>`,
     };
-    const htmlContent = await loadTemplate('request-submitted', templateData);
-    await sendEmail({
-      to: recipientEmail,
-      subject: `ได้รับคำขอเปิดห้องเรียนของคุณแล้ว: ${requestDetails.title}`,
-      html: htmlContent,
-    });
-  } catch (error) {
-    console.error(
-      "Error sending class request submission confirmation email:",
-      error
-    );
-  }
-}
+    await sendEmail(mailOptions);
+};
 
-// เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการอนุมัติ
-async function sendRequestApprovedNotification(recipientEmail, requestDetails) {
-  try {
-    const templateData = {
-      requesterName: requestDetails.requested_by_name || requestDetails.user_email,
-      requestTitle: requestDetails.title,
+const sendReminderEmail = async (userEmail, classDetails, userName) => {
+    const mailOptions = {
+      to: userEmail,
+      subject: `แจ้งเตือนคลาสเรียนวันพรุ่งนี้: ${classDetails.title}`,
+      html: `<p>สวัสดีคุณ ${userName},</p>
+             <p>ขอแจ้งเตือนว่าคลาสเรียน "${classDetails.title}" จะเริ่มในวันพรุ่งนี้</p>`,
     };
-    const htmlContent = await loadTemplate('request-approved', templateData);
-    await sendEmail({
-      to: recipientEmail,
-      subject: `แจ้งผลการพิจารณาคำขอหลักสูตร ${requestDetails.title} "ได้รับการอนุมัติแล้ว"`,
-      html: htmlContent,
-    });
-  } catch (error) {
-    console.error("Error sending request approved email:", error);
-  }
-}
+    await sendEmail(mailOptions);
+};
 
-// เพิ่มฟังก์ชันสำหรับส่งอีเมลแจ้งการปฏิเสธ
-async function sendRequestRejectedNotification( // Make this async as well for consistency
-  recipientEmail,
-  requestDetails,
-  rejectionReason
-) {
-  try {
-    const templateData = {
-      requesterName: requestDetails.requested_by_name || requestDetails.user_email,
-      requestTitle: requestDetails.title,
-      rejectionReasonSection: rejectionReason ? `<p><strong>เหตุผล:</strong> ${rejectionReason}</p>` : "",
+const sendRequestSubmittedConfirmation = async (userEmail, requestDetails) => {
+    const mailOptions = {
+      to: userEmail,
+      subject: `เราได้รับคำขอเปิดคลาสเรียนของคุณแล้ว: ${requestDetails.title}`,
+      html: `<p>เราได้รับคำขอเปิดคลาสเรียนในหัวข้อ "${requestDetails.title}" ของคุณแล้ว และจะแจ้งผลให้ทราบอีกครั้ง</p>`,
     };
-    const htmlContent = await loadTemplate('request-rejected', templateData);
-    await sendEmail({
-      to: recipientEmail,
-      subject: `แจ้งผลการพิจารณาคำขอหลักสูตร: ${requestDetails.title} "ไม่ได้รับการอนุมัติ"`,
-      html: htmlContent,
-    });
-  } catch (error) {
-    console.error("Error sending request rejected email:", error);
-  }
-}
+    await sendEmail(mailOptions);
+};
 
-async function sendReminderEmail(recipientEmail, classDetails, studentName) {
-  try {
-    // Use environment variable for backend URL, with a fallback for development
-    const backendUrl = process.env.BACKEND_URL;
-
-    const templateData = {
-      studentName: studentName,
-      classTitle: classDetails.title,
-      classDescription: classDetails.description ? `<p style="font-style: italic; color: #555;">${classDetails.description}</p>` : "",
-      classId: classDetails.class_id,
-      classSpeaker: classDetails.speaker,
-      classStartDate: new Date(classDetails.start_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
-      classEndDate: new Date(classDetails.end_date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }),
-      classStartTime: classDetails.start_time.substring(0, 5),
-      classEndTime: classDetails.end_time.substring(0, 5),
-      classFormat: classDetails.format,
-      classLanguage: classDetails.language || "-",
-      classTargetGroup: classDetails.target_group || "-",
-      classLinkSection: classDetails.format !== "ONSITE" ? `<p><strong>ลิงก์เข้าร่วม:</strong> <a href="${classDetails.join_link}">${classDetails.join_link}</a></p>` : "",
-      classLocationSection: classDetails.format !== "ONLINE" ? `<p><strong>สถานที่:</strong> ${classDetails.location}</p>` : "",
-      classMaterialsSection: createMaterialsSection(classDetails.materials, backendUrl),
-    };
-    const htmlContent = await loadTemplate('class-reminder', templateData);
-    await sendEmail({
-      to: recipientEmail,
-      subject: `[แจ้งเตือน] ห้องเรียน "${classDetails.title}" จะเริ่มใน 24 ชั่วโมง`,
-      html: htmlContent,
-    });
-  } catch (error) {
-    console.error("Error sending reminder email:", error);
-  }
-}
-
-async function loadTemplate(templateName, data) {
-  const templatePath = path.join(__dirname, 'templates', `${templateName}.html`);
-  let html = await fs.readFile(templatePath, 'utf-8');
-  for (const key in data) {
-    const regex = new RegExp(`{{${key}}}`, 'g');
-    html = html.replace(regex, data[key]);
-  }
-  return html;
-}
-
-function createMaterialsSection(materialsJson, backendUrl) {
-  let materials = [];
-  try {
-    if (typeof materialsJson === 'string') {
-      materials = JSON.parse(materialsJson);
-    } else if (Array.isArray(materialsJson)) {
-      materials = materialsJson;
-    }
-  } catch (e) {
-    console.error("Could not parse materials JSON:", materialsJson);
-    return "";
-  }
-
-  if (!Array.isArray(materials) || materials.length === 0) {
-    return "";
-  }
-
-  const materialLinks = materials
-    .map(material => `<li><a href="${backendUrl}/uploads/materials/${encodeURIComponent(material.name || material)}">${material.name || material}</a></li>`)
-    .join('');
-
-  return `
-    <p><strong>เอกสารประกอบการเรียน:</strong></p>
-    <ul>${materialLinks}</ul>
-  `;
-}
 
 module.exports = {
   sendRegistrationConfirmation,
@@ -342,5 +110,5 @@ module.exports = {
   sendRequestApprovedNotification,
   sendRequestRejectedNotification,
   sendReminderEmail,
-  sendRequestSubmittedConfirmation, // Export ฟังก์ชันใหม่
+  sendRequestSubmittedConfirmation,
 };
