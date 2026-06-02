@@ -89,6 +89,11 @@ const dbPool = mysql.createPool({
   database: process.env.DB_DATABASE,
   connectTimeout: 20000,
   charset: "utf8mb4",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000
 });
 
 const db = dbPool.promise();
