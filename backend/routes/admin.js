@@ -94,7 +94,8 @@ module.exports = (
         u_requester.id AS requested_by_id,
         COALESCE(u_requester.name, r.requested_by_name, r.requested_by_email) AS requested_by_name, 
         r.requested_by_email, 
-        u_admin.name as action_by_name 
+        u_admin.name as action_by_name,
+        u_admin.id AS action_by_id
       FROM class_requests r
       LEFT JOIN users u_requester ON r.requested_by_email = u_requester.email
       LEFT JOIN users u_admin ON r.action_by_email = u_admin.email

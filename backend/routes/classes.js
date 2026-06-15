@@ -559,10 +559,17 @@ module.exports = (
   });
 
   router.get("/registered/closed", async (req, res, next) => {
-    const { email } = req.user;
+    let targetEmail = req.user.email;
+    const queryEmail = req.query.email;
+    const isAdmin = req.user && req.user.roles && req.user.roles.includes("ผู้ดูแลระบบ");
+
+    if (queryEmail && (isAdmin || queryEmail === req.user.email)) {
+      targetEmail = queryEmail;
+    }
+
     const sql = `SELECT * FROM classes WHERE status = 'closed' AND JSON_CONTAINS(registered_users, ?)`;
     try {
-      const [results] = await db.query(sql, [`"${email}"`]);
+      const [results] = await db.query(sql, [`"${targetEmail}"`]);
       res.status(200).json(results);
     } catch (err) {
       console.error("❌ Error fetching registered closed classes:", err);

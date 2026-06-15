@@ -131,7 +131,7 @@ const ActivityLogs = () => {
   };
 
   const handleViewUser = async (userId) => {
-    if (!userId) return;
+    if (userId === null || userId === undefined || userId === "") return;
     setIsProcessing(true);
     try {
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}`);
