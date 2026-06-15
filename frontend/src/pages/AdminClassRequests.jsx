@@ -344,19 +344,24 @@ const AdminClassRequests = () => {
 
   const handleViewUser = async (userId) => {
     if (!userId) return;
+    setIsProcessing(true);
     try {
-      setLoading(true);
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}`);
       if (!response.ok) {
-        throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
+        const errorData = await response.json().catch(() => ({ message: `HTTP Status ${response.status}` }));
+        throw new Error(errorData.message || "ไม่สามารถดึงข้อมูลผู้ใช้ได้");
       }
       const userData = await response.json();
+      if (!userData) {
+        throw new Error("ไม่พบข้อมูลผู้ใช้ในระบบ (API returned null)");
+      }
       setUserToView(userData);
       setIsUserDetailModalOpen(true);
     } catch (error) {
-      alert("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
+      console.error("Error in handleViewUser (AdminClassRequests):", error);
+      alert(`ไม่สามารถดึงข้อมูลผู้ใช้ได้: ${error.message}`);
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -411,10 +416,13 @@ const AdminClassRequests = () => {
             onClose={() => setIsViewReasonModalOpen(false)}
             reason={reasonToView}
           />
-          {userToView && (
+          {isUserDetailModalOpen && userToView && (
             <UserDetailsModal
               isOpen={isUserDetailModalOpen}
-              onClose={() => setIsUserDetailModalOpen(false)}
+              onClose={() => {
+                setIsUserDetailModalOpen(false);
+                setUserToView(null);
+              }}
               user={userToView}
             />
           )}

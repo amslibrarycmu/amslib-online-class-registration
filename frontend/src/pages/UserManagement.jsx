@@ -157,12 +157,17 @@ const UserManagement = () => {
     try {
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${adminId}`);
       if (!response.ok) {
-        throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
+        const errorData = await response.json().catch(() => ({ message: `HTTP Status ${response.status}` }));
+        throw new Error(errorData.message || "ไม่สามารถดึงข้อมูลผู้ใช้ได้");
       }
       const userData = await response.json();
+      if (!userData) {
+        throw new Error("ไม่พบข้อมูลผู้ใช้ในระบบ (API returned null)");
+      }
       setSelectedUser(userData);
       setIsDetailModalOpen(true);
     } catch (error) {
+      console.error("Error in handleViewAdminDetails:", error);
       alert("ไม่สามารถดึงข้อมูลผู้ใช้ได้: " + error.message);
     } finally {
       setProcessing(false);
@@ -259,7 +264,13 @@ const UserManagement = () => {
       <div className="flex-1 pt-20 lg:pt-8 px-4 sm:px-6 lg:px-8 bg-gray-100 overflow-y-auto">
         {processing && <ProcessingOverlay message="กำลังดำเนินการ..." />}
         {isDetailModalOpen && selectedUser && (
-          <UserDetailsModal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} user={selectedUser} />
+          <UserDetailsModal
+            isOpen={isDetailModalOpen}
+            onClose={() => {
+              setIsDetailModalOpen(false);
+              setSelectedUser(null);
+            }}
+            user={selectedUser} />
         )}
         <div className="max-w-7xl mx-auto">
           <div className="relative mb-6 md:mb-8">

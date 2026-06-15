@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import UserDetailsModal from "../components/UserDetailsModal";
+import ProcessingOverlay from "../components/ProcessingOverlay";
 const ACTION_TYPE_LABELS = {
   LOGIN_SUCCESS: "เข้าสู่ระบบ",
   LOGOUT: "ออกจากระบบ",
@@ -40,6 +41,7 @@ const ActivityLogs = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalLogs, setTotalLogs] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
   const limit = 25;
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -130,19 +132,24 @@ const ActivityLogs = () => {
 
   const handleViewUser = async (userId) => {
     if (!userId) return;
+    setIsProcessing(true);
     try {
-      setLoading(true);
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}`);
       if (!response.ok) {
-        throw new Error("ไม่พบข้อมูลผู้ใช้");
+        const errorData = await response.json().catch(() => ({ message: `HTTP Status ${response.status}` }));
+        throw new Error(errorData.message || "ไม่พบข้อมูลผู้ใช้");
       }
       const userData = await response.json();
+      if (!userData) {
+        throw new Error("ไม่พบข้อมูลผู้ใช้ในระบบ (API returned null)");
+      }
       setSelectedUser(userData);
       setIsDetailModalOpen(true);
     } catch (error) {
+      console.error("Error in handleViewUser (ActivityLogs):", error);
       alert(error.message);
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -267,10 +274,14 @@ const ActivityLogs = () => {
 
   return (
     <div className="flex h-screen w-screen">
+      {isProcessing && <ProcessingOverlay message="กำลังดึงข้อมูล..." />}
       {isDetailModalOpen && selectedUser && (
         <UserDetailsModal
           isOpen={isDetailModalOpen}
-          onClose={() => setIsDetailModalOpen(false)}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedUser(null);
+          }}
           user={selectedUser}
         />
       )}

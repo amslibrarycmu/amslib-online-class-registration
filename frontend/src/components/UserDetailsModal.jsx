@@ -52,7 +52,19 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
               <div className="text-center sm:text-left">
                 <p className="text-md font-bold text-blue-600">{user.name}</p>
                 <p className="text-md text-gray-600">{user.email}</p>
-                <p className="text-md text-gray-500 mt-1">{user.roles.join(", ")}</p>
+                <p className="text-md text-gray-500 mt-1">
+                  {(() => {
+                    if (!user.roles) return "N/A";
+                    try {
+                      // Handle both array and JSON string e.g., '["Admin"]'
+                      const rolesArray = typeof user.roles === 'string' ? JSON.parse(user.roles) : user.roles;
+                      return Array.isArray(rolesArray) ? rolesArray.join(', ') : String(user.roles);
+                    } catch (error) {
+                      // If JSON.parse fails, it's a plain string like 'Admin'
+                      return String(user.roles);
+                    }
+                  })()}
+                </p>
                 <span
                   className={`px-2 mt-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     user.is_active
