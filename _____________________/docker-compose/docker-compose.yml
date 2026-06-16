@@ -1,0 +1,40 @@
+version: '3.8'
+
+networks:
+  amslib-network:
+    driver: bridge
+
+services:
+  php_app:
+    build:
+      context: ./html/php
+      dockerfile: Dockerfile
+    container_name: amslib_php
+    restart: always
+    volumes:
+      - ./html/php/html:/var/www/html
+      - ./html/php/config/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - amslib-network
+
+  js_app_amslibclass:
+    image: amslibrarycmu35071/amslib-js-app:latest
+    container_name: amslib_js_amslibclass
+    restart: always
+    env_file:
+      - ./html/js/src/amslibclass/.env
+    environment:
+      - PORT=5000
+      - DB_HOST=${DB_HOST}
+    networks:
+      - amslib-network
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: amslib_watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup
+    networks:
+      - amslib-network
