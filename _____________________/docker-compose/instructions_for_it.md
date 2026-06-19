@@ -39,7 +39,6 @@ services:
       - ./html/js/src/amslibclass/.env  # อ่านคอนฟิกค่าความลับและรหัสผ่านจากเซิร์ฟเวอร์จริง
     environment:
       - PORT=5000
-      - DB_HOST=${DB_HOST}
     # [ถอด Volume /app/dist ออก] เพื่อให้เว็บหน้าบ้านรันผ่านภายในตัว Image โดยตรง
     networks:
       - amslib-network

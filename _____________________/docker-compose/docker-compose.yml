@@ -17,6 +17,7 @@ services:
     networks:
       - amslib-network
 
+  # ส่วนที่ขอแก้ไข คือ ตู้ฝั่ง JS = เพิ่ม Image จาก Docker Hub ของผมและเปลี่ยนการ Mount ไฟล์ให้ใส่เฉพาะ .env เดี๋ยวฝั่งหน้าบ้าน-หลังบ้าน ผมอัพเดทผ่าน Docker Hub แทนครับ)
   js_app_amslibclass:
     image: amslibrarycmu35071/amslib-js-app:latest
     container_name: amslib_js_amslibclass
@@ -25,10 +26,10 @@ services:
       - ./html/js/src/amslibclass/.env
     environment:
       - PORT=5000
-      - DB_HOST=${DB_HOST}
     networks:
       - amslib-network
 
+  # เพิ่มบริการของ WatchTower จะได้ไม่กวนพี่รักษ์ในการช่วยอัพเดท Compose บ่อยๆครับ - ผมตั้งไว้ให้อัพเดท 300 วินาที (5 นาที) พี่ปรับที่ตัวแปร command ได้เลยนะครับ
   watchtower:
     image: containrrr/watchtower
     container_name: amslib_watchtower
