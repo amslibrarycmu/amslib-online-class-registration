@@ -42,6 +42,41 @@ if (!fs.existsSync(materialsDir)) {
 const app = express();
 app.set("trust proxy", 1);
 
+// Determine dynamic base paths from environment variables
+let spaPrefix = "/library/amslibclass";
+let apiPrefix = "/api";
+
+if (process.env.FRONTEND_URL) {
+  try {
+    const parsedUrl = new URL(process.env.FRONTEND_URL);
+    if (parsedUrl.pathname && parsedUrl.pathname !== '/') {
+      spaPrefix = parsedUrl.pathname;
+      if (spaPrefix.endsWith('/')) spaPrefix = spaPrefix.slice(0, -1);
+    } else {
+      spaPrefix = "";
+    }
+  } catch (e) {
+    console.warn("Invalid FRONTEND_URL, using default spaPrefix");
+  }
+}
+
+if (process.env.VITE_API_URL) {
+  try {
+    const parsedUrl = new URL(process.env.VITE_API_URL);
+    if (parsedUrl.pathname && parsedUrl.pathname !== '/') {
+      let pathName = parsedUrl.pathname;
+      if (pathName.endsWith('/')) pathName = pathName.slice(0, -1);
+      apiPrefix = `${pathName}/api`;
+    } else {
+      apiPrefix = "/api";
+    }
+  } catch (e) {
+    console.warn("Invalid VITE_API_URL, using default apiPrefix");
+  }
+} else {
+  apiPrefix = spaPrefix ? `${spaPrefix}/api` : "/api";
+}
+
 if (!process.env.FRONTEND_URL) {
   console.warn("⚠️ Warning: FRONTEND_URL is not defined in environment variables.");
 }
@@ -54,8 +89,8 @@ app.use(
 );
 app.use(express.json());
 
-app.use("/library/amslibclass/uploads", express.static(path.join(__dirname, "uploads"))); // Correct path for Docker
-app.use("/library/amslibclass", express.static(path.join(__dirname, "dist"))); // Correct path for Docker
+app.use(`${spaPrefix}/uploads`, express.static(path.join(__dirname, "uploads")));
+app.use(spaPrefix || "/", express.static(path.join(__dirname, "dist")));
 
 const setSecurityHeaders = (req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
@@ -125,7 +160,7 @@ function logActivity(req, userId, userName, userEmail, actionType, targetType, t
   });
 }
 
-app.post("/api/log-activity", (req, res) => {
+app.post(`${apiPrefix}/log-activity`, (req, res) => {
   const { user_id, user_name, user_email, action_type, target_type, target_id, details } = req.body;
   logActivity(req, user_id, user_name, user_email, action_type, target_type, target_id, details);
   res.status(200).json({ message: "Activity logged" });
@@ -151,7 +186,7 @@ const adminOnly = (req, res, next) => {
   }
 };
 
-app.get("/api/user-photo", async (req, res) => {
+app.get(`${apiPrefix}/user-photo`, async (req, res) => {
   const msToken = req.headers["x-ms-token"];
   if (!msToken) return res.status(400).json({ message: "Microsoft Access Token is required" });
 
@@ -168,20 +203,22 @@ app.get("/api/user-photo", async (req, res) => {
   }
 });
 
-app.use("/api/auth", authRoutes(db, logActivity));
-app.use("/api/users", verifyToken, userRoutes(db, logActivity, adminOnly, upload));
-app.use("/api/classes", verifyToken, classRoutes(db, logActivity, adminOnly, upload, sendRegistrationConfirmation, sendAdminNotification, sendAdminCancellationNotification, sendRequestApprovedNotification));
-app.use("/api/requests", verifyToken, requestRoutes(db, logActivity, sendNewClassRequestAdminNotification, sendRequestSubmittedConfirmation));
-app.use("/api/evaluations", verifyToken, evaluationRoutes(db, logActivity));
-app.use("/api/admin", verifyToken, adminOnly, adminRoutes(db, logActivity, adminOnly, sendRequestApprovedNotification, sendRequestRejectedNotification));
+app.use(`${apiPrefix}/auth`, authRoutes(db, logActivity));
+app.use(`${apiPrefix}/users`, verifyToken, userRoutes(db, logActivity, adminOnly, upload));
+app.use(`${apiPrefix}/classes`, verifyToken, classRoutes(db, logActivity, adminOnly, upload, sendRegistrationConfirmation, sendAdminNotification, sendAdminCancellationNotification, sendRequestApprovedNotification));
+app.use(`${apiPrefix}/requests`, verifyToken, requestRoutes(db, logActivity, sendNewClassRequestAdminNotification, sendRequestSubmittedConfirmation));
+app.use(`${apiPrefix}/evaluations`, verifyToken, evaluationRoutes(db, logActivity));
+app.use(`${apiPrefix}/admin`, verifyToken, adminOnly, adminRoutes(db, logActivity, adminOnly, sendRequestApprovedNotification, sendRequestRejectedNotification));
 
-app.get("/library/amslibclass/*", (req, res) => { // Catch-all for SPA routing
+app.get(`${spaPrefix}/*`, (req, res) => { // Catch-all for SPA routing
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-app.get("/library/amslibclass", (req, res) => { // Base path for SPA
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
-});
+if (spaPrefix) {
+  app.get(spaPrefix, (req, res) => { // Base path for SPA
+    res.sendFile(path.join(__dirname, "dist", "index.html"));
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error("❌ An unhandled error occurred:", err);
