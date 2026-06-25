@@ -43,7 +43,7 @@ const app = express();
 app.set("trust proxy", 1);
 
 // Determine dynamic base paths from environment variables
-let spaPrefix = "/library/amslibclass";
+let spaPrefix = "/jsapp";
 let apiPrefix = "/api";
 
 if (process.env.FRONTEND_URL) {

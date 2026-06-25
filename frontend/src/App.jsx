@@ -155,7 +155,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router basename="/library/amslibclass">
+      <Router basename="/jsapp">
         <AppContent />
       </Router>
     </AuthProvider>
