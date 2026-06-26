@@ -74,15 +74,15 @@ export default function Sidebar() {
   // --- State ใหม่สำหรับรูป Preview ชั่วคราว ---
   const [localPreview, setLocalPreview] = useState(null);
 
-  // --- 🟢 2. ดึงค่า admin_level (ถ้าไม่มีให้เป็น 0) ---
-  const adminLevel = user?.admin_level || 0;
+  // --- 🟢 2. ดึงค่า admin_level (ถ้าไม่มีให้เป็น 3 กรณีที่เป็นผู้ดูแลระบบ) ---
+  const adminLevel = user?.admin_level || (activeRole === "ผู้ดูแลระบบ" ? 3 : 0);
 
-  // 🟢 แก้ไขเงื่อนไข: ต้องมี admin_level และ activeRole เป็น "ผู้ดูแลระบบ"
-  const isAdminRoleActive = adminLevel > 0 && activeRole === "ผู้ดูแลระบบ";
+  // 🟢 แก้ไขเงื่อนไข: เป็นผู้ดูแลระบบเมื่อ role ตรง
+  const isAdminRoleActive = activeRole === "ผู้ดูแลระบบ";
 
   // 🟢 หาชื่อบทบาทที่ถูกต้องเพื่อแสดงผล
   const displayRole = isAdminRoleActive
-    ? ADMIN_LEVEL_ROLE_MAP[adminLevel] // ถ้าเป็นแอดมินและใช้บทบาทแอดมิน -> แสดงชื่อตาม Level
+    ? (ADMIN_LEVEL_ROLE_MAP[adminLevel] || activeRole)
     : activeRole;
 
   let firstname = "";

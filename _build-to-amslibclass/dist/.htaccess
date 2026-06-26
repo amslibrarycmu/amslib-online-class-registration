@@ -1,0 +1,14 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /amslibclass/
+  RewriteRule ^index\.html$ - [L]
+
+  # 🟢 ถ้าพาธขึ้นต้นด้วย /api ให้หยุดการทำงานของ RewriteRule นี้ทันที
+  RewriteCond %{REQUEST_URI} ^/amslibclass/api [NC]
+  RewriteRule ^ - [L]
+
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /amslibclass/index.html [L]
+</IfModule>

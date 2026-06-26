@@ -52,8 +52,15 @@ export const AuthProvider = ({ children }) => {
             admin_level: decoded?.admin_level || storedUser.admin_level || 0 
         };
 
+        let initialActiveRole = storedRole;
+        if (!initialActiveRole && updatedUser.roles) {
+            initialActiveRole = updatedUser.roles.includes("ผู้ดูแลระบบ") 
+                ? "ผู้ดูแลระบบ" 
+                : updatedUser.roles[0];
+        }
+
         setUser(updatedUser);
-        setActiveRole(storedRole || (updatedUser.roles && updatedUser.roles[0]));
+        setActiveRole(initialActiveRole);
       }
     } catch (error) {
       console.error("Failed to parse auth data from localStorage", error);
@@ -79,10 +86,15 @@ export const AuthProvider = ({ children }) => {
             }
         }
 
+        let defaultRole = finalUserData.roles?.[0] || null;
+        if (finalUserData.roles?.includes("ผู้ดูแลระบบ")) {
+            defaultRole = "ผู้ดูแลระบบ";
+        }
+
         const roleToSet =
           initialRole && finalUserData.roles?.includes(initialRole)
             ? initialRole
-            : finalUserData.roles?.[0] || null;
+            : defaultRole;
 
         setUser(finalUserData);
         setToken(tokenToSet);
