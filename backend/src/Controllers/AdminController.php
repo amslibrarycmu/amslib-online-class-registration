@@ -131,9 +131,9 @@ class AdminController extends BaseController {
             $user->name,
             $user->email,
             $action,
-            'SYSTEM',
-            null,
-            $input
+            $input['target_type'] ?? 'SYSTEM',
+            $input['target_id'] ?? null,
+            $input['details'] ?? []
         );
         
         $this->respond(['success' => true]);
