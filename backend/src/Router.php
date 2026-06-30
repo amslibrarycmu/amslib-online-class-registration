@@ -9,6 +9,7 @@ use App\Controllers\StatsController;
 use App\Controllers\UserController;
 use App\Controllers\RequestController;
 use App\Controllers\AdminController;
+use App\Controllers\EvaluationController;
 
 class Router {
     public function handle($method, $uri) {
