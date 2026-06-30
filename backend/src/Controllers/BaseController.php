@@ -49,11 +49,10 @@ class BaseController {
 
     protected function logActivity($userId, $userName, $userEmail, $action, $targetType, $targetId, $details = []) {
         $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-        $stmt = $this->db->prepare("INSERT INTO activity_logs (user_id, user_name, user_email, action, target_type, target_id, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        $stmt = $this->db->prepare("INSERT INTO activity_logs (user_id, user_name, user_email, action_type, target_type, target_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
-            $userId, $userName, $userEmail, $action, $targetType, $targetId, json_encode($details), $ip, $userAgent
+            $userId, $userName, $userEmail, $action, $targetType, $targetId, json_encode($details), $ip
         ]);
     }
 }
