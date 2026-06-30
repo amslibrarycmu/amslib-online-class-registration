@@ -103,6 +103,9 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("user", JSON.stringify(finalUserData));
         localStorage.setItem("token", tokenToSet);
         localStorage.setItem("activeRole", roleToSet);
+        
+        logFrontendActivity(finalUserData, "LOGIN_SUCCESS", { method: "cmu_oauth" });
+        
         resolve();
       });
     },
