@@ -6,20 +6,32 @@ class StatsController extends BaseController {
 
     public function classDemographics() {
         $this->authenticate();
-        $year = $_GET['year'] ?? 'all';
-        $month = $_GET['month'] ?? 'all';
+        $filterType = $_GET['filterType'] ?? 'all';
+        $year = $_GET['year'] ?? null;
+        $month = $_GET['month'] ?? null;
+        $startDate = $_GET['startDate'] ?? null;
+        $endDate = $_GET['endDate'] ?? null;
 
         $params = [];
-        $conditions = ["c.status = 'closed'"];
+        $conditions = ["c.status != 'draft'", "c.status != 'open'"];
 
-        if ($year !== 'all') {
+        if ($filterType === 'yearly' && $year) {
             $conditions[] = "YEAR(c.start_date) = ?";
             $params[] = $year;
-        }
-
-        if ($month !== 'all') {
+        } else if ($filterType === 'monthly' && $year && $month) {
+            $conditions[] = "YEAR(c.start_date) = ?";
             $conditions[] = "MONTH(c.start_date) = ?";
+            $params[] = $year;
             $params[] = $month;
+        } else if ($filterType === 'range') {
+            if (!empty($startDate)) {
+                $conditions[] = "c.start_date >= ?";
+                $params[] = $startDate;
+            }
+            if (!empty($endDate)) {
+                $conditions[] = "c.start_date <= ?";
+                $params[] = $endDate;
+            }
         }
 
         $whereClause = implode(" AND ", $conditions);
@@ -44,6 +56,9 @@ class StatsController extends BaseController {
         $stmt->execute($params);
         $classes = $stmt->fetchAll();
 
+        $rolesToFilterStr = $_GET['roles'] ?? '[]';
+        $rolesToFilter = json_decode($rolesToFilterStr, true) ?: [];
+
         // Parse demographics
         foreach ($classes as &$class) {
             $registeredEmails = json_decode($class['registered_users'], true) ?: [];
@@ -58,8 +73,31 @@ class StatsController extends BaseController {
 
                 foreach ($users as $u) {
                     $roles = json_decode($u['roles'], true) ?: [];
-                    $status = (in_array("Admin", $roles) || in_array("Teacher", $roles)) ? "อาจารย์" : "นักศึกษา/บุคคลทั่วไป";
                     
+                    // The roles are typically stored as JSON arrays like ["นักศึกษาปริญญาตรี"]
+                    if (!is_array($roles)) {
+                        $roles = [];
+                    }
+
+                    $displayRole = null;
+                    if (!empty($rolesToFilter)) {
+                        foreach ($roles as $r) {
+                            if (in_array($r, $rolesToFilter)) {
+                                $displayRole = $r;
+                                break;
+                            }
+                        }
+                    }
+                    if (!$displayRole) {
+                        foreach ($roles as $r) {
+                            if ($r !== "ผู้ดูแลระบบ") {
+                                $displayRole = $r;
+                                break;
+                            }
+                        }
+                    }
+
+                    $status = $displayRole ?: (!empty($roles) ? $roles[0] : "ไม่ระบุ");
                     if (!isset($demographics[$status])) {
                         $demographics[$status] = 0;
                     }

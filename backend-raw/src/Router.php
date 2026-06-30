@@ -7,6 +7,8 @@ use App\Controllers\ClassController;
 use App\Controllers\FormController;
 use App\Controllers\StatsController;
 use App\Controllers\UserController;
+use App\Controllers\RequestController;
+use App\Controllers\AdminController;
 
 class Router {
     public function handle($method, $uri) {
@@ -40,6 +42,8 @@ class Router {
                         $controller->promoted();
                     } else if ($method === 'GET' && $id === 'unique-titles') {
                         $controller->uniqueTitles();
+                    } else if ($method === 'GET' && $id === 'registered' && $subResource === 'closed') {
+                        $controller->registeredClosed();
                     } else if ($method === 'GET' && $id && $subResource === 'registrants') {
                         $controller->registrants($id);
                     } else if ($method === 'GET' && $id && $subResource === 'evaluations') {
@@ -111,6 +115,15 @@ class Router {
                         $controller->userStatus();
                     } else if ($method === 'POST') {
                         $controller->create();
+                    } else {
+                        $this->notFound();
+                    }
+                    break;
+                    
+                case 'log-activity':
+                    $controller = new AdminController();
+                    if ($method === 'POST') {
+                        $controller->logActivityEndpoint();
                     } else {
                         $this->notFound();
                     }

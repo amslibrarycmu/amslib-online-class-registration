@@ -66,6 +66,29 @@ class RequestController extends BaseController {
 
         $newId = $this->db->lastInsertId();
 
+        try {
+            $emailService = new \App\Controllers\EmailService();
+            $requestDetails = [
+                'title' => $title,
+                'requested_by_name' => $user->name,
+                'user_email' => $user->email,
+                'reason' => $reason
+            ];
+            
+            // Send confirmation to user
+            $emailService->sendRequestSubmittedConfirmation($user->email, $requestDetails, $user->name);
+            
+            // Get admin emails
+            $stmtAdmins = $this->db->query("SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')");
+            $adminEmails = array_column($stmtAdmins->fetchAll(), 'email');
+            
+            if (!empty($adminEmails)) {
+                $emailService->sendNewClassRequestAdminNotification($adminEmails, $requestDetails);
+            }
+        } catch (\Exception $e) {
+            error_log("Failed to send request email: " . $e->getMessage());
+        }
+
         $this->logActivity(0, $user->name, $user->email, 'SUBMIT_CLASS_REQUEST', 'REQUEST', $newId, ['request_title' => $title]);
 
         http_response_code(201);
@@ -177,11 +200,29 @@ class RequestController extends BaseController {
             $stmt2 = $this->db->prepare("UPDATE class_requests SET status = 'approved', action_by_id = ?, action_by_name = ? WHERE request_id = ?");
             $stmt2->execute([$user->id, $user->name, $id]);
             
+            try {
+                $emailService = new \App\Controllers\EmailService();
+                if (!empty($req['requested_by_email'])) {
+                    $emailService->sendRequestApprovedNotification($req['requested_by_email'], $req);
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to send request approved email: " . $e->getMessage());
+            }
+            
             $this->logActivity(0, $user->name, $user->email, 'APPROVE_CLASS_REQUEST', 'REQUEST', $id, ['request_title' => $req['title']]);
             $this->respond(['message' => 'Class request approved.']);
         } else if ($action === 'reject') {
             $stmt2 = $this->db->prepare("UPDATE class_requests SET status = 'rejected', rejection_reason = ?, action_by_id = ?, action_by_name = ? WHERE request_id = ?");
             $stmt2->execute([$reason, $user->id, $user->name, $id]);
+            
+            try {
+                $emailService = new \App\Controllers\EmailService();
+                if (!empty($req['requested_by_email'])) {
+                    $emailService->sendRequestRejectedNotification($req['requested_by_email'], $req, $reason);
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to send request rejected email: " . $e->getMessage());
+            }
             
             $this->logActivity(0, $user->name, $user->email, 'REJECT_CLASS_REQUEST', 'REQUEST', $id, ['request_title' => $req['title']]);
             $this->respond(['message' => 'Class request rejected.']);

@@ -100,6 +100,15 @@ class ClassController extends BaseController {
         $this->respond($r);
     }
 
+    public function registeredClosed() {
+        $user = $this->authenticate();
+        $email = $user->email;
+        $sql = "SELECT * FROM classes WHERE status = 'closed' AND JSON_CONTAINS(registered_users, ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['"' . $email . '"']);
+        $this->respond($stmt->fetchAll());
+    }
+
     public function registrants($classId) {
         $this->requireAdminLevel(1);
         $stmt = $this->db->prepare("SELECT registered_users FROM classes WHERE class_id = ?");
@@ -362,6 +371,25 @@ class ClassController extends BaseController {
             
             $this->db->commit();
             
+            try {
+                $emailService = new \App\Controllers\EmailService();
+                $emailService->sendRegistrationConfirmation($user->email, $class, $user->name);
+                
+                $stmtAdmins = $this->db->query("SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')");
+                $adminEmails = array_column($stmtAdmins->fetchAll(), 'email');
+                
+                if (!empty($adminEmails)) {
+                    $placeholders = implode(',', array_fill(0, count($registeredUsers), '?'));
+                    $stmtUsers = $this->db->prepare("SELECT name, email FROM users WHERE email IN ($placeholders)");
+                    $stmtUsers->execute($registeredUsers);
+                    $allRegisteredUsers = $stmtUsers->fetchAll();
+                    
+                    $emailService->sendAdminNotification($adminEmails, $class, $allRegisteredUsers, ['name' => $user->name, 'email' => $user->email]);
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to send email: " . $e->getMessage());
+            }
+            
             $this->respond(['message' => 'ลงทะเบียนสำเร็จแล้ว']);
             
         } catch (\Exception $e) {
@@ -404,6 +432,26 @@ class ClassController extends BaseController {
             $updateStmt->execute([json_encode($registeredUsers), $classId]);
             
             $this->db->commit();
+            
+            try {
+                $emailService = new \App\Controllers\EmailService();
+                
+                $stmtAdmins = $this->db->query("SELECT email FROM users WHERE JSON_CONTAINS(roles, '\"ผู้ดูแลระบบ\"')");
+                $adminEmails = array_column($stmtAdmins->fetchAll(), 'email');
+                
+                if (!empty($adminEmails)) {
+                    $allRegisteredUsers = [];
+                    if (!empty($registeredUsers)) {
+                        $placeholders = implode(',', array_fill(0, count($registeredUsers), '?'));
+                        $stmtUsers = $this->db->prepare("SELECT name, email FROM users WHERE email IN ($placeholders)");
+                        $stmtUsers->execute($registeredUsers);
+                        $allRegisteredUsers = $stmtUsers->fetchAll();
+                    }
+                    $emailService->sendAdminCancellationNotification($adminEmails, $user->name, $user->email, $class, $allRegisteredUsers);
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to send cancellation email: " . $e->getMessage());
+            }
             
             $this->respond(['message' => 'ยกเลิกการลงทะเบียนสำเร็จ']);
         } catch (\Exception $e) {

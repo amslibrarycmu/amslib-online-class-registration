@@ -47,7 +47,7 @@ export const FetchStatisticsData = (user, activeRole, filters) => {
           params.append('roles', JSON.stringify(roles));
         }
 
-        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/admin/statistics/class-demographics?${params.toString()}`);
+        const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/statistics/class-demographics?${params.toString()}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         setStats(data);

@@ -120,4 +120,23 @@ class AdminController extends BaseController {
         $stmt->execute([$id]);
         $this->respond(['message' => 'Topic deleted']);
     }
+
+    public function logActivityEndpoint() {
+        $user = $this->authenticate();
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        $action = $input['action_type'] ?? 'UNKNOWN_ACTION';
+        
+        $this->logActivity(
+            $user->id,
+            $user->name,
+            $user->email,
+            $action,
+            'SYSTEM',
+            null,
+            $input
+        );
+        
+        $this->respond(['success' => true]);
+    }
 }

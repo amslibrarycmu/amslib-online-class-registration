@@ -230,7 +230,7 @@ const TopicManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {topics.map((topicItem) => (
                     <tr key={topicItem.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                         {editingTopicId === topicItem.id ? (
                           <>
                             <input
@@ -247,7 +247,7 @@ const TopicManagement = () => {
                           topicItem.title
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             topicItem.is_active
@@ -258,7 +258,7 @@ const TopicManagement = () => {
                           {topicItem.is_active ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium flex justify-center items-center gap-2 flex-wrap">
+                      <td className="px-6 py-2 text-sm font-medium flex justify-center items-center gap-2 flex-wrap">
                         {editingTopicId === topicItem.id ? (
                           <>
                             <button
