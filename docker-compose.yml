@@ -71,7 +71,7 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-      - ./backend-raw:/var/www/html
+      - ./backend:/var/www/html
       - ./backend-nodejs-backup/uploads:/var/www/html/public/uploads
 
 volumes:
