@@ -369,9 +369,22 @@ const ClassIndex = () => {
       <Sidebar />
       <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-gray-100">
 
-        <h2 className="font-bold mb-[10px] text-[1.25rem]">
-          ห้องเรียนที่เปิดสอนได้
-        </h2>
+        <div className="mb-6 relative overflow-hidden rounded-lg shadow-md border-l-8 border-purple-800">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-500 opacity-90"></div>
+          <div className="relative px-6 py-4 flex items-center">
+            <div className="bg-white/20 p-2 rounded-full mr-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="font-bold text-white text-2xl tracking-wide">
+                ห้องเรียนที่เปิดสอนได้
+              </h2>
+              <p className="text-purple-100 text-sm mt-1">รายการห้องเรียนที่กำลังเปิดให้ลงทะเบียน หรือเตรียมการสอน</p>
+            </div>
+          </div>
+        </div>
         {loading ? (
           <p>กำลังโหลดข้อมูล...</p>
         ) : !user ? (
@@ -472,9 +485,22 @@ const ClassIndex = () => {
             )}
           </>
         )}
-            <h2 className="font-bold mb-[10px] text-[1.25rem] mt-10">
-              ห้องเรียนที่จบการสอนแล้ว
-            </h2>
+            <div className="mt-12 mb-6 relative overflow-hidden rounded-lg shadow-md border-l-8 border-gray-800">
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-700 to-slate-500 opacity-90"></div>
+              <div className="relative px-6 py-4 flex items-center">
+                <div className="bg-white/20 p-2 rounded-full mr-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="font-bold text-white text-2xl tracking-wide">
+                    ห้องเรียนที่จบการสอนแล้ว
+                  </h2>
+                  <p className="text-gray-200 text-sm mt-1">ประวัติห้องเรียนที่ดำเนินการเสร็จสิ้นเรียบร้อยแล้ว</p>
+                </div>
+              </div>
+            </div>
             <div className="mb-4 flex flex-wrap justify-between items-center gap-4">
               <div className="flex items-center gap-2 w-full sm:w-auto flex-grow">
                 <input
