@@ -1,19 +1,15 @@
-<div style="font-size: 18px; line-height: 1">
+<div style="font-size: 18px; line-height: 1.6;">
+  <p><strong style="font-size: 20px;">[แจ้งเตือนเกี่ยวกับการลงทะเบียนเรียน]</strong></p>
   <p>
-    <strong style="font-size: 20px"
-      >[แจ้งเตือนเกี่ยวกับการลงทะเบียนเรียน]</strong
-    >
+    มีผู้ลงทะเบียนเรียนล่าสุด:<br />
+    <strong style="color: #fb2c36;">{{classId}}</strong>
+    <strong style="color: #6b11b0;">{{classTitle}}</strong>
   </p>
   <p>
-    มีผู้ลงทะเบียนเรียนล่าสุด:
-    <strong style="color: #fb2c36">{{classId}} </strong>
-    <strong style="color: #6b11b0">{{classTitle}} </strong>
-  </p>
-  <p>
-    ผู้ลงทะเบียน:
+    ผู้ลงทะเบียน:<br />
     <strong>{{newRegistrantName}} ({{newRegistrantEmail}})</strong>
   </p>
-  <hr />
+  <hr style="margin: 20px 0; border: 1px solid #eee;" />
   <h3>รายชื่อผู้ลงทะเบียนทั้งหมดในขณะนี้ ({{registrantCount}} คน):</h3>
   <ul>
     {{userListHtml}}
