@@ -164,12 +164,12 @@ class RequestController extends BaseController {
     public function adminIndex() {
         $user = $this->requireAdminLevel(1);
         $sql = "
-            SELECT cr.*, u.id as requested_by_id, 
-            u.name as requested_by_name, u.email as requested_by_email,
-            (SELECT user_name FROM activity_logs WHERE target_type = 'REQUEST' AND target_id = cr.request_id AND action_type IN ('APPROVE_CLASS_REQUEST', 'REJECT_CLASS_REQUEST') ORDER BY timestamp DESC LIMIT 1) as action_by_name,
-            (SELECT user_id FROM activity_logs WHERE target_type = 'REQUEST' AND target_id = cr.request_id AND action_type IN ('APPROVE_CLASS_REQUEST', 'REJECT_CLASS_REQUEST') ORDER BY timestamp DESC LIMIT 1) as action_by_id
+            SELECT cr.*, u1.id as requested_by_id, 
+            u1.name as requested_by_name, u1.email as requested_by_email,
+            u2.name as action_by_name, u2.id as action_by_id
             FROM class_requests cr
-            LEFT JOIN users u ON cr.requested_by_email = u.email
+            LEFT JOIN users u1 ON cr.requested_by_email = u1.email
+            LEFT JOIN users u2 ON cr.action_by_email = u2.email
             ORDER BY cr.created_at DESC
         ";
         $stmt = $this->db->prepare($sql);
@@ -195,8 +195,8 @@ class RequestController extends BaseController {
         }
 
         if ($action === 'approve') {
-            $stmt = $this->db->prepare("UPDATE class_requests SET status = 'approved' WHERE request_id = ?");
-            $stmt->execute([$id]);
+            $stmt = $this->db->prepare("UPDATE class_requests SET status = 'approved', action_by_email = ?, action_at = NOW() WHERE request_id = ?");
+            $stmt->execute([$user->email, $id]);
             
             try {
                 $emailService = new \App\Controllers\EmailService();
@@ -210,8 +210,8 @@ class RequestController extends BaseController {
             $this->logActivity(0, $user->name, $user->email, 'APPROVE_CLASS_REQUEST', 'REQUEST', $id, ['request_title' => $req['title']]);
             $this->respond(['message' => 'Class request approved.']);
         } else if ($action === 'reject') {
-            $stmt2 = $this->db->prepare("UPDATE class_requests SET status = 'rejected', admin_notes = ? WHERE request_id = ?");
-            $stmt2->execute([$reason, $id]);
+            $stmt2 = $this->db->prepare("UPDATE class_requests SET status = 'rejected', admin_comment = ?, action_by_email = ?, action_at = NOW() WHERE request_id = ?");
+            $stmt2->execute([$reason, $user->email, $id]);
             
             try {
                 $emailService = new \App\Controllers\EmailService();
