@@ -254,7 +254,7 @@ const UserManagement = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen">
+    <div className="flex h-screen w-screen flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 pt-20 lg:pt-8 px-4 sm:px-6 lg:px-8 bg-gray-100 overflow-y-auto">
         {processing && <ProcessingOverlay message="กำลังดำเนินการ..." />}
@@ -263,19 +263,17 @@ const UserManagement = () => {
         )}
         <div className="max-w-7xl mx-auto">
           <div className="relative mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 text-center py-2">
-              สิทธิ์
-            </h1>
+
           </div>
 
           {/* --- TABS --- */}
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
               <button onClick={() => setActiveTab('permissions')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'permissions' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-                จัดการสิทธิ์
+                บทบาทและสิทธิ์
               </button>
               <button onClick={() => setActiveTab('users')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'users' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-                จัดการผู้ใช้ทั้งหมด
+                จัดการผู้ใช้งาน
               </button>
             </nav>
           </div>
@@ -348,8 +346,8 @@ const UserManagement = () => {
                         <tr>
                           <SortableHeader columnKey="name" title="ชื่อ-สกุล" className="text-left" />
                           <SortableHeader columnKey="email" title="อีเมล" className="text-left" />
-                          <SortableHeader columnKey="roles" title="บทบาท" className="text-left" />
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะ</th>
+                          <SortableHeader columnKey="roles" title="สถานะ" className="text-left" />
+                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">สถานะบัญชี</th>
                           <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
                         </tr>
                       </thead>
@@ -360,7 +358,7 @@ const UserManagement = () => {
                               <span onClick={() => handleOpenDetailModal(u)} className="cursor-pointer hover:underline text-blue-600 font-medium">{u.name}</span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.email}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.roles.join(", ")}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{Array.isArray(u.roles) ? u.roles.join(", ") : ""}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-center">
                               <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                 {u.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}

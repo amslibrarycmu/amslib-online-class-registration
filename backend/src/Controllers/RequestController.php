@@ -193,8 +193,8 @@ class RequestController extends BaseController {
         }
 
         if ($action === 'approve') {
-            $stmt2 = $this->db->prepare("UPDATE class_requests SET status = 'approved', action_by_id = ?, action_by_name = ? WHERE request_id = ?");
-            $stmt2->execute([$user->id, $user->name, $id]);
+            $stmt = $this->db->prepare("UPDATE class_requests SET status = 'approved' WHERE request_id = ?");
+            $stmt->execute([$id]);
             
             try {
                 $emailService = new \App\Controllers\EmailService();
@@ -208,8 +208,8 @@ class RequestController extends BaseController {
             $this->logActivity(0, $user->name, $user->email, 'APPROVE_CLASS_REQUEST', 'REQUEST', $id, ['request_title' => $req['title']]);
             $this->respond(['message' => 'Class request approved.']);
         } else if ($action === 'reject') {
-            $stmt2 = $this->db->prepare("UPDATE class_requests SET status = 'rejected', rejection_reason = ?, action_by_id = ?, action_by_name = ? WHERE request_id = ?");
-            $stmt2->execute([$reason, $user->id, $user->name, $id]);
+            $stmt2 = $this->db->prepare("UPDATE class_requests SET status = 'rejected', admin_notes = ? WHERE request_id = ?");
+            $stmt2->execute([$reason, $id]);
             
             try {
                 $emailService = new \App\Controllers\EmailService();

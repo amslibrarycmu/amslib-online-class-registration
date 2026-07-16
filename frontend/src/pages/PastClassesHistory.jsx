@@ -10,6 +10,9 @@ const PastClassesHistory = () => {
   const [evaluatedClasses, setEvaluatedClasses] = useState(new Set()); // 3. State for evaluated classes
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // State for FileViewerModal
   const [isFileModalOpen, setFileModalOpen] = useState(false);
@@ -102,10 +105,10 @@ const PastClassesHistory = () => {
 
   return (
     <>
-      <div className="w-screen flex">
+      <div className="w-screen flex flex-col lg:flex-row">
         <Sidebar />
         <div className="flex-1 p-8 bg-gray-100 min-h-screen">
-          <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 text-center">ประวัติการเข้าร่วม</h1>
+
 
           {loading && <p>กำลังโหลดข้อมูล...</p>}
           {error && <p className="text-red-500">เกิดข้อผิดพลาด: {error}</p>}
@@ -113,12 +116,12 @@ const PastClassesHistory = () => {
           {!loading && !error && (
             <>
               {pastClasses.length > 0 ? (
+                <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {pastClasses.map((cls) => (
+                  {pastClasses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((cls) => (
                     <div key={cls.class_id} className="bg-white rounded-xl shadow-lg flex flex-col hover:shadow-xl transition-shadow duration-300 overflow-hidden">
                       <div className="p-6 flex-grow flex flex-col">
                         <h2 className="text-xl font-bold text-purple-800 mb-2">{cls.title}</h2>
-                        <p className="text-xs text-gray-400 mb-4">ID: {cls.class_id}</p>
 
                         <div className="space-y-3 text-gray-700 text-sm mb-4 flex-grow">
                           <div className="flex items-center gap-2">
@@ -177,6 +180,28 @@ const PastClassesHistory = () => {
                     </div>
                   ))}
                 </div>
+                {pastClasses.length > itemsPerPage && (
+                  <div className="flex justify-center items-center mt-6 space-x-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 border rounded-md bg-white text-gray-700 disabled:opacity-50"
+                    >
+                      ก่อนหน้า
+                    </button>
+                    <span className="text-gray-700 font-medium">
+                      หน้า {currentPage} จาก {Math.ceil(pastClasses.length / itemsPerPage)}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(pastClasses.length / itemsPerPage)))}
+                      disabled={currentPage === Math.ceil(pastClasses.length / itemsPerPage)}
+                      className="px-4 py-2 border rounded-md bg-white text-gray-700 disabled:opacity-50"
+                    >
+                      ถัดไป
+                    </button>
+                  </div>
+                )}
+                </>
               ) : (
                 <div className="text-center py-10 px-6 bg-white rounded-lg shadow-md">
                   <h3 className="text-xl font-semibold text-gray-700">ไม่พบประวัติการเรียนที่ผ่านมา</h3>

@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Sidebar from "../components/Sidebar";
 import UserDetailsModal from "../components/UserDetailsModal";
 const ACTION_TYPE_LABELS = {
+  LOGIN: "เข้าสู่ระบบ",
   LOGIN_SUCCESS: "เข้าสู่ระบบ",
   LOGOUT: "ออกจากระบบ",
   CREATE_USER: "สร้างบัญชีผู้ใช้ใหม่",
@@ -13,7 +14,7 @@ const ACTION_TYPE_LABELS = {
   UPDATE_ROLE: "เปลี่ยนสิทธิ์",
   UPDATE_STATUS: "เปลี่ยนสถานะ",
   DELETE_USER: "ลบบัญชีผู้ใช้",
-  SWITCH_ROLE: "สลับบทบาท",
+  SWITCH_ROLE: "สลับสถานะ",
   CREATE_CLASS: "สร้างห้องเรียนใหม่",
   UPDATE_CLASS: "แก้ไขข้อมูลห้องเรียน",
   DELETE_CLASS: "ลบห้องเรียน",
@@ -174,7 +175,7 @@ const ActivityLogs = () => {
       case "SWITCH_ROLE":
         return (
           <>
-            สลับบทบาทจาก {details.from_role} เป็น {details.to_role}
+            สลับสถานะจาก {details.from_role} เป็น {details.to_role}
           </>
         );
       case "UPDATE_CLASS":
@@ -266,7 +267,7 @@ const ActivityLogs = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen">
+    <div className="flex h-screen w-screen flex-col lg:flex-row">
       {isDetailModalOpen && selectedUser && (
         <UserDetailsModal
           isOpen={isDetailModalOpen}
@@ -276,30 +277,7 @@ const ActivityLogs = () => {
       )}
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
-        <div className="flex justify-center items-center gap-x-4 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">ประวัติการใช้งาน</h1>
-          <button
-            onClick={handleExportCSV}
-            className="p-2 text-gray-600 rounded-3xl shadow-md hover:bg-gray-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
-            title="ดาวน์โหลดข้อมูล (CSV)"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <input
             type="text"
             placeholder="ค้นหาด้วยชื่อหรืออีเมล"

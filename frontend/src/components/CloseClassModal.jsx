@@ -58,7 +58,7 @@ const CloseClassModal = ({ isOpen, onClose, onSubmit, classData, isEditing = fal
     <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50">
       <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-2xl">
         <h2 className="text-2xl font-bold mb-6 text-center">
-          {isEditing ? "แก้ไขข้อมูลห้องเรียน" : "จบการสอน"} <br/>"{classData.title}"
+          {isEditing ? "จัดการสื่อการสอนและวิดีโอย้อนหลัง" : "จบการสอน"} <br/>"{classData.title}"
         </h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">

@@ -7,7 +7,7 @@ const speakerOptions = [
   "วรรธนันทพร วิลัยรักษ์",
 ];
 
-const AUDIENCE_OPTIONS = ["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"];
+const AUDIENCE_OPTIONS = ["นักศึกษาระดับปริญญาตรี", "นักศึกษาระดับบัณฑิตศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"];
 
 const getTodayString = () => {
   const today = new Date();
@@ -540,7 +540,7 @@ const ClassCreationModal = ({
               สถานภาพของผู้เรียน
             </label>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"].map((g) => (
+              {["นักศึกษาระดับปริญญาตรี", "นักศึกษาระดับบัณฑิตศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"].map((g) => (
                 <label key={g}>
                   <input
                     type="checkbox"

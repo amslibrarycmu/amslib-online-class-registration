@@ -7,7 +7,7 @@ const speakerOptions = [
   "วรรธนันทพร วิลัยรักษ์",
 ];
 
-const AUDIENCE_OPTIONS = ["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"];
+const AUDIENCE_OPTIONS = ["นักศึกษาระดับปริญญาตรี", "นักศึกษาระดับบัณฑิตศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"];
 
 const getTodayString = () => {
   const today = new Date();
@@ -214,6 +214,17 @@ const ClassCreationModal = ({
       }
       // If the time is valid, proceed to update the state
       dispatch({ type: "SET_FIELD", payload: { name, value } });
+    } else if (name === "format") {
+      if (value === "ONSITE" && (!formData.max_participants || formData.max_participants == 999 || formData.max_participants < 1)) {
+        dispatch({ type: "SET_FIELD", payload: { name: "max_participants", value: "1" } });
+      }
+      dispatch({ type: "SET_FIELD", payload: { name, value } });
+    } else if (name === "max_participants") {
+      if (formData.format === "ONSITE" && value !== "" && parseInt(value, 10) < 1) {
+        dispatch({ type: "SET_FIELD", payload: { name, value: "1" } });
+      } else {
+        dispatch({ type: "SET_FIELD", payload: { name, value } });
+      }
     } else {
       dispatch({ type: "SET_FIELD", payload: { name, value } });
     }
@@ -573,7 +584,7 @@ const ClassCreationModal = ({
               สถานภาพของผู้เรียน
             </label>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {["นักศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"].map((g) => (
+              {["นักศึกษาระดับปริญญาตรี", "นักศึกษาระดับบัณฑิตศึกษา", "อาจารย์/นักวิจัย", "บุคลากร"].map((g) => (
                 <label key={g}>
                   <input
                     type="checkbox"

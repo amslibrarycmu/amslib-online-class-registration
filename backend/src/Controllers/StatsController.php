@@ -60,12 +60,12 @@ class StatsController extends BaseController {
         $rolesToFilter = json_decode($rolesToFilterStr, true) ?: [];
 
         foreach ($classes as &$class) {
-            $registeredEmails = json_decode($class['registered_users'], true) ?: [];
+            $registeredEmails = json_decode($class['registered_users'] ?? '[]', true) ?: [];
             $demographics = [];
             
             if (!empty($registeredEmails)) {
                 $placeholders = implode(',', array_fill(0, count($registeredEmails), '?'));
-                $userSql = "SELECT roles FROM users WHERE email IN ($placeholders)";
+                $userSql = "SELECT roles FROM users WHERE email IN ($placeholders) GROUP BY email";
                 $userStmt = $this->db->prepare($userSql);
                 $userStmt->execute($registeredEmails);
                 $users = $userStmt->fetchAll();

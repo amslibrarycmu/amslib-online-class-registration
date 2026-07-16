@@ -51,6 +51,8 @@ const ClassCatalog = () => {
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [isBulkRegistering, setIsBulkRegistering] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchPromotedClasses = async () => {
     try {
@@ -81,12 +83,16 @@ const ClassCatalog = () => {
       fetchPromotedClasses();
     }
   }, [user, authFetch]);
+  const [registeringId, setRegisteringId] = useState(null);
 
   const handleRegister = async (classId) => {
     if (!user) {
       alert("Please log in to register.");
       return;
     }
+    if (registeringId) return; // Prevent double click
+    
+    setRegisteringId(classId);
     try {
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}/register`, {
         method: "POST",
@@ -99,7 +105,7 @@ const ClassCatalog = () => {
             cls.class_id === classId
               ? {
                   ...cls,
-                  registered_users: [...cls.registered_users, user.email],
+                  registered_users: Array.from(new Set([...cls.registered_users, user.email])),
                 }
               : cls
           )
@@ -110,6 +116,8 @@ const ClassCatalog = () => {
     } catch (err) {
       console.error("Registration failed:", err);
       alert("An error occurred during registration.");
+    } finally {
+      setRegisteringId(null);
     }
   };
 
@@ -120,7 +128,7 @@ const ClassCatalog = () => {
     }
     try {
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/classes/${classId}/cancel`, {
-        method: "POST",
+        method: "DELETE",
       });
       const data = await response.json();
       if (response.ok) {
@@ -215,8 +223,9 @@ const ClassCatalog = () => {
   };
 
   const isUserRegistered = (cls) => {
-    if (!user || !Array.isArray(cls.registered_users)) return false;
-    return cls.registered_users.includes(user.email);
+    if (!user || !user.email || !Array.isArray(cls.registered_users)) return false;
+    const userEmail = user.email.toLowerCase();
+    return cls.registered_users.some(email => email.toLowerCase() === userEmail);
   };
 
   const isUserInTargetGroup = (cls) => {
@@ -230,7 +239,16 @@ const ClassCatalog = () => {
         : [];
 
     // Check if any of the user's roles are in the targetGroups
-    return user.roles.some(role => targetGroups.includes(role));
+    return user.roles.some(role => {
+      if (targetGroups.includes(role)) return true;
+      if ((role === 'นักศึกษาระดับปริญญาตรี' || role === 'นักศึกษาระดับบัณฑิตศึกษา') && (targetGroups.includes('นักศึกษา') || targetGroups.includes('นักศึกษา/บุคคลทั่วไป'))) {
+        return true;
+      }
+      if ((targetGroups.includes('นักศึกษาระดับปริญญาตรี') || targetGroups.includes('นักศึกษาระดับบัณฑิตศึกษา')) && (role === 'นักศึกษา' || role === 'นักศึกษา/บุคคลทั่วไป')) {
+        return true;
+      }
+      return false;
+    });
   };
 
   const getFilteredClasses = () => {
@@ -248,6 +266,10 @@ const ClassCatalog = () => {
     return classes; // 'all'
   };
 
+  const filteredClasses = getFilteredClasses();
+  const totalPages = Math.ceil(filteredClasses.length / itemsPerPage);
+  const currentClasses = filteredClasses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   // --- คำนวณจำนวนรายการสำหรับแต่ละ Tab ---
   const availableCount = classes.filter(cls => !isUserRegistered(cls) && (cls.max_participants === 999 || cls.registered_users.length < cls.max_participants)).length;
   const registeredCount = classes.filter(isUserRegistered).length;
@@ -261,8 +283,6 @@ const ClassCatalog = () => {
     setSelectedClassForDescription(cls);
     setIsDescriptionModalOpen(true);
   };
-
-  const filteredClasses = getFilteredClasses();
 
   return (
     <div className="w-screen flex flex-col lg:flex-row">
@@ -279,19 +299,23 @@ const ClassCatalog = () => {
           <button
             onClick={handleBulkRegister}
             disabled={isBulkRegistering}
-            className="bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait"
+            className="flex items-center justify-center gap-2 bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait"
           >
+            {isBulkRegistering && (
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            )}
             {isBulkRegistering
-              ? "..."
+              ? "กำลังลงทะเบียน..."
               : `ลงทะเบียน (${selectedClasses.length})`}
           </button>
         </div>
       )}
 
       <div className="flex-1 p-4 md:p-8 bg-gray-100 min-h-screen">
-        <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-800 text-center">
-          หัวข้อที่เปิดสอน
-        </h1>
+
 
         {/* --- TABS --- */}
         <div className="border-b border-gray-200 mb-6">
@@ -307,7 +331,13 @@ const ClassCatalog = () => {
             {/* Bulk Register Button for Desktop */}
             {selectedClasses.length > 0 && (
               <div className="hidden lg:block">
-                <button onClick={handleBulkRegister} disabled={isBulkRegistering} className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait">
+                <button onClick={handleBulkRegister} disabled={isBulkRegistering} className="flex items-center gap-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-all disabled:bg-gray-400 disabled:cursor-wait">
+                  {isBulkRegistering && (
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
                   {isBulkRegistering ? "กำลังลงทะเบียน..." : `ลงทะเบียน ${selectedClasses.length} ห้องเรียนที่เลือก`}
                 </button>
               </div>
@@ -321,8 +351,8 @@ const ClassCatalog = () => {
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <span>
-              คุณสามารถลงทะเบียนหลายหัวข้อได้พร้อมกันในครั้งเดียว โดยทำเครื่องหมายที่ {""}
-              <input type="checkbox" className="h-4 w-4 mb-1 mx-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500 align-middle pointer-events-none" readOnly /> ในหัวข้อที่คุณต้องการ จากนั้นคลิกปุ่ม “ลงทะเบียน” (ปุ่มสีเขียว)
+              คุณสามารถลงทะเบียนหลายหลักสูตรได้พร้อมกันในครั้งเดียว โดยทำเครื่องหมายที่ {""}
+              <input type="checkbox" className="h-4 w-4 mb-1 mx-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500 align-middle pointer-events-none" readOnly /> ในหลักสูตรที่คุณต้องการ จากนั้นคลิกปุ่ม “ลงทะเบียน” (ปุ่มสีเขียว)
             </span>
           </div>
         )}
@@ -333,8 +363,9 @@ const ClassCatalog = () => {
         {!loading && !error && (
           <>
             {filteredClasses.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredClasses.map((cls) => {
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {currentClasses.map((cls) => {
                   const isFull =
                     cls.max_participants !== 999 &&
                     cls.registered_users.length >= cls.max_participants;
@@ -362,15 +393,14 @@ const ClassCatalog = () => {
 
                   let registerButtonTooltip = "";
                   if (!isInTargetGroup) {
-                    registerButtonTooltip = "คุณไม่มีสิทธิ์ในการลงทะเบียนเนื่องจากบทบาทของคุณไม่ตรงกับกลุ่มเป้าหมาย";
+                    registerButtonTooltip = "คุณไม่มีสิทธิ์ในการลงทะเบียนเนื่องจากสถานะของคุณไม่ตรงกับกลุ่มเป้าหมาย";
                   }
 
 
                   return (
                     <div
                       key={cls.class_id}
-                      className="bg-white rounded-xl shadow-lg flex flex-col hover:shadow-xl transition-shadow duration-300 relative overflow-hidden cursor-pointer"
-                      onClick={() => handleOpenDescriptionModal(cls)}
+                      className="bg-white rounded-xl shadow-lg flex flex-col hover:shadow-xl transition-shadow duration-300 relative overflow-hidden"
                     >
                       <StatusBadge />
                       {isRegisterable && (
@@ -389,7 +419,7 @@ const ClassCatalog = () => {
                           {cls.title}
                         </h2>
                         <p className="text-xs text-gray-400 mb-4">
-                          ID: {cls.class_id}
+                          {/* Hidden Class ID */}
                         </p>
 
                         <div className="space-y-3 text-gray-700 text-sm mb-4 flex-grow">
@@ -484,7 +514,7 @@ const ClassCatalog = () => {
                                 <path
                                   fillRule="evenodd"
                                   d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                  clipRule="evenodd"
+                                  fillRule="evenodd"
                                 />
                               </svg>
                               <span>
@@ -543,7 +573,8 @@ const ClassCatalog = () => {
                               disabled={
                                 (!isRegistered && isFull) ||
                                   cls.status === "closed" ||
-                                  !isInTargetGroup
+                                  !isInTargetGroup ||
+                                  registeringId === cls.class_id
                               }
                               className={`py-2 px-4 rounded-md font-semibold text-white text-sm transition-colors duration-300 ${
                                   !isInTargetGroup
@@ -557,7 +588,15 @@ const ClassCatalog = () => {
                                   : "bg-blue-600 hover:bg-blue-700"
                               }`}
                             >
-                              {!isInTargetGroup
+                              {registeringId === cls.class_id ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  กำลังดำเนินการ...
+                                </div>
+                              ) : !isInTargetGroup
                                 ? "ไม่สามารถลงทะเบียนได้"
                                 : cls.status === "closed"
                                 ? "จบการสอนแล้ว"
@@ -574,6 +613,30 @@ const ClassCatalog = () => {
                   );
                 })}
               </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mt-8">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 border rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <span className="text-gray-700">
+                    หน้า {currentPage} จาก {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 border rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ถัดไป
+                  </button>
+                </div>
+              )}
+              </>
             ) : (
               <div className="text-center py-10 px-6 bg-white rounded-lg shadow-md">
                 <h3 className="text-xl font-semibold text-gray-700">

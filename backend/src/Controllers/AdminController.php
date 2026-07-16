@@ -27,7 +27,7 @@ class AdminController extends BaseController {
     }
 
     public function activityLogs() {
-        $this->requireAdminLevel(3);
+        $this->requireAdminLevel(2);
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $limit = isset($_GET['limit']) ? max(1, (int)$_GET['limit']) : 25;
         $search = $_GET['search'] ?? '';
@@ -78,46 +78,68 @@ class AdminController extends BaseController {
     }
 
     public function getTopics() {
-        $this->requireAdminLevel(3);
-        $stmt = $this->db->query("SELECT * FROM requestable_topics ORDER BY id DESC");
-        $this->respond($stmt->fetchAll());
+        try {
+            $this->requireAdminLevel(2);
+            $stmt = $this->db->query("SELECT * FROM requestable_topics ORDER BY id DESC");
+            $this->respond($stmt->fetchAll());
+        } catch (\Exception $e) {
+            http_response_code(500);
+            $this->respond(['error' => $e->getMessage()]);
+        }
     }
 
     public function createTopic() {
-        $this->requireAdminLevel(3);
-        $input = json_decode(file_get_contents('php://input'), true);
-        $title = $input['title'] ?? null;
-        if (!$title) {
-            http_response_code(400);
-            $this->respond(['message' => 'Title is required']);
-            return;
+        try {
+            $this->requireAdminLevel(2);
+            $input = json_decode(file_get_contents('php://input'), true);
+            $title = $input['title'] ?? null;
+            if (!$title) {
+                http_response_code(400);
+                $this->respond(['message' => 'Title is required']);
+                return;
+            }
+            $stmt = $this->db->prepare("INSERT INTO requestable_topics (title, is_active) VALUES (?, true)");
+            $stmt->execute([$title]);
+            http_response_code(201);
+            $this->respond(['message' => 'Topic created']);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            $this->respond(['error' => $e->getMessage()]);
         }
-        $stmt = $this->db->prepare("INSERT INTO requestable_topics (title, is_active) VALUES (?, true)");
-        $stmt->execute([$title]);
-        http_response_code(201);
-        $this->respond(['message' => 'Topic created']);
     }
 
     public function updateTopic($id) {
-        $this->requireAdminLevel(3);
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        if (isset($input['title'])) {
-            $stmt = $this->db->prepare("UPDATE requestable_topics SET title = ? WHERE id = ?");
-            $stmt->execute([$input['title'], $id]);
+        try {
+            $this->requireAdminLevel(2);
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            if (isset($input['title'])) {
+                $stmt = $this->db->prepare("UPDATE requestable_topics SET title = ? WHERE id = ?");
+                $stmt->execute([$input['title'], $id]);
+            }
+            if (isset($input['is_active'])) {
+                $stmt = $this->db->prepare("UPDATE requestable_topics SET is_active = ? WHERE id = ?");
+                // Convert boolean to integer for MySQL TINYINT
+                $isActive = $input['is_active'] ? 1 : 0;
+                $stmt->execute([$isActive, $id]);
+            }
+            $this->respond(['message' => 'Topic updated']);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            $this->respond(['error' => $e->getMessage()]);
         }
-        if (isset($input['is_active'])) {
-            $stmt = $this->db->prepare("UPDATE requestable_topics SET is_active = ? WHERE id = ?");
-            $stmt->execute([$input['is_active'], $id]);
-        }
-        $this->respond(['message' => 'Topic updated']);
     }
 
     public function deleteTopic($id) {
-        $this->requireAdminLevel(3);
-        $stmt = $this->db->prepare("DELETE FROM requestable_topics WHERE id = ?");
-        $stmt->execute([$id]);
-        $this->respond(['message' => 'Topic deleted']);
+        try {
+            $this->requireAdminLevel(2);
+            $stmt = $this->db->prepare("DELETE FROM requestable_topics WHERE id = ?");
+            $stmt->execute([$id]);
+            $this->respond(['message' => 'Topic deleted']);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            $this->respond(['error' => $e->getMessage()]);
+        }
     }
 
     public function logActivityEndpoint() {

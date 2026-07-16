@@ -52,7 +52,7 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
               <div className="text-center sm:text-left">
                 <p className="text-md font-bold text-blue-600">{user.name}</p>
                 <p className="text-md text-gray-600">{user.email}</p>
-                <p className="text-md text-gray-500 mt-1">{user.roles.join(", ")}</p>
+                <p className="text-md text-gray-500 mt-1">{Array.isArray(user.roles) ? user.roles.join(", ") : ""}</p>
                 <span
                   className={`px-2 mt-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     user.is_active

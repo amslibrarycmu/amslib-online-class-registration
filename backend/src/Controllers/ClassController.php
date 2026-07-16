@@ -121,7 +121,7 @@ class ClassController extends BaseController {
             return;
         }
 
-        $registeredEmails = json_decode($class['registered_users'], true) ?: [];
+        $registeredEmails = json_decode($class['registered_users'] ?? '[]', true) ?: [];
         if (!is_array($registeredEmails) || empty($registeredEmails)) {
             $this->respond([]);
             return;
@@ -262,7 +262,7 @@ class ClassController extends BaseController {
         $target_groups = $input['target_groups'] ?? $existing['target_groups'];
         $language = $input['language'] ?? $existing['language'];
         
-        $existingMaterials = json_decode($existing['materials'], true) ?: [];
+        $existingMaterials = json_decode($existing['materials'] ?? '[]', true) ?: [];
         $deletedMaterials = json_decode($input['deletedMaterials'] ?? '[]', true) ?: [];
         $remainingMaterials = array_values(array_filter($existingMaterials, function($m) use ($deletedMaterials) {
             return !in_array($m, $deletedMaterials);
@@ -310,8 +310,38 @@ class ClassController extends BaseController {
 
     public function close($classId) {
         $user = $this->requireAdminLevel(1);
-        $stmt = $this->db->prepare("UPDATE classes SET status = 'closed', promoted = FALSE WHERE class_id = ?");
-        $stmt->execute([$classId]);
+        
+        $videoLink = $_POST['video_link'] ?? null;
+        $existingMaterialsJson = $_POST['existing_materials'] ?? '[]';
+        $existingMaterials = json_decode($existingMaterialsJson, true) ?: [];
+
+        $materialFileNames = $existingMaterials;
+        
+        if (isset($_FILES['materials'])) {
+            $uploadDir = __DIR__ . '/../../public/uploads/materials/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+            
+            $files = $_FILES['materials'];
+            $fileCount = is_array($files['name']) ? count($files['name']) : 1;
+            
+            for ($i = 0; $i < $fileCount; $i++) {
+                $error = is_array($files['error']) ? $files['error'][$i] : $files['error'];
+                if ($error === UPLOAD_ERR_OK) {
+                    $name = is_array($files['name']) ? $files['name'][$i] : $files['name'];
+                    $tmpName = is_array($files['tmp_name']) ? $files['tmp_name'][$i] : $files['tmp_name'];
+                    
+                    $filename = time() . '-' . basename($name);
+                    move_uploaded_file($tmpName, $uploadDir . $filename);
+                    $materialFileNames[] = $filename;
+                }
+            }
+        }
+
+        $materialsJson = json_encode($materialFileNames);
+        
+        $stmt = $this->db->prepare("UPDATE classes SET status = 'closed', promoted = FALSE, video_link = ?, materials = ? WHERE class_id = ?");
+        $stmt->execute([$videoLink, $materialsJson, $classId]);
+        
         $this->respond(['message' => 'Class closed successfully.']);
     }
 
@@ -321,7 +351,7 @@ class ClassController extends BaseController {
         $stmt->execute([$classId]);
         $row = $stmt->fetch();
         if ($row && $row['materials']) {
-            $mats = json_decode($row['materials'], true) ?: [];
+            $mats = json_decode($row['materials'] ?? '[]', true) ?: [];
             foreach ($mats as $m) {
                 $path = __DIR__ . '/../../public/uploads/materials/' . $m;
                 if (file_exists($path)) unlink($path);
@@ -348,8 +378,8 @@ class ClassController extends BaseController {
                 return;
             }
 
-            $registeredUsers = json_decode($class['registered_users'], true) ?: [];
-
+            $registeredUsers = json_decode($class['registered_users'] ?? '[]', true) ?: [];
+            
             if ($class['max_participants'] != 999 && count($registeredUsers) >= $class['max_participants']) {
                 $this->db->rollBack();
                 http_response_code(409);
@@ -357,7 +387,8 @@ class ClassController extends BaseController {
                 return;
             }
 
-            if (in_array($user->email, $registeredUsers)) {
+            $emailsLower = array_map('strtolower', $registeredUsers);
+            if (in_array(strtolower($user->email), $emailsLower)) {
                 $this->db->rollBack();
                 http_response_code(409);
                 $this->respond(['message' => 'You are already registered for this class.']);
@@ -380,7 +411,7 @@ class ClassController extends BaseController {
                 
                 if (!empty($adminEmails)) {
                     $placeholders = implode(',', array_fill(0, count($registeredUsers), '?'));
-                    $stmtUsers = $this->db->prepare("SELECT name, email FROM users WHERE email IN ($placeholders)");
+                    $stmtUsers = $this->db->prepare("SELECT name, email FROM users WHERE email IN ($placeholders) GROUP BY email");
                     $stmtUsers->execute($registeredUsers);
                     $allRegisteredUsers = $stmtUsers->fetchAll();
                     
@@ -415,18 +446,20 @@ class ClassController extends BaseController {
                 return;
             }
 
-            $registeredUsers = json_decode($class['registered_users'], true) ?: [];
+            $registeredUsers = json_decode($class['registered_users'] ?? '[]', true) ?: [];
             
-            if (!in_array($user->email, $registeredUsers)) {
+            $emailsLower = array_map('strtolower', $registeredUsers);
+            if (!in_array(strtolower($user->email), $emailsLower)) {
                 $this->db->rollBack();
                 http_response_code(400);
                 $this->respond(['message' => 'You are not registered for this class.']);
                 return;
             }
             
-            $registeredUsers = array_values(array_filter($registeredUsers, function($e) use ($user) {
-                return $e !== $user->email;
-            }));
+            $registeredUsers = array_filter($registeredUsers, function($email) use ($user) {
+                return strtolower($email) !== strtolower($user->email);
+            });
+            $registeredUsers = array_values($registeredUsers);
             
             $updateStmt = $this->db->prepare("UPDATE classes SET registered_users = ? WHERE class_id = ?");
             $updateStmt->execute([json_encode($registeredUsers), $classId]);
@@ -443,7 +476,7 @@ class ClassController extends BaseController {
                     $allRegisteredUsers = [];
                     if (!empty($registeredUsers)) {
                         $placeholders = implode(',', array_fill(0, count($registeredUsers), '?'));
-                        $stmtUsers = $this->db->prepare("SELECT name, email FROM users WHERE email IN ($placeholders)");
+                        $stmtUsers = $this->db->prepare("SELECT name, email FROM users WHERE email IN ($placeholders) GROUP BY email");
                         $stmtUsers->execute($registeredUsers);
                         $allRegisteredUsers = $stmtUsers->fetchAll();
                     }

@@ -85,19 +85,28 @@ class EmailService {
     public function sendRegistrationConfirmation($recipientEmail, $classDetails, $studentName) {
         $backendUrl = $_ENV['BACKEND_URL'] ?? '';
 
+        $speaker = $classDetails['speaker'] ?? '';
+        $parsedSpeaker = is_string($speaker) ? json_decode($speaker, true) : $speaker;
+        $classSpeaker = is_array($parsedSpeaker) ? implode(', ', $parsedSpeaker) : $speaker;
+        if (empty($classSpeaker)) $classSpeaker = '-';
+
+        $targetGroups = $classDetails['target_groups'] ?? [];
+        $parsedTargetGroups = is_string($targetGroups) ? json_decode($targetGroups, true) : $targetGroups;
+        $classTargetGroup = is_array($parsedTargetGroups) && !empty($parsedTargetGroups) ? $parsedTargetGroups[0] : '-';
+
         $templateData = [
             'studentName' => $studentName,
             'classTitle' => $classDetails['title'] ?? '',
             'classDescription' => !empty($classDetails['description']) ? "<p style=\"font-style: italic; color: #555;\">{$classDetails['description']}</p>" : "",
             'classId' => $classDetails['class_id'] ?? '',
-            'classSpeaker' => is_string($classDetails['speaker']) ? (json_decode($classDetails['speaker'], true)[0] ?? '-') : ($classDetails['speaker'][0] ?? '-'),
+            'classSpeaker' => $classSpeaker,
             'classStartDate' => date('d M Y', strtotime($classDetails['start_date'] ?? 'now')),
             'classEndDate' => date('d M Y', strtotime($classDetails['end_date'] ?? 'now')),
             'classStartTime' => substr($classDetails['start_time'] ?? '', 0, 5),
             'classEndTime' => substr($classDetails['end_time'] ?? '', 0, 5),
             'classFormat' => $classDetails['format'] ?? '',
             'classLanguage' => $classDetails['language'] ?? "-",
-            'classTargetGroup' => is_string($classDetails['target_groups'] ?? '') ? (json_decode($classDetails['target_groups'], true)[0] ?? '-') : (($classDetails['target_groups'] ?? [''])[0] ?? '-'),
+            'classTargetGroup' => $classTargetGroup,
             'classLinkSection' => ($classDetails['format'] ?? '') !== "ONSITE" ? "<p><strong>ลิงก์เข้าร่วม:</strong> <a href=\"" . ($classDetails['join_link'] ?? '') . "\">" . ($classDetails['join_link'] ?? '') . "</a></p>" : "",
             'classLocationSection' => ($classDetails['format'] ?? '') !== "ONLINE" ? "<p><strong>สถานที่:</strong> " . ($classDetails['location'] ?? '') . "</p>" : "",
             'classMaterialsSection' => $this->createMaterialsSection($classDetails['materials'] ?? [], $backendUrl),
@@ -170,6 +179,41 @@ class EmailService {
         $subject = "[ระบบแจ้งเตือน] มีคำขอเปิดห้องเรียนใหม่ ชื่อ \"" . ($requestDetails['title'] ?? '') . "\"";
 
         $this->sendEmail(implode(', ', $adminEmails), $subject, $htmlContent);
+    }
+
+    public function sendClassReminder($toEmail, $classDetails, $userName) {
+        $backendUrl = $_ENV['BACKEND_URL'] ?? '';
+
+        $speaker = $classDetails['speaker'] ?? '';
+        $parsedSpeaker = is_string($speaker) ? json_decode($speaker, true) : $speaker;
+        $classSpeaker = is_array($parsedSpeaker) ? implode(', ', $parsedSpeaker) : $speaker;
+        if (empty($classSpeaker)) $classSpeaker = '-';
+
+        $targetGroups = $classDetails['target_groups'] ?? [];
+        $parsedTargetGroups = is_string($targetGroups) ? json_decode($targetGroups, true) : $targetGroups;
+        $classTargetGroup = is_array($parsedTargetGroups) && !empty($parsedTargetGroups) ? $parsedTargetGroups[0] : '-';
+
+        $templateData = [
+            'studentName' => $userName,
+            'classTitle' => $classDetails['title'] ?? '',
+            'classDescription' => !empty($classDetails['description']) ? "<p style=\"font-style: italic; color: #555;\">{$classDetails['description']}</p>" : "",
+            'classId' => $classDetails['class_id'] ?? '',
+            'classSpeaker' => $classSpeaker,
+            'classStartDate' => date('d M Y', strtotime($classDetails['start_date'] ?? 'now')),
+            'classEndDate' => date('d M Y', strtotime($classDetails['end_date'] ?? 'now')),
+            'classStartTime' => substr($classDetails['start_time'] ?? '', 0, 5),
+            'classEndTime' => substr($classDetails['end_time'] ?? '', 0, 5),
+            'classFormat' => $classDetails['format'] ?? '',
+            'classLanguage' => $classDetails['language'] ?? "-",
+            'classTargetGroup' => $classTargetGroup,
+            'classLinkSection' => ($classDetails['format'] ?? '') !== "ONSITE" ? "<p><strong>ลิงก์เข้าร่วม:</strong> <a href=\"" . ($classDetails['join_link'] ?? '') . "\">" . ($classDetails['join_link'] ?? '') . "</a></p>" : "",
+            'classLocationSection' => ($classDetails['format'] ?? '') !== "ONLINE" ? "<p><strong>สถานที่:</strong> " . ($classDetails['location'] ?? '') . "</p>" : "",
+            'classMaterialsSection' => $this->createMaterialsSection($classDetails['materials'] ?? [], $backendUrl),
+        ];
+        
+        $htmlContent = $this->loadTemplate('class-reminder', $templateData);
+        $subject = "แจ้งเตือนการเรียน: " . ($classDetails['title'] ?? '') . " (พรุ่งนี้)";
+        $this->sendEmail($toEmail, $subject, $htmlContent);
     }
 
     public function sendRequestSubmittedConfirmation($recipientEmail, $requestDetails, $requesterName) {

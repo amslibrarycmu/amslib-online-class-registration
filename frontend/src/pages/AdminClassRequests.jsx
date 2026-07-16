@@ -369,7 +369,7 @@ const AdminClassRequests = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen flex-col lg:flex-row">
         <Sidebar />
         <div className="flex-1 p-8 bg-gray-100 flex items-center justify-center">
           <p className="text-md text-black">กำลังโหลดคำขอห้องเรียน...</p>
@@ -380,7 +380,7 @@ const AdminClassRequests = () => {
 
   if (error) {
     return (
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen flex-col lg:flex-row">
         <Sidebar />
         <div className="flex-1 p-8 bg-gray-100 flex items-center justify-center text-red-500">
           <p className="text-md text-black">{error}</p>
@@ -394,9 +394,7 @@ const AdminClassRequests = () => {
       {isProcessing && <ProcessingOverlay />}
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 text-center">
-          ตรวจสอบคำขอ
-        </h1>
+
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
           <RejectionReasonModal
             isOpen={isRejectionModalOpen}
@@ -509,11 +507,11 @@ const AdminClassRequests = () => {
                         <div className="flex items-center gap-2">
                           <StatusBadge status={request.status} />
                           {request.status === "rejected" &&
-                            request.rejection_reason && (
+                            request.admin_notes && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleViewReason(request.rejection_reason)
+                                  handleViewReason(request.admin_notes)
                                 }}
                                 className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
                                 title="ดูเหตุผลที่ไม่อนุมัติ"
@@ -621,11 +619,11 @@ const AdminClassRequests = () => {
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <StatusBadge status={request.status} />
                       {request.status === "rejected" &&
-                        request.rejection_reason && (
+                        request.admin_notes && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleViewReason(request.rejection_reason)
+                              handleViewReason(request.admin_notes)
                             }}
                             className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
                             title="ดูเหตุผลที่ไม่อนุมัติ"

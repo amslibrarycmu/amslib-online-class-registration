@@ -3,7 +3,7 @@
   "name": "AMS Library Class Registration",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "logo.png",
       "type": "image/png",
       "sizes": "512x512"
     }

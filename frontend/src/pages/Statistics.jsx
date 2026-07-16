@@ -20,8 +20,8 @@ const Statistics = () => {
   const [endDate, setEndDate] = useState("");
 
   const allRoles = [
-    "นักศึกษาปริญญาตรี",
-    "นักศึกษาบัณฑิต",
+    "นักศึกษาระดับปริญญาตรี",
+    "นักศึกษาระดับบัณฑิตศึกษา",
     "อาจารย์/นักวิจัย",
     "บุคลากร",
   ];
@@ -33,6 +33,12 @@ const Statistics = () => {
 
   const [sortKey, setSortKey] = useState("start_date");
   const [sortOrder, setSortOrder] = useState("desc"); // Default to descending for newest classes first
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when filters or sorting changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [triggerSearchTerm, sortKey, sortOrder]);
 
   // --- แก้ไข: ใช้ useMemo เพื่อป้องกันการสร้าง object ใหม่ทุกครั้งที่ render ---
   const filters = useMemo(
@@ -119,7 +125,7 @@ const Statistics = () => {
           const lowerCaseSearchTerm = triggerSearchTerm.toLowerCase();
           return (
             classStat.title.toLowerCase().includes(lowerCaseSearchTerm) ||
-            classStat.class_id.toLowerCase().includes(lowerCaseSearchTerm)
+            (classStat.speaker && classStat.speaker.toLowerCase().includes(lowerCaseSearchTerm))
           );
         })
       : stats;
@@ -146,8 +152,8 @@ const Statistics = () => {
     if (roles.length === 0) return true; // No filter, always match
     if (roles.includes(status)) return true; // Direct match (e.g., "บุคลากร")
 
-    // If data has "นักศึกษา", match it if filter includes "นักศึกษาปริญญาตรี" or "นักศึกษาบัณฑิต"
-    if (status === "นักศึกษา" && (roles.includes("นักศึกษาปริญญาตรี") || roles.includes("นักศึกษาบัณฑิต"))) {
+    // If data has old "นักศึกษา" or "นักศึกษา/บุคคลทั่วไป", match it if filter includes either of the new student roles
+    if ((status === "นักศึกษา" || status === "นักศึกษา/บุคคลทั่วไป") && (roles.includes("นักศึกษาระดับปริญญาตรี") || roles.includes("นักศึกษาระดับบัณฑิตศึกษา"))) {
       return true;
     }
     return false;
@@ -333,8 +339,8 @@ const Statistics = () => {
       "ชื่อห้องเรียน",
       "วันที่เปิดสอน",
       "จำนวนผู้ลงทะเบียน",
-      "นักศึกษาปริญญาตรี (คน)",
-      "นักศึกษาบัณฑิต (คน)",
+      "นักศึกษาระดับปริญญาตรี (คน)",
+      "นักศึกษาระดับบัณฑิตศึกษา (คน)",
       "อาจารย์/นักวิจัย (คน)",
       "บุคลากร (คน)",
       "จำนวนผู้ประเมิน",
@@ -346,8 +352,8 @@ const Statistics = () => {
     ];
 
     const demographicsKeys = [
-      "นักศึกษาปริญญาตรี",
-      "นักศึกษาบัณฑิต",
+      "นักศึกษาระดับปริญญาตรี",
+      "นักศึกษาระดับบัณฑิตศึกษา",
       "อาจารย์/นักวิจัย",
       "บุคลากร",
     ];
@@ -413,8 +419,15 @@ const Statistics = () => {
     document.body.removeChild(link);
   };
 
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(filteredAndSortedStats.length / itemsPerPage);
+  const currentStats = filteredAndSortedStats.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
-    <div className="flex h-screen w-screen">
+    <div className="flex h-screen w-screen flex-col lg:flex-row">
       <StatisticsFilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
@@ -423,37 +436,12 @@ const Statistics = () => {
       />
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
-        <div className="flex justify-center items-center gap-x-4 mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-            สถิติ
-          </h1>
-          <button
-            onClick={handleDownloadCSV}
-            className="p-2 text-gray-600  rounded-3xl shadow-md hover:bg-gray-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all"
-            title="ดาวน์โหลดข้อมูล (CSV)"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-          </button>
-        </div>
 
         <div className="space-y-8">
           {/* Filters and Tools Card */}
           <div>
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-              {/* Left Side: Filter Info */}
+              {/* Left Side: Filter & Info */}
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsFilterModalOpen(true)}
@@ -471,29 +459,50 @@ const Statistics = () => {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span>ตัวกรอง</span>
+                  <span className="hidden sm:inline">ตัวกรอง</span>
                 </button>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 hidden md:block">
                   <span className="font-semibold">กำลังแสดง:</span>{" "}
                   {renderActiveFilter()}
                 </div>
               </div>
 
-              {/* Right Side: Search */}
+              {/* Right Side: Search & Export CSV */}
               <div className="flex items-center gap-2 w-full md:w-auto">
                 <input
                   id="search"
                   type="text"
-                  placeholder="ระบุ Class ID หรือชื่อห้องเรียน"
+                  placeholder="ค้นหาชื่อห้องเรียน หรือ ชื่อวิทยากร..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="block w-full md:w-72 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 />
                 <button
                   onClick={handleSearch}
-                  className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                  className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-md shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                 >
                   ค้นหา
+                </button>
+                <button
+                  onClick={handleDownloadCSV}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 border border-green-700 text-white font-semibold rounded-md shadow-sm hover:bg-green-700 focus:outline-none transition-colors"
+                  title="ดาวน์โหลดข้อมูล (CSV)"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  <span>ดาวน์โหลดสถิติ</span>
                 </button>
               </div>
             </div>
@@ -550,13 +559,19 @@ const Statistics = () => {
               {loading ? (
                 <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
               ) : (
-                <p className="text-4xl font-bold text-teal-600">
-                  {aggregatedEvaluationData
-                    ? overallAverageScore.toFixed(2)
-                    : "N/A"}
-                </p>
+                <div className="flex flex-col items-center">
+                  <p className="text-4xl font-bold text-teal-600">
+                    {aggregatedEvaluationData
+                      ? overallAverageScore.toFixed(2)
+                      : "N/A"}
+                  </p>
+                  {aggregatedEvaluationData && (
+                    <p className="text-gray-500 mt-1 text-sm font-medium bg-teal-50 px-3 py-1 rounded-full mt-2">
+                      คิดเป็น {((overallAverageScore / 5) * 100).toFixed(2)}%
+                    </p>
+                  )}
+                </div>
               )}
-              <p className="text-gray-500 mt-1"></p>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
@@ -595,7 +610,6 @@ const Statistics = () => {
                 className="block w-auto text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="start_date">วันที่เปิดสอน</option>
-                <option value="class_id">Class ID</option>
                 <option value="title">ชื่อห้องเรียน</option>
               </select>
               <button
@@ -621,8 +635,8 @@ const Statistics = () => {
                   <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
                 </div>
               ))
-            ) : filteredAndSortedStats.length > 0 ? (
-              filteredAndSortedStats.map((classStat) => (
+            ) : currentStats.length > 0 ? (
+              currentStats.map((classStat) => (
                 <div
                   key={classStat.class_id}
                   className="border-gray-200 rounded-lg shadow overflow-hidden mb-2"
@@ -634,10 +648,9 @@ const Statistics = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="text-lg font-bold text-purple-800">
-                          <span className="text-red-500 pr-1">
-                            {classStat.class_id}
-                          </span>{" "}
-                          {classStat.title}
+                          <span className="text-purple-800">
+                            {classStat.title}
+                          </span>
                         </h3>
                         <p className="text-sm text-gray-600 mt-1">
                           เปิดเมื่อ{" "}
@@ -694,10 +707,13 @@ const Statistics = () => {
                           <div className="flex flex-col h-auto w-full lg:w-1/2 min-w-[300px]">
                             {isLoading ? <p className="text-center mt-10">กำลังคำนวณคะแนน...</p> : 
                              totalEvaluations > 0 ? (
-                              <>
-                                <div className="mb-2">
+                                <>
+                                  <div className="mb-2">
                                   <span className="text-lg font-semibold text-teal-600">
                                     คะแนนเฉลี่ย (x̄) = {getClassAverageScore(avgScores)}
+                                  </span>
+                                  <span className="ml-2 text-sm text-gray-500 bg-teal-50 px-2 py-1 rounded-full">
+                                    ({((parseFloat(getClassAverageScore(avgScores)) / 5) * 100).toFixed(2)}%)
                                   </span>
                                 </div>
                                 <div className="h-80 relative">
@@ -725,6 +741,45 @@ const Statistics = () => {
               <p className="text-center text-gray-500 py-8">
                 ไม่พบข้อมูลห้องเรียนตามตัวกรองที่เลือก
               </p>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                <span className="text-sm text-gray-700">
+                  หน้า {currentPage} จาก {totalPages}
+                </span>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center transition-colors shadow-sm ${
+                      currentPage === 1
+                        ? "bg-gray-100 text-gray-400"
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                    }`}
+                    title="ก่อนหน้า"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center transition-colors shadow-sm ${
+                      currentPage === totalPages
+                        ? "bg-gray-100 text-gray-400"
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                    }`}
+                    title="ถัดไป"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -152,10 +152,10 @@ export default function ClassCreation() {
   };
 
   return (
-    <div className="w-screen flex h-screen">
+    <div className="w-screen flex h-screen flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 p-8 overflow-y-auto bg-gray-100">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">สร้าง</h1>
+
         <div className="flex flex-col md:flex-row gap-8 justify-center mb-8">
           {/* Card for creating a new class */}
           <div
@@ -211,9 +211,9 @@ export default function ClassCreation() {
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </div>
-            <h2 className="font-bold text-lg text-gray-800">สร้างใหม่จากรายการเดิม</h2>
+            <h2 className="font-bold text-lg text-gray-800">ใช้ข้อมูลเดิม</h2>
             <p className="text-sm text-gray-500 mt-1">
-              ใช้ข้อมูลจากห้องเรียนที่เคยสร้าง <br />หรือจากคำขอที่อนุมัติแล้ว
+              คัดลอกข้อมูลจากห้องเรียนที่เคยสร้าง <br />หรือจากคำขอที่อนุมัติแล้ว
             </p>
           </div>
         </div>
@@ -229,7 +229,7 @@ export default function ClassCreation() {
                 <div className="flex items-center gap-4 w-full sm:w-auto">
                   <input
                     type="text"
-                    placeholder="ค้นหา Class ID หรือชื่อห้องเรียน"
+                    placeholder="ค้นหาชื่อห้องเรียน..."
                     value={classSearchTerm}
                     onChange={(e) => setClassSearchTerm(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
@@ -251,25 +251,14 @@ export default function ClassCreation() {
                 ) : (
                   <ul className="space-y-2 max-h-96 overflow-y-auto">
                     {classesList.length > 0 ? (
-                      classesList
-                        .filter(
-                          (cls) =>
-                            cls.title
-                              .toLowerCase()
-                              .includes(classSearchTerm.toLowerCase()) ||
-                            cls.class_id
-                              .toString()
-                              .includes(classSearchTerm.toLowerCase())
-                        )
+                      Array.from(new Map(classesList.map(item => [item.title, item])).values())
+                        .filter((cls) => cls.title.toLowerCase().includes(classSearchTerm.toLowerCase()))
                         .map((cls) => (
                           <li
-                            key={cls.class_id} // Ensure key is here
+                            key={cls.class_id || cls.id} // Ensure key is here
                             className="flex bg-gray-50 p-4 rounded-lg shadow justify-between items-center hover:bg-gray-100 transition-colors"
                           >
                             <span className="text-wrap break-normal w-full mr-6">
-                              <span className="text-red-500 font-bold">
-                              {cls.class_id}
-                            </span>
                             <span className="text-purple-800 font-bold text-wrap ml-2">
                               {cls.title}
                             </span>

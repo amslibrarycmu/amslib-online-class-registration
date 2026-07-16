@@ -30,6 +30,8 @@ const ClassIndex = () => {
   const [closedClassSortKey, setClosedClassSortKey] = useState("start_date");
   const [sortOrder, setSortOrder] = useState("desc");
   const [closedClassSearchTerm, setClosedClassSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const sortedClasses = useMemo(() => {
     // Ensure all class_id are numbers and sort by start_date
@@ -57,7 +59,7 @@ const ClassIndex = () => {
           cls.title
             .toLowerCase()
             .includes(closedClassSearchTerm.toLowerCase()) ||
-          cls.class_id.toString().includes(closedClassSearchTerm.toLowerCase())
+          (cls.speaker && cls.speaker.toString().toLowerCase().includes(closedClassSearchTerm.toLowerCase()))
       );
     }
 
@@ -81,10 +83,7 @@ const ClassIndex = () => {
           return sortOrder === "asc"
             ? valA.localeCompare(valB)
             : valB.localeCompare(valA);
-        case "class_id":
-          valA = a.class_id;
-          valB = b.class_id;
-          break;
+
         case "speaker":
           valA = parseSpeaker(a.speaker);
           valB = parseSpeaker(b.speaker);
@@ -108,6 +107,12 @@ const ClassIndex = () => {
 
     return filtered;
   }, [closedClasses, closedClassSearchTerm, closedClassSortKey, sortOrder]);
+
+  const totalPages = Math.ceil(filteredClosedClasses.length / itemsPerPage);
+  const paginatedClosedClasses = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredClosedClasses.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredClosedClasses, currentPage, itemsPerPage]);
 
   // ฟังก์ชันสำหรับเรียกข้อมูล
   const fetchClasses = async () => {
@@ -207,7 +212,11 @@ const ClassIndex = () => {
       });
 
       if (response.ok) {
-        alert("✅ ปิดห้องเรียนและบันทึกข้อมูลสำเร็จ");
+        if (selectedClassToClose.status === 'closed') {
+          alert("✅ บันทึกข้อมูลสำเร็จ");
+        } else {
+          alert("✅ ปิดห้องเรียนและบันทึกข้อมูลสำเร็จ");
+        }
         handleCloseCloseClassModal();
         fetchClasses(); // Refresh the class list
       } else {
@@ -359,9 +368,7 @@ const ClassIndex = () => {
     <div className="flex h-screen w-screen flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-gray-100">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">
-          ห้องเรียน
-        </h1>
+
         <h2 className="font-bold mb-[10px] text-[1.25rem]">
           ห้องเรียนที่เปิดสอนได้
         </h2>
@@ -380,9 +387,7 @@ const ClassIndex = () => {
                   >
                     <div className="flex justify-between items-start">
                       <h3 className="font-semibold text-lg text-purple-800 justify-center">
-                        <strong className="text-red-500">
-                          {cls.class_id}{" "}
-                        </strong>{" "}
+
                         {"  "} {cls.title}
                       </h3>
                     </div>
@@ -474,7 +479,7 @@ const ClassIndex = () => {
               <div className="flex items-center gap-2 w-full sm:w-auto flex-grow">
                 <input
                   type="text"
-                  placeholder="ค้นหา Class ID หรือชื่อห้องเรียน"
+                  placeholder="ค้นหาชื่อห้องเรียน หรือ วิทยากร..."
                   value={closedClassSearchTerm}
                   onChange={(e) => setClosedClassSearchTerm(e.target.value)}
                   className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -493,7 +498,6 @@ const ClassIndex = () => {
                   onChange={(e) => setClosedClassSortKey(e.target.value)}
                   className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                 >
-                  <option value="class_id">Class ID</option>
                   <option value="title">ชื่อห้องเรียน</option>
                   <option value="speaker">วิทยากร</option>
                   <option value="start_date">วันที่เริ่ม</option>
@@ -517,16 +521,14 @@ const ClassIndex = () => {
               </p>
             ) : filteredClosedClasses.length > 0 ? (
               <ul className="space-y-4">
-                {filteredClosedClasses.map((cls) => (
+                {paginatedClosedClasses.map((cls) => (
                   <li
                     key={cls.class_id || cls.id}
                     className="bg-gray-50 p-4 rounded-lg shadow-md"
                   >
                     <div className="flex justify-between items-start">
                       <h3 className="font-semibold text-lg text-gray-600 justify-center">
-                        <strong className="text-red-500">
-                          {cls.class_id}{" "}
-                        </strong>{" "}
+
                         <strong className="text-purple-800">
                           {" "}
                           {"  "} {cls.title}{" "}
@@ -615,11 +617,11 @@ const ClassIndex = () => {
                           ผลการประเมิน
                         </button>
                         <button
-                          title="แก้ไข"
+                          title="จัดการเนื้อหา"
                           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none"
                           onClick={() => handleOpenCloseClassModal(cls)}
                         >
-                          แก้ไข
+                          จัดการเนื้อหา
                         </button>
                       </div>
                     </div>
@@ -630,7 +632,37 @@ const ClassIndex = () => {
               <p className="text-center text-gray-500 py-4">
                 ไม่พบห้องเรียนที่ตรงกับการค้นหา
               </p>
-            )}</div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center mt-6 space-x-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 border rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center transition-colors shadow-sm"
+                  title="ก่อนหน้า"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <span className="text-gray-700 font-medium">
+                  หน้า {currentPage} จาก {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 border rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center transition-colors shadow-sm"
+                  title="ถัดไป"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            </div>
       {isEditModalOpen && editingClass && (
         <ClassCreationModal
           mode="edit"

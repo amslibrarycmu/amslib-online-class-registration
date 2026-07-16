@@ -120,6 +120,16 @@ class AuthController {
             ];
             $jwt = JWT::encode($payload, $_ENV['JWT_SECRET'], 'HS256');
 
+            try {
+                $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+                $stmtLog = $pdo->prepare("INSERT INTO activity_logs (user_id, user_name, user_email, action_type, target_type, target_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmtLog->execute([
+                    $fullUser['id'], $fullUser['name'], $fullUser['email'], 'LOGIN', 'auth', null, json_encode(['method' => 'oauth']), $ip
+                ]);
+            } catch (\Exception $e) {
+                // Ignore log errors
+            }
+
             header("Location: $frontendUrl/login-callback?token=" . urlencode($jwt));
             exit;
         } else {
@@ -200,6 +210,16 @@ class AuthController {
                 "exp" => time() + (24 * 3600)
             ];
             $finalToken = JWT::encode($finalPayload, $_ENV['JWT_SECRET'], 'HS256');
+
+            try {
+                $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+                $stmtLog = $pdo->prepare("INSERT INTO activity_logs (user_id, user_name, user_email, action_type, target_type, target_id, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmtLog->execute([
+                    $newUserId, $name, $email, 'LOGIN', 'auth', null, json_encode(['method' => 'oauth_register']), $ip
+                ]);
+            } catch (\Exception $e) {
+                // Ignore log errors
+            }
 
             http_response_code(201);
             echo json_encode([

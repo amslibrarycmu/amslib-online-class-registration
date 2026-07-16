@@ -180,7 +180,7 @@ const TopicManagement = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen flex-col lg:flex-row">
         <Sidebar />
         <div className="flex-1 p-8 bg-gray-100 flex items-center justify-center">
           <p className="text-md text-black">กำลังโหลดข้อมูลหัวข้อ...</p>
@@ -191,7 +191,7 @@ const TopicManagement = () => {
 
   if (error) {
     return (
-      <div className="flex h-screen w-screen">
+      <div className="flex h-screen w-screen flex-col lg:flex-row">
         <Sidebar />
         <div className="flex-1 p-8 bg-gray-100 flex items-center justify-center text-red-500">
           <p className="text-md text-black">{error}</p>
@@ -204,7 +204,7 @@ const TopicManagement = () => {
     <div className="flex h-screen w-screen flex-col lg:flex-row">
       <Sidebar />
       <div className="flex-1 p-8 bg-gray-100 overflow-y-auto">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-center">จัดการหัวข้อ</h1>  
+
     
         <div className="bg-white p-6 rounded-lg shadow-md">
           {topics.length === 0 ? (

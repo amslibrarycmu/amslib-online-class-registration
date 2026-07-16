@@ -162,19 +162,19 @@ export const AuthProvider = ({ children }) => {
 
       if (response.status === 401) {
         logout();
-        window.location.href = "/login?reason=unauthorized";
+        window.location.href = import.meta.env.BASE_URL + "login?reason=unauthorized";
         throw new Error("Unauthorized");
       }
       if (response.status === 403) {
         try {
           const errorData = await response.json();
           if (errorData.code === 'PROFILE_INCOMPLETE') {
-            window.location.href = "/login?reason=incomplete_profile";
+            window.location.href = import.meta.env.BASE_URL + "login?reason=incomplete_profile";
             throw new Error("Profile Incomplete");
           }
         } catch (e) { /* Ignore */ }
         logout();
-        window.location.href = "/login?reason=forbidden";
+        window.location.href = import.meta.env.BASE_URL + "login?reason=forbidden";
         throw new Error("Forbidden");
       }
       return response;

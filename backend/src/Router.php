@@ -10,6 +10,8 @@ use App\Controllers\UserController;
 use App\Controllers\RequestController;
 use App\Controllers\AdminController;
 use App\Controllers\EvaluationController;
+use App\Controllers\CronController;
+use App\Controllers\ExportController;
 
 class Router {
     public function handle($method, $uri) {
@@ -56,12 +58,12 @@ class Router {
                         $controller->register($id);
                     } else if ($method === 'POST' && $id && $subResource === 'evaluate') {
                         $controller->evaluate($id);
+                    } else if (($method === 'PUT' || $method === 'POST') && $id && $subResource === 'close') {
+                        $controller->close($id);
                     } else if ($method === 'POST') {
                         $controller->create();
                     } else if ($method === 'PUT' && $id && $subResource === 'promote') {
                         $controller->promote($id);
-                    } else if ($method === 'PUT' && $id && $subResource === 'close') {
-                        $controller->close($id);
                     } else if ($method === 'PUT' && $id) {
                         $controller->update($id);
                     } else if ($method === 'DELETE' && $id && $subResource === 'cancel') {
@@ -162,6 +164,24 @@ class Router {
                     } else if ($id === 'classes') {
                         
                         $this->notFound();
+                    } else {
+                        $this->notFound();
+                    }
+                    break;
+
+                case 'cron':
+                    $controller = new CronController();
+                    if ($method === 'GET' && $id === 'reminders') {
+                        $controller->sendReminders();
+                    } else {
+                        $this->notFound();
+                    }
+                    break;
+
+                case 'export':
+                    $controller = new ExportController();
+                    if ($method === 'GET' && $id === 'classes') {
+                        $controller->exportClasses();
                     } else {
                         $this->notFound();
                     }

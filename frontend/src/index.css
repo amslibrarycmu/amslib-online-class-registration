@@ -6,3 +6,25 @@
 :root {
   font-family: "Sarabun", Avenir, Helvetica, Arial, sans-serif;
 }
+
+@layer base {
+  button, 
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  a {
+    cursor: default !important;
+  }
+}
+
+@layer utilities {
+  .cursor-pointer {
+    cursor: default !important;
+  }
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}

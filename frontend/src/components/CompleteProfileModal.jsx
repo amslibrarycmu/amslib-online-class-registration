@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import amsliblogo from "../assets/amslib-logo.svg";
+import PDPAModal from "./PDPAModal";
 
 const USER_ROLES = [
-  "นักศึกษาปริญญาตรี",
-  "นักศึกษาบัณฑิต",
+  "นักศึกษาระดับปริญญาตรี",
+  "นักศึกษาระดับบัณฑิตศึกษา",
   "อาจารย์/นักวิจัย",
   "บุคลากร",
 ];
@@ -18,6 +19,7 @@ const CompleteProfileModal = ({ isOpen, user, onSubmit, isSubmitting }) => {
   });
   const [errors, setErrors] = useState({});
   const [isNameEditable, setIsNameEditable] = useState(false);
+  const [isPDPAModalOpen, setIsPDPAModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -38,7 +40,7 @@ const CompleteProfileModal = ({ isOpen, user, onSubmit, isSubmitting }) => {
     const newErrors = {};
     if (isNameEditable && !formData.name.trim()) newErrors.name = "กรุณากรอกชื่อ-สกุล";
     if (formData.roles.length === 0)
-      newErrors.roles = "กรุณาเลือกบทบาทอย่างน้อย 1 อย่าง";
+      newErrors.roles = "กรุณาเลือกสถานะอย่างน้อย 1 อย่าง";
     if (!formData.phone.trim()) newErrors.phone = "กรุณากรอกเบอร์โทรศัพท์";
     if (!/^\d{9,10}$/.test(formData.phone))
       newErrors.phone = "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (9-10 หลัก)";
@@ -140,7 +142,7 @@ const CompleteProfileModal = ({ isOpen, user, onSubmit, isSubmitting }) => {
 
               <div>
                 <label className="block font-medium">
-                  บทบาท <span className="text-red-500">*</span>
+                  สถานะ <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 mt-2">
                   {USER_ROLES.map((role) => (
@@ -179,16 +181,26 @@ const CompleteProfileModal = ({ isOpen, user, onSubmit, isSubmitting }) => {
                 )}
               </div>
               <div>
-                <label className="flex items-start space-x-3">
+                <label className="flex items-start space-x-3 cursor-pointer">
                   <input
                     type="checkbox"
                     name="pdpa"
                     checked={formData.pdpa}
                     onChange={handleChange}
-                    className="h-5 w-5 mt-1 text-purple-600 focus:ring-purple-500"
+                    className="h-5 w-5 mt-1 text-purple-600 focus:ring-purple-500 cursor-pointer"
                   />
                   <span className="text-gray-700">
-                    ข้าพเจ้ายินยอมให้เก็บรวบรวมและใช้ข้อมูลส่วนบุคคลนี้เพื่อวัตถุประสงค์ในการลงทะเบียนและแจ้งข่าวสารที่เกี่ยวข้อง
+                    ข้าพเจ้ายินยอมให้เก็บรวบรวมและใช้ข้อมูลส่วนบุคคลนี้เพื่อวัตถุประสงค์ในการลงทะเบียนและแจ้งข่าวสารที่เกี่ยวข้อง{" "}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsPDPAModalOpen(true);
+                      }}
+                      className="text-purple-600 underline hover:text-purple-800 cursor-pointer"
+                    >
+                      (อ่านรายละเอียดนโยบายความเป็นส่วนตัว)
+                    </button>
                   </span>
                 </label>
                 {errors.pdpa && (
@@ -208,6 +220,9 @@ const CompleteProfileModal = ({ isOpen, user, onSubmit, isSubmitting }) => {
           </div>
         </form>
       </div>
+
+      {/* Render PDPAModal outside the main container to avoid nested z-index issues */}
+      <PDPAModal isOpen={isPDPAModalOpen} onClose={() => setIsPDPAModalOpen(false)} />
     </div>
   );
 };
