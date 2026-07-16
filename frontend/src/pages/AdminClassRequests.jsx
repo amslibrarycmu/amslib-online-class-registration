@@ -176,7 +176,7 @@ const RejectionReasonModal = ({
         <form onSubmit={handleSubmit}>
           <div className="p-6">
             <h3 className="text-lg font-bold text-black text-center mb-4">
-              ระบุเหตุผลที่ปฏิเสธคำขอ
+              โปรดระบุเหตุผล <span className="text-red-500">*</span>
             </h3>
             <textarea
               rows="4"
