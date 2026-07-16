@@ -31,7 +31,7 @@ const PDPAModal = ({ isOpen, onClose }) => {
             <h3 className="font-bold text-purple-800 mb-2 flex items-center gap-2">
               <span className="text-xl">📂</span> การเก็บรวบรวมข้อมูลส่วนบุคคล
             </h3>
-            <p className="mb-2">ในการเข้าใช้งานและลงทะเบียนเข้าร่วมกิจกรรม เรามีความจำเป็นต้องเก็บรวบรวมข้อมูลส่วนบุคคลของท่าน ได้แก่</p>
+            <p className="mb-2">ในการเข้าใช้งานและลงทะเบียนเรียน เรามีความจำเป็นต้องเก็บรวบรวมข้อมูลส่วนบุคคลของท่าน ได้แก่</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>ชื่อ-นามสกุล</li>
               <li>สถานภาพ (นักศึกษาหรือบุคลากรตำแหน่งใดๆ)</li>
