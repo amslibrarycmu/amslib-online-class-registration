@@ -211,7 +211,7 @@ export default function ClassCreation() {
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </div>
-            <h2 className="font-bold text-lg text-gray-800">ใช้ข้อมูลเดิม</h2>
+            <h2 className="font-bold text-lg text-gray-800">เรียกใช้ข้อมูลที่มี</h2>
             <p className="text-sm text-gray-500 mt-1">
               คัดลอกข้อมูลจากห้องเรียนที่เคยสร้าง <br />หรือจากคำขอที่อนุมัติแล้ว
             </p>
