@@ -105,6 +105,12 @@ class AuthController {
                 }
             }
 
+            if (!empty($fullUser['admin_level']) && $fullUser['admin_level'] > 0) {
+                if (!in_array("ผู้ดูแลระบบ", $roles)) {
+                    $roles[] = "ผู้ดูแลระบบ";
+                }
+            }
+
             $payload = [
                 "id" => $fullUser['id'],
                 "email" => $fullUser['email'],
