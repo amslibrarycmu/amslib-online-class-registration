@@ -165,7 +165,9 @@ class RequestController extends BaseController {
         $user = $this->requireAdminLevel(1);
         $sql = "
             SELECT cr.*, u.id as requested_by_id, 
-            u.name as requested_by_name, u.email as requested_by_email
+            u.name as requested_by_name, u.email as requested_by_email,
+            (SELECT user_name FROM activity_logs WHERE target_type = 'REQUEST' AND target_id = cr.request_id AND action IN ('APPROVE_CLASS_REQUEST', 'REJECT_CLASS_REQUEST') ORDER BY created_at DESC LIMIT 1) as action_by_name,
+            (SELECT user_id FROM activity_logs WHERE target_type = 'REQUEST' AND target_id = cr.request_id AND action IN ('APPROVE_CLASS_REQUEST', 'REJECT_CLASS_REQUEST') ORDER BY created_at DESC LIMIT 1) as action_by_id
             FROM class_requests cr
             LEFT JOIN users u ON cr.requested_by_email = u.email
             ORDER BY cr.created_at DESC
