@@ -11,16 +11,12 @@
     <strong>เวลา:</strong> {{classStartTime}} - {{classEndTime}} น.<br />
     <strong>รูปแบบ:</strong> {{classFormat}}<br />
     <strong>ภาษา:</strong> {{classLanguage}}<br />
-    <strong>รายละเอียด:</strong> {{classDescription}}
+    {{classDescriptionSection}}
   </p>
-  <p>
-    <a href="{{classLinkSection}}" target="_blank">{{classLinkSection}}</a>
-    <br />{{classLocationSection}}
-  </p>
-  <p style="margin-top: 20px;"><strong>เอกสารประกอบการสอน</strong></p>
-  <div>
-    {{classMaterialsSection}}
-  </div>
+  {{classLinkSection}}
+  {{classLocationSection}}
+  
+  {{classMaterialsSection}}
 
   <p><br />ห้องสมุดคณะเทคนิคการแพทย์</p>
   <p>

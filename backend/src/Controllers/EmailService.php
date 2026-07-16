@@ -97,7 +97,7 @@ class EmailService {
         $templateData = [
             'studentName' => $studentName,
             'classTitle' => $classDetails['title'] ?? '',
-            'classDescription' => !empty($classDetails['description']) ? "<p style=\"font-style: italic; color: #555;\">{$classDetails['description']}</p>" : "",
+            'classDescriptionSection' => !empty($classDetails['description']) ? "<strong>รายละเอียด:</strong> {$classDetails['description']}<br />" : "",
             'classId' => $classDetails['class_id'] ?? '',
             'classSpeaker' => $classSpeaker,
             'classStartDate' => date('d M Y', strtotime($classDetails['start_date'] ?? 'now')),
@@ -107,8 +107,8 @@ class EmailService {
             'classFormat' => $classDetails['format'] ?? '',
             'classLanguage' => $classDetails['language'] ?? "-",
             'classTargetGroup' => $classTargetGroup,
-            'classLinkSection' => ($classDetails['format'] ?? '') !== "ONSITE" ? "<p><strong>ลิงก์เข้าร่วม:</strong> <a href=\"" . ($classDetails['join_link'] ?? '') . "\">" . ($classDetails['join_link'] ?? '') . "</a></p>" : "",
-            'classLocationSection' => ($classDetails['format'] ?? '') !== "ONLINE" ? "<p><strong>สถานที่:</strong> " . ($classDetails['location'] ?? '') . "</p>" : "",
+            'classLinkSection' => ($classDetails['format'] ?? '') !== "ONSITE" && !empty($classDetails['join_link']) ? "<p><strong>ลิงก์เข้าร่วม:</strong> <a href=\"{$classDetails['join_link']}\" target=\"_blank\">{$classDetails['join_link']}</a></p>" : "",
+            'classLocationSection' => ($classDetails['format'] ?? '') !== "ONLINE" && !empty($classDetails['location']) ? "<p><strong>สถานที่:</strong> {$classDetails['location']}</p>" : "",
             'classMaterialsSection' => $this->createMaterialsSection($classDetails['materials'] ?? [], $backendUrl),
         ];
 
@@ -171,7 +171,7 @@ class EmailService {
             'requestTitle' => $requestDetails['title'] ?? 'ไม่มีชื่อเรื่อง',
             'requesterName' => $requestDetails['requested_by_name'] ?? 'ไม่พบชื่อ',
             'requesterEmail' => $requestDetails['user_email'] ?? 'ไม่พบอีเมล',
-            'requestReason' => $requestDetails['reason'] ?? "-",
+            'requestReasonSection' => !empty($requestDetails['reason']) ? "<strong>เหตุผล:</strong> {$requestDetails['reason']}<br />" : "",
             'requestDate' => date('d M Y'),
         ];
 
@@ -196,7 +196,7 @@ class EmailService {
         $templateData = [
             'studentName' => $userName,
             'classTitle' => $classDetails['title'] ?? '',
-            'classDescription' => !empty($classDetails['description']) ? "<p style=\"font-style: italic; color: #555;\">{$classDetails['description']}</p>" : "",
+            'classDescriptionSection' => !empty($classDetails['description']) ? "<strong>รายละเอียด:</strong> {$classDetails['description']}<br />" : "",
             'classId' => $classDetails['class_id'] ?? '',
             'classSpeaker' => $classSpeaker,
             'classStartDate' => date('d M Y', strtotime($classDetails['start_date'] ?? 'now')),
@@ -206,8 +206,8 @@ class EmailService {
             'classFormat' => $classDetails['format'] ?? '',
             'classLanguage' => $classDetails['language'] ?? "-",
             'classTargetGroup' => $classTargetGroup,
-            'classLinkSection' => ($classDetails['format'] ?? '') !== "ONSITE" ? "<p><strong>ลิงก์เข้าร่วม:</strong> <a href=\"" . ($classDetails['join_link'] ?? '') . "\">" . ($classDetails['join_link'] ?? '') . "</a></p>" : "",
-            'classLocationSection' => ($classDetails['format'] ?? '') !== "ONLINE" ? "<p><strong>สถานที่:</strong> " . ($classDetails['location'] ?? '') . "</p>" : "",
+            'classLinkSection' => ($classDetails['format'] ?? '') !== "ONSITE" && !empty($classDetails['join_link']) ? "<p><strong>ลิงก์เข้าร่วม:</strong> <a href=\"{$classDetails['join_link']}\" target=\"_blank\">{$classDetails['join_link']}</a></p>" : "",
+            'classLocationSection' => ($classDetails['format'] ?? '') !== "ONLINE" && !empty($classDetails['location']) ? "<p><strong>สถานที่:</strong> {$classDetails['location']}</p>" : "",
             'classMaterialsSection' => $this->createMaterialsSection($classDetails['materials'] ?? [], $backendUrl),
         ];
         
