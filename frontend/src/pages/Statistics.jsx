@@ -538,7 +538,7 @@ const Statistics = () => {
 
           {/* Summary Cards Container */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 จำนวนผู้เข้าเรียนทั้งหมด
               </h3>
@@ -552,15 +552,15 @@ const Statistics = () => {
               <p className="text-gray-500 mt-1">คน</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 คะแนนเฉลี่ยรวม (x̄)
               </h3>
               {loading ? (
-                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse mt-2"></div>
               ) : (
-                <div className="flex flex-col items-center">
-                  <p className="text-4xl font-bold text-teal-600">
+                <div className="flex flex-col items-center mt-2 mb-1">
+                  <p className="text-5xl font-bold text-teal-600">
                     {aggregatedEvaluationData
                       ? overallAverageScore.toFixed(2)
                       : "N/A"}
@@ -569,15 +569,15 @@ const Statistics = () => {
               )}
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 ร้อยละความพึงพอใจ
               </h3>
               {loading ? (
-                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse mt-2"></div>
               ) : (
-                <div className="flex flex-col items-center">
-                  <p className="text-4xl font-bold text-pink-500">
+                <div className="flex flex-col items-center mt-2 mb-1">
+                  <p className="text-5xl font-bold text-pink-500">
                     {aggregatedEvaluationData
                       ? `${((overallAverageScore / 5) * 100).toFixed(2)}%`
                       : "N/A"}
@@ -586,7 +586,7 @@ const Statistics = () => {
               )}
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 จบการสอนแล้ว
               </h3>
