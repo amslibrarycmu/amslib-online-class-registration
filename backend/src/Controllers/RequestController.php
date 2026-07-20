@@ -167,11 +167,11 @@ class RequestController extends BaseController {
 
         $sql = "
             SELECT cr.*, u1.id as requested_by_id, 
-            u1.name as requested_by_name, u1.email as requested_by_email,
-            u2.name as action_by_name, u2.id as action_by_id
+            u1.name as requested_by_name_u, u1.email as requested_by_email_u,
+            u2.name as action_by_name_u, u2.id as action_by_id
             FROM class_requests cr
-            LEFT JOIN users u1 ON cr.requested_by_email = u1.email
-            LEFT JOIN users u2 ON cr.action_by_email = u2.email
+            LEFT JOIN users u1 ON LOWER(TRIM(cr.requested_by_email)) = LOWER(TRIM(u1.email))
+            LEFT JOIN users u2 ON LOWER(TRIM(cr.action_by_email)) = LOWER(TRIM(u2.email))
         ";
 
         $params = [];
