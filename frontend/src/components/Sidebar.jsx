@@ -336,7 +336,7 @@ export default function Sidebar() {
               <>
                 <MenuLink to="/classes" label="หลักสูตรที่เปิดสอน" icon={<CalendarIcon />} />
                 <MenuLink to="/past-classes" label="ประวัติการอบรม" icon={<ClockIcon />} />
-                <MenuLink to="/class-request" label="เสนอหัวข้อใหม่" icon={<LightBulbIcon />} />
+                <MenuLink to="/class-request" label="สร้างคำขอเปิดหลักสูตร" icon={<LightBulbIcon />} />
               </>
             )}
           </div>
