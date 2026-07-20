@@ -571,13 +571,13 @@ const Statistics = () => {
 
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
-                % ความพึงพอใจ
+                ร้อยละความพึงพอใจ
               </h3>
               {loading ? (
                 <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
               ) : (
                 <div className="flex flex-col items-center">
-                  <p className="text-4xl font-bold text-teal-600">
+                  <p className="text-4xl font-bold text-rose-600">
                     {aggregatedEvaluationData
                       ? `${((overallAverageScore / 5) * 100).toFixed(2)}%`
                       : "N/A"}
