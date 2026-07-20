@@ -538,7 +538,7 @@ const Statistics = () => {
 
           {/* Summary Cards Container */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 จำนวนผู้เข้าเรียนทั้งหมด
               </h3>
@@ -552,7 +552,7 @@ const Statistics = () => {
               <p className="text-gray-500 mt-1">คน</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 คะแนนเฉลี่ยรวม (x̄)
               </h3>
@@ -569,7 +569,7 @@ const Statistics = () => {
               )}
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 ร้อยละความพึงพอใจ
               </h3>
@@ -586,7 +586,7 @@ const Statistics = () => {
               )}
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center justify-center h-full min-h-[140px]">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 จบการสอนแล้ว
               </h3>
