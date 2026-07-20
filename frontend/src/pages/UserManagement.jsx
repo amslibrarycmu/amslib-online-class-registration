@@ -152,7 +152,7 @@ const UserManagement = () => {
   };
 
   const handleViewAdminDetails = async (adminId) => {
-    if (!adminId) return;
+    if (adminId === undefined || adminId === null || adminId === '') return;
     setProcessing(true);
     try {
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${adminId}`);

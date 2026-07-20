@@ -343,7 +343,7 @@ const AdminClassRequests = () => {
   };
 
   const handleViewUser = async (userId) => {
-    if (!userId) {
+    if (userId === undefined || userId === null || userId === '') {
       alert("ไม่สามารถดูข้อมูลได้ เนื่องจากไม่พบรหัสผู้ใช้ในระบบ (อาจถูกลบหรือข้อมูลไม่เชื่อมโยง)");
       return;
     }
