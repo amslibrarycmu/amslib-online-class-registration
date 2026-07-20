@@ -537,7 +537,7 @@ const Statistics = () => {
           </div>
 
           {/* Summary Cards Container */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
               <h3 className="text-lg font-semibold text-gray-500 mb-2">
                 จำนวนผู้เข้าเรียนทั้งหมด
@@ -565,11 +565,23 @@ const Statistics = () => {
                       ? overallAverageScore.toFixed(2)
                       : "N/A"}
                   </p>
-                  {aggregatedEvaluationData && (
-                    <p className="text-gray-500 mt-1 text-sm font-medium bg-teal-50 px-3 py-1 rounded-full mt-2">
-                      คิดเป็น {((overallAverageScore / 5) * 100).toFixed(2)}%
-                    </p>
-                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+              <h3 className="text-lg font-semibold text-gray-500 mb-2">
+                % ความพึงพอใจ
+              </h3>
+              {loading ? (
+                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <p className="text-4xl font-bold text-teal-600">
+                    {aggregatedEvaluationData
+                      ? `${((overallAverageScore / 5) * 100).toFixed(2)}%`
+                      : "N/A"}
+                  </p>
                 </div>
               )}
             </div>
