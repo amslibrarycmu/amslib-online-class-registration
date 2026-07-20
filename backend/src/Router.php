@@ -46,29 +46,29 @@ class Router {
                         $controller->uniqueTitles();
                     } else if ($method === 'GET' && $id === 'registered' && $subResource === 'closed') {
                         $controller->registeredClosed();
-                    } else if ($method === 'GET' && $id && $subResource === 'registrants') {
+                    } else if ($method === 'GET' && $id !== null && $subResource === 'registrants') {
                         $controller->registrants($id);
-                    } else if ($method === 'GET' && $id && $subResource === 'evaluations') {
+                    } else if ($method === 'GET' && $id !== null && $subResource === 'evaluations') {
                         $controller->evaluations($id);
-                    } else if ($method === 'GET' && $id) {
+                    } else if ($method === 'GET' && $id !== null) {
                         $controller->show($id);
                     } else if ($method === 'GET') {
                         $controller->index();
-                    } else if ($method === 'POST' && $id && $subResource === 'register') {
+                    } else if ($method === 'POST' && $id !== null && $subResource === 'register') {
                         $controller->register($id);
-                    } else if ($method === 'POST' && $id && $subResource === 'evaluate') {
+                    } else if ($method === 'POST' && $id !== null && $subResource === 'evaluate') {
                         $controller->evaluate($id);
-                    } else if (($method === 'PUT' || $method === 'POST') && $id && $subResource === 'close') {
+                    } else if (($method === 'PUT' || $method === 'POST') && $id !== null && $subResource === 'close') {
                         $controller->close($id);
                     } else if ($method === 'POST') {
                         $controller->create();
-                    } else if ($method === 'PUT' && $id && $subResource === 'promote') {
+                    } else if ($method === 'PUT' && $id !== null && $subResource === 'promote') {
                         $controller->promote($id);
-                    } else if ($method === 'PUT' && $id) {
+                    } else if ($method === 'PUT' && $id !== null) {
                         $controller->update($id);
-                    } else if ($method === 'DELETE' && $id && $subResource === 'cancel') {
+                    } else if ($method === 'DELETE' && $id !== null && $subResource === 'cancel') {
                         $controller->cancelRegistration($id);
-                    } else if ($method === 'DELETE' && $id) {
+                    } else if ($method === 'DELETE' && $id !== null) {
                         $controller->delete($id);
                     } else {
                         $this->notFound();
@@ -81,15 +81,15 @@ class Router {
                         $controller->index();
                     } else if ($method === 'POST') {
                         $controller->create();
-                    } else if ($method === 'PUT' && $id && $subResource === 'approve') {
+                    } else if ($method === 'PUT' && $id !== null && $subResource === 'approve') {
                         $controller->approve($id);
-                    } else if ($method === 'PUT' && $id && $subResource === 'reject') {
+                    } else if ($method === 'PUT' && $id !== null && $subResource === 'reject') {
                         $controller->reject($id);
-                    } else if ($method === 'PUT' && $id && $subResource === 'resubmit') {
+                    } else if ($method === 'PUT' && $id !== null && $subResource === 'resubmit') {
                         $controller->resubmit($id);
-                    } else if ($method === 'PUT' && $id) {
+                    } else if ($method === 'PUT' && $id !== null) {
                         $controller->update($id);
-                    } else if ($method === 'DELETE' && $id) {
+                    } else if ($method === 'DELETE' && $id !== null) {
                         $controller->delete($id);
                     } else {
                         $this->notFound();
@@ -102,9 +102,9 @@ class Router {
                         $controller->index();
                     } else if ($method === 'POST') {
                         $controller->create();
-                    } else if ($method === 'PUT' && $id) {
+                    } else if ($method === 'PUT' && $id !== null) {
                         $controller->update($id);
-                    } else if ($method === 'DELETE' && $id) {
+                    } else if ($method === 'DELETE' && $id !== null) {
                         $controller->delete($id);
                     } else {
                         $this->notFound();
@@ -212,7 +212,7 @@ class Router {
                         $controller->revokeAdmin($subResource);
                     } else if ($method === 'GET' && $id === 'photo') {
                         $controller->getPhoto($subResource);
-                    } else if ($method === 'GET' && $id) {
+                    } else if ($method === 'GET' && $id !== null) {
                         $controller->show($id);
                     } else if ($method === 'GET') {
                         $controller->index();
@@ -222,11 +222,11 @@ class Router {
                         $controller->uploadPhoto(); 
                     } else if ($method === 'DELETE' && $id === 'profile-picture') {
                         $controller->deletePhoto();
-                    } else if ($method === 'PUT' && $id && $subResource === 'roles') {
+                    } else if ($method === 'PUT' && $id !== null && $subResource === 'roles') {
                         $controller->updateRoles($id);
-                    } else if ($method === 'PUT' && $id && $subResource === 'status') {
+                    } else if ($method === 'PUT' && $id !== null && $subResource === 'status') {
                         $controller->updateStatus($id);
-                    } else if ($method === 'DELETE' && $id) {
+                    } else if ($method === 'DELETE' && $id !== null) {
                         $controller->delete($id);
                     } else {
                         $this->notFound();
