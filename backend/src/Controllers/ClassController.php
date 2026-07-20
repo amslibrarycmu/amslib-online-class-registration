@@ -102,7 +102,20 @@ class ClassController extends BaseController {
 
     public function registeredClosed() {
         $user = $this->authenticate();
-        $email = $_GET['email'] ?? $user->email;
+        
+        $email = null;
+        if (isset($_GET['email'])) {
+            $email = $_GET['email'];
+        } else {
+            $uriParts = parse_url($_SERVER['REQUEST_URI']);
+            if (isset($uriParts['query'])) {
+                parse_str($uriParts['query'], $query);
+                if (isset($query['email'])) {
+                    $email = $query['email'];
+                }
+            }
+        }
+        $email = $email ?? $user->email;
         
         if ($email !== $user->email) {
             $this->requireAdminLevel(1);
