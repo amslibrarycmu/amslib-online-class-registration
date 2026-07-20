@@ -507,11 +507,11 @@ const AdminClassRequests = () => {
                         <div className="flex items-center gap-2">
                           <StatusBadge status={request.status} />
                           {request.status === "rejected" &&
-                            request.admin_notes && (
+                            (request.admin_notes || request.admin_comment) && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleViewReason(request.admin_notes)
+                                  handleViewReason(request.admin_notes || request.admin_comment)
                                 }}
                                 className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
                                 title="ดูเหตุผลที่ไม่สามารถดำเนินการได้"
@@ -619,11 +619,11 @@ const AdminClassRequests = () => {
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <StatusBadge status={request.status} />
                       {request.status === "rejected" &&
-                        request.admin_notes && (
+                        (request.admin_notes || request.admin_comment) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleViewReason(request.admin_notes)
+                              handleViewReason(request.admin_notes || request.admin_comment)
                             }}
                             className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
                             title="ดูเหตุผลที่ไม่สามารถดำเนินการได้"

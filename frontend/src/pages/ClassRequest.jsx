@@ -680,10 +680,10 @@ const ClassRequest = () => {
                         )} น.
                       </p>
                       <div className="flex justify-end items-center gap-2 mt-3 pt-3 border-t border-gray-200">
-                        {request.status === "rejected" && request.admin_notes && (
+                        {request.status === "rejected" && (request.admin_notes || request.admin_comment) && (
                           <button
                             onClick={() => {
-                              setReasonToView(request.admin_notes);
+                              setReasonToView(request.admin_notes || request.admin_comment);
                               setIsViewReasonModalOpen(true);
                             }}
                             className="text-red-500 hover:text-red-700 p-1 rounded-full transition-colors"
