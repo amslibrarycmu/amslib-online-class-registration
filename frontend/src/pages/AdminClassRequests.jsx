@@ -343,7 +343,10 @@ const AdminClassRequests = () => {
   };
 
   const handleViewUser = async (userId) => {
-    if (!userId) return;
+    if (!userId) {
+      alert("ไม่สามารถดูข้อมูลได้ เนื่องจากไม่พบรหัสผู้ใช้ในระบบ (อาจถูกลบหรือข้อมูลไม่เชื่อมโยง)");
+      return;
+    }
     try {
       setLoading(true);
       const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}`);
