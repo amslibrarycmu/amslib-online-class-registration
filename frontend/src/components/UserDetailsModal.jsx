@@ -123,7 +123,7 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
           </div>
         </div>
 
-        <div className="p-4 bg-gray-50 rounded-b-lg flex justify-end">
+        <div className="p-4 bg-gray-50 rounded-b-lg flex justify-center gap-4">
           <button
             onClick={onClose}
             className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors"

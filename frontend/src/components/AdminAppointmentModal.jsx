@@ -177,7 +177,7 @@ const AdminAppointmentModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
           </div>
 
-          <div className="bg-gray-50 px-6 py-4 flex justify-end gap-4">
+          <div className="bg-gray-50 px-6 py-4 flex justify-center gap-4">
             <button type="button" onClick={handleClose} className="px-6 py-2 rounded bg-gray-300 hover:bg-gray-400">
               ยกเลิก
             </button>

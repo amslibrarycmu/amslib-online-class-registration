@@ -65,7 +65,7 @@ const RegistrantsModal = ({ isOpen, onClose, classData }) => {
           )}
         </div>
 
-        <div className="flex justify-end pt-4 mt-4 border-t">
+        <div className="flex justify-center pt-4 mt-4 border-t gap-4">
             <button 
                 onClick={onClose} 
                 className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded transition-colors duration-300"

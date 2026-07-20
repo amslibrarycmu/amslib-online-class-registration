@@ -209,7 +209,7 @@ const CompleteProfileModal = ({ isOpen, user, onSubmit, isSubmitting }) => {
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 px-6 py-4 flex justify-end">
+          <div className="bg-gray-50 px-6 py-4 flex justify-center gap-4">
             <button
               type="submit"
               disabled={isSubmitting}

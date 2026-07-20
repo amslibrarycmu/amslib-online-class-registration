@@ -299,7 +299,7 @@ const StatisticsFilterModal = ({
           </div>
         </div>
 
-        <div className="bg-gray-50 px-6 py-4 flex justify-between rounded-b-lg">
+        <div className="bg-gray-50 px-6 py-4 flex justify-center gap-4 rounded-b-lg">
           <button
             type="button"
             onClick={handleReset}

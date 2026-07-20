@@ -25,7 +25,7 @@ const DescriptionModal = ({ isOpen, onClose, title, description }) => {
             )}
           </div>
         </div>
-        <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse">
+        <div className="bg-gray-50 px-4 py-3 sm:px-6 flex justify-center gap-4">
           <button
             type="button"
             onClick={onClose}

@@ -21,7 +21,7 @@ const FileViewerModal = ({ isOpen, onClose, files, classTitle }) => {
             </li>
           ))}
         </ul>
-        <div className="flex justify-end">
+        <div className="flex justify-center gap-4">
           <button 
             onClick={onClose} 
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"

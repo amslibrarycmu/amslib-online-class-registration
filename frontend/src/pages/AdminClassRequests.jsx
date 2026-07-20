@@ -109,7 +109,7 @@ const RequestDetailModal = ({ request, onClose }) => {
             </div>
           </dl>
         </div>
-        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+        <div className="bg-gray-50 px-4 py-3 sm:px-6 flex justify-center gap-4">
           <button
             type="button"
             onClick={onClose}
@@ -137,7 +137,7 @@ const ViewReasonModal = ({ isOpen, onClose, reason }) => {
             {reason}
           </p>
         </div>
-        <div className="bg-gray-100 px-4 py-3 sm:px-6 flex flex-row-reverse rounded-b-lg">
+        <div className="bg-gray-100 px-4 py-3 sm:px-6 flex justify-center gap-4 rounded-b-lg">
           <button
             type="button"
             onClick={onClose}
@@ -187,7 +187,7 @@ const RejectionReasonModal = ({
               required
             ></textarea>
           </div>
-          <div className="bg-gray-100 px-4 py-3 sm:px-6 flex flex-row-reverse rounded-b-lg">
+          <div className="bg-gray-100 px-4 py-3 sm:px-6 flex justify-center gap-4 rounded-b-lg">
             <button
               type="submit"
               disabled={isSubmitting}

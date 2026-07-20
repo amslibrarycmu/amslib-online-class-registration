@@ -130,7 +130,7 @@ const CloseClassModal = ({ isOpen, onClose, onSubmit, classData, isEditing = fal
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 mt-8">
+          <div className="flex justify-center gap-4 mt-8">
             <button
               type="button"
               onClick={onClose}
