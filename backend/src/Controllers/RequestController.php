@@ -163,6 +163,8 @@ class RequestController extends BaseController {
 
     public function adminIndex() {
         $user = $this->requireAdminLevel(1);
+        $status = $_GET['status'] ?? null;
+
         $sql = "
             SELECT cr.*, u1.id as requested_by_id, 
             u1.name as requested_by_name, u1.email as requested_by_email,
@@ -170,10 +172,18 @@ class RequestController extends BaseController {
             FROM class_requests cr
             LEFT JOIN users u1 ON cr.requested_by_email = u1.email
             LEFT JOIN users u2 ON cr.action_by_email = u2.email
-            ORDER BY cr.created_at DESC
         ";
+
+        $params = [];
+        if ($status) {
+            $sql .= " WHERE cr.status = ?";
+            $params[] = $status;
+        }
+
+        $sql .= " ORDER BY cr.created_at DESC";
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
         $this->respond($stmt->fetchAll());
     }
 
