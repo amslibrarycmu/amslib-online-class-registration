@@ -576,7 +576,7 @@ const Statistics = () => {
               ) : (
                 <p className="text-4xl font-bold text-pink-500">
                   {aggregatedEvaluationData
-                    ? `${((overallAverageScore / 5) * 100).toFixed(2)}%`
+                    ? ((overallAverageScore / 5) * 100).toFixed(2)
                     : "N/A"}
                 </p>
               )}
