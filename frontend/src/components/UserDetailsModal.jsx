@@ -75,18 +75,18 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
                 </div>
                 <div className="py-1 sm:grid sm:grid-cols-3 sm:gap-4">
                   <dt className="text-sm font-medium text-gray-500">PDPA</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{user.pdpa === 1 ? 'ยอมรับแล้ว' : 'ยังไม่ยอมรับ'}</dd>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{user.pdpa ? 'ยอมรับแล้ว' : 'ยังไม่ยอมรับ'}</dd>
                 </div>
                 <div className="py-1 sm:grid sm:grid-cols-3 sm:gap-4">
                   <dt className="text-sm font-medium text-gray-500">สร้างเมื่อ</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user.created_at ? new Date(user.created_at).toLocaleString('th-TH') : '-'}
+                    {user.created_at ? new Date(user.created_at.replace(' ', 'T') + 'Z').toLocaleString('th-TH') : '-'}
                   </dd>
                 </div>
                 <div className="py-1 sm:grid sm:grid-cols-3 sm:gap-4">
                   <dt className="text-sm font-medium text-gray-500">อัปเดตล่าสุด</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {user.updated_at ? new Date(user.updated_at).toLocaleString('th-TH') : '-'}
+                    {user.updated_at ? new Date(user.updated_at.replace(' ', 'T') + 'Z').toLocaleString('th-TH') : '-'}
                   </dd>
                 </div>
               </dl>

@@ -102,7 +102,12 @@ class ClassController extends BaseController {
 
     public function registeredClosed() {
         $user = $this->authenticate();
-        $email = $user->email;
+        $email = $_GET['email'] ?? $user->email;
+        
+        if ($email !== $user->email) {
+            $this->requireAdminLevel(1);
+        }
+
         $sql = "SELECT * FROM classes WHERE status = 'closed' AND JSON_CONTAINS(registered_users, ?)";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['"' . $email . '"']);
