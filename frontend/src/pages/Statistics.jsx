@@ -557,15 +557,13 @@ const Statistics = () => {
                 คะแนนเฉลี่ยรวม (x̄)
               </h3>
               {loading ? (
-                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse mt-2"></div>
+                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
               ) : (
-                <div className="flex flex-col items-center mt-2 mb-1">
-                  <p className="text-4xl font-bold text-teal-600">
-                    {aggregatedEvaluationData
-                      ? overallAverageScore.toFixed(2)
-                      : "N/A"}
-                  </p>
-                </div>
+                <p className="text-4xl font-bold text-teal-600">
+                  {aggregatedEvaluationData
+                    ? overallAverageScore.toFixed(2)
+                    : "N/A"}
+                </p>
               )}
             </div>
 
@@ -574,15 +572,13 @@ const Statistics = () => {
                 ร้อยละความพึงพอใจ
               </h3>
               {loading ? (
-                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse mt-2"></div>
+                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
               ) : (
-                <div className="flex flex-col items-center mt-2 mb-1">
-                  <p className="text-4xl font-bold text-pink-500">
-                    {aggregatedEvaluationData
-                      ? `${((overallAverageScore / 5) * 100).toFixed(2)}%`
-                      : "N/A"}
-                  </p>
-                </div>
+                <p className="text-4xl font-bold text-pink-500">
+                  {aggregatedEvaluationData
+                    ? `${((overallAverageScore / 5) * 100).toFixed(2)}%`
+                    : "N/A"}
+                </p>
               )}
             </div>
 
