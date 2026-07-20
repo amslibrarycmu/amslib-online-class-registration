@@ -577,7 +577,7 @@ const Statistics = () => {
                 <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
               ) : (
                 <div className="flex flex-col items-center">
-                  <p className="text-4xl font-bold text-rose-600">
+                  <p className="text-4xl font-bold text-pink-500">
                     {aggregatedEvaluationData
                       ? `${((overallAverageScore / 5) * 100).toFixed(2)}%`
                       : "N/A"}
