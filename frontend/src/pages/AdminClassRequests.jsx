@@ -11,15 +11,15 @@ const StatusBadge = ({ status }) => {
 
   switch (status) {
     case "pending":
-      statusText = "รอ";
+      statusText = "รอดำเนินการ";
       statusStyle = "bg-orange-400";
       break;
     case "approved":
-      statusText = "อนุมัติ";
+      statusText = "อนุมัติแล้ว";
       statusStyle = "bg-green-600";
       break;
     case "rejected":
-      statusText = "ไม่อนุมัติ";
+      statusText = "ไม่สามารถดำเนินการได้";
       statusStyle = "bg-red-600";
       break;
     default:
@@ -131,7 +131,7 @@ const ViewReasonModal = ({ isOpen, onClose, reason }) => {
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="p-6">
           <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">
-            เหตุผลที่ไม่อนุมัติ
+            เหตุผลที่ไม่สามารถดำเนินการได้
           </h3>
           <p className="text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded-md">
             {reason}
@@ -428,7 +428,7 @@ const AdminClassRequests = () => {
                 อนุมัติแล้ว
               </button>
               <button onClick={() => setFilterStatus("rejected")} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm focus:outline-none ${filterStatus === "rejected" ? "border-purple-500 text-purple-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"}`}>
-                ไม่อนุมัติ
+                ไม่สามารถดำเนินการได้
               </button>
             </nav>
           </div>
@@ -514,7 +514,7 @@ const AdminClassRequests = () => {
                                   handleViewReason(request.admin_notes)
                                 }}
                                 className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
-                                title="ดูเหตุผลที่ไม่อนุมัติ"
+                                title="ดูเหตุผลที่ไม่สามารถดำเนินการได้"
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -626,7 +626,7 @@ const AdminClassRequests = () => {
                               handleViewReason(request.admin_notes)
                             }}
                             className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
-                            title="ดูเหตุผลที่ไม่อนุมัติ"
+                            title="ดูเหตุผลที่ไม่สามารถดำเนินการได้"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"

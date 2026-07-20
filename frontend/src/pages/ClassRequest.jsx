@@ -8,15 +8,15 @@ const StatusBadge = ({ status }) => {
 
   switch (status) {
     case "pending":
-      statusText = "รอตรวจสอบ";
+      statusText = "รอดำเนินการ";
       statusStyle = "bg-yellow-100 text-yellow-800";
       break;
     case "approved":
-      statusText = "อนุมัติ";
+      statusText = "อนุมัติแล้ว";
       statusStyle = "bg-green-100 text-green-800";
       break;
     case "rejected":
-      statusText = "ไม่อนุมัติ";
+      statusText = "ไม่สามารถดำเนินการได้";
       statusStyle = "bg-red-100 text-red-800";
       break;
     default:
@@ -30,6 +30,34 @@ const StatusBadge = ({ status }) => {
     >
       {statusText}
     </span>
+  );
+};
+
+const ViewReasonModal = ({ isOpen, onClose, reason }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-white/85 flex justify-center items-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">
+            เหตุผลที่ไม่สามารถดำเนินการได้
+          </h3>
+          <p className="text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded-md">
+            {reason}
+          </p>
+        </div>
+        <div className="bg-gray-100 px-4 py-3 sm:px-6 flex flex-row-reverse rounded-b-lg">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-600 text-base font-medium text-white hover:bg-gray-800 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+          >
+            ปิด
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -50,6 +78,8 @@ const ClassRequest = () => {
   const [classTitles, setClassTitles] = useState([]);
   const [otherTopic, setOtherTopic] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isViewReasonModalOpen, setIsViewReasonModalOpen] = useState(false);
+  const [reasonToView, setReasonToView] = useState("");
 
   const startDateRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -649,12 +679,21 @@ const ClassRequest = () => {
                           }
                         )} น.
                       </p>
-                      {request.status === "rejected" && request.admin_notes && (
-                        <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-md text-sm text-red-700">
-                          <span className="font-bold">เหตุผล:</span> {request.admin_notes}
-                        </div>
-                      )}
                       <div className="flex justify-end items-center gap-2 mt-3 pt-3 border-t border-gray-200">
+                        {request.status === "rejected" && request.admin_notes && (
+                          <button
+                            onClick={() => {
+                              setReasonToView(request.admin_notes);
+                              setIsViewReasonModalOpen(true);
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1 rounded-full transition-colors"
+                            title="ดูเหตุผลที่ไม่สามารถดำเนินการได้"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleRequestClick(request)}
                           className="text-blue-500 hover:text-blue-700 p-1 rounded-full transition-colors"
@@ -726,6 +765,11 @@ const ClassRequest = () => {
           </div>
         </div>
       </div>
+      <ViewReasonModal
+        isOpen={isViewReasonModalOpen}
+        onClose={() => setIsViewReasonModalOpen(false)}
+        reason={reasonToView}
+      />
     </div>
   );
 };
